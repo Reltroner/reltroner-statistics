@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { m } from 'motion/react';
+import { MotionRoot, useMotionTransition } from '../motion/MotionRoot.tsx';
 import { DEFAULT_IMPACT_TYPES, EDGE_DESCRIPTIONS, PROPAGATION, traverseImpact, type EdgeType, type GraphSide, type KnowledgeGraph } from '../../domain/graph.ts';
 import { loadGraph, TYPE_LABEL } from './graph-client.ts';
 
@@ -10,6 +12,11 @@ const PRESETS = [
 const PROPAGATING = (Object.keys(PROPAGATION) as EdgeType[]).filter((t) => PROPAGATION[t] !== 'none');
 
 export default function ImpactExplorer() {
+  return <MotionRoot><Impact /></MotionRoot>;
+}
+
+function Impact() {
+  const motionT = useMotionTransition('content');
   const [graph, setGraph] = useState<KnowledgeGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [origin, setOrigin] = useState('');
@@ -76,7 +83,7 @@ export default function ImpactExplorer() {
         <label className="flex items-center gap-2"><input type="checkbox" checked={includeRemodeling} onChange={(e) => setIncludeRemodeling(e.target.checked)} />Include remodeling-only edges</label>
         <label><span className="rs-label">Maximum depth: {depth}</span><input type="range" min={1} max={6} value={depth} onChange={(e) => setDepth(Number(e.target.value))} className="w-full" /></label>
       </aside>
-      <section className="min-w-0" aria-live="polite">
+      <m.section key={`${origin}-${depth}-${[...types].join()}-${includeRemodeling}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={motionT} className="min-w-0" aria-live="polite">
         <p className="rs-eyebrow">If this changes</p>
         <h2 className="rs-h2 mt-1 [overflow-wrap:anywhere]">{o?.label ?? origin}</h2>
         <p className="mt-1 text-sm text-ink-3">{o ? `${TYPE_LABEL[o.type]} · ${o.side}` : ''} · {result.direct.length} direct, {result.transitive.length} transitive{result.truncated ? ' · stopped at depth or size bound' : ''}</p>
@@ -88,7 +95,7 @@ export default function ImpactExplorer() {
             {result.transitive.length ? <ul className="mt-3 grid gap-2">{result.transitive.map((h) => <Hit key={h.node} h={h} />)}</ul> : <p className="mt-3 text-sm text-ink-3">No further propagation within depth {depth}.</p>}
           </div>
         </div>
-      </section>
+      </m.section>
     </div>
   );
 }

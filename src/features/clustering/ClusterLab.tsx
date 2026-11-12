@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { AnimatePresence, m } from 'motion/react';
+import { MotionRoot, useMotionTransition } from '../motion/MotionRoot.tsx';
 import EChart from '../charts/EChart.tsx';
 import { axisStyle, esc, SYMBOLS, tooltipStyle, type ChartTheme } from '../charts/theme.ts';
 
@@ -13,7 +15,12 @@ interface Clustering {
 }
 interface Props { clustering: Clustering; names: Record<string, string>; labels: Record<string, string> }
 
-export default function ClusterLab({ clustering: c, names, labels }: Props) {
+export default function ClusterLab(props: Props) {
+  return <MotionRoot><Lab {...props} /></MotionRoot>;
+}
+
+function Lab({ clustering: c, names, labels }: Props) {
+  const motionT = useMotionTransition('content');
   const [algo, setAlgo] = useState<'kmeans' | 'dbscan'>('kmeans');
   const [k, setK] = useState(c.kmeans?.recommended_k ?? 2);
   if (c.status !== 'COMPUTED' || !c.pca || !c.kmeans || !c.dbscan) {
@@ -101,9 +108,11 @@ export default function ClusterLab({ clustering: c, names, labels }: Props) {
         <div>
           <h3 className="rs-h3">Membership</h3>
           <ul className="mt-3 grid gap-2">
-            {members.map((m) => (
-              <li key={m.g} className="rs-card p-3 text-sm"><strong className="text-ink">{groupName(m.g)}</strong> <span className="text-ink-3">({m.names.length})</span><br /><span className="text-ink-2">{m.names.join(', ')}</span></li>
+            <AnimatePresence initial={false} mode="popLayout">
+            {members.map((g) => (
+              <m.li layout key={`${algo}-${k}-${g.g}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={motionT} className="rs-card p-3 text-sm"><strong className="text-ink">{groupName(g.g)}</strong> <span className="text-ink-3">({g.names.length})</span><br /><span className="text-ink-2">{g.names.join(', ')}</span></m.li>
             ))}
+            </AnimatePresence>
           </ul>
         </div>
         <div>

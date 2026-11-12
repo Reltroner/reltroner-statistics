@@ -1,6 +1,8 @@
 import { Fragment, memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Background, Controls, Handle, Position, ReactFlow, ReactFlowProvider, useReactFlow, type Edge, type Node, type NodeProps } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { AnimatePresence, m } from 'motion/react';
+import { MotionRoot, useMotionTransition } from '../motion/MotionRoot.tsx';
 import { EDGE_DESCRIPTIONS, EDGE_TYPES, NODE_TYPES, type EdgeType, type GraphEdge, type GraphNode, type GraphSide, type KnowledgeGraph } from '../../domain/graph.ts';
 import { loadGraph, TYPE_LABEL } from './graph-client.ts';
 
@@ -29,6 +31,7 @@ const nodeTypes = { g: GraphNodeView };
 
 function Explorer({ graph }: { graph: KnowledgeGraph }) {
   const flow = useReactFlow();
+  const motionT = useMotionTransition('graph');
   const collections = useMemo(() => [...new Set(graph.nodes.filter((n) => n.type === 'document').map((n) => n.group ?? 'other'))].sort(), [graph]);
   const [types, setTypes] = useState<Set<string>>(new Set(['entity', 'indicator', 'dataset', 'observation', 'revision', 'document']));
   const [docGroups, setDocGroups] = useState<Set<string>>(new Set(['statistics'].filter((c) => collections.includes(c))));
@@ -193,11 +196,12 @@ function Explorer({ graph }: { graph: KnowledgeGraph }) {
         </ul>
       </section>
 
-      <aside className="rs-card p-4 text-sm" aria-label="Node inspector" aria-live="polite">
+      <aside className="rs-card overflow-hidden p-4 text-sm" aria-label="Node inspector" aria-live="polite">
+        <AnimatePresence mode="wait" initial={false}>
         {!node ? (
-          <p className="text-ink-3">Select a node to inspect its attributes and every incident edge with its evidence.</p>
+          <m.p key="empty" className="text-ink-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={motionT}>Select a node to inspect its attributes and every incident edge with its evidence.</m.p>
         ) : (
-          <div>
+          <m.div key={node.id} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={motionT}>
             <p className="rs-eyebrow">{TYPE_LABEL[node.type]} · {node.side}</p>
             <h3 className="rs-h3 mt-1 [overflow-wrap:anywhere]">{node.label}</h3>
             <p className="mt-1 font-mono text-[0.7rem] text-ink-3 [overflow-wrap:anywhere]">{node.id}</p>
@@ -218,8 +222,9 @@ function Explorer({ graph }: { graph: KnowledgeGraph }) {
                 );
               })}
             </ul>
-          </div>
+          </m.div>
         )}
+        </AnimatePresence>
       </aside>
     </div>
   );
@@ -231,5 +236,5 @@ export default function GraphExplorer() {
   useEffect(() => { loadGraph().then(setGraph).catch((e: Error) => setError(e.message)); }, []);
   if (error) return <p className="rs-notice" data-tone="unavailable">{error}</p>;
   if (!graph) return <p className="rs-notice" data-tone="unavailable">Loading graph…</p>;
-  return <ReactFlowProvider><Explorer graph={graph} /></ReactFlowProvider>;
+  return <MotionRoot><ReactFlowProvider><Explorer graph={graph} /></ReactFlowProvider></MotionRoot>;
 }
