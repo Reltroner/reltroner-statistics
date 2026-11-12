@@ -102,6 +102,7 @@ function Explorer({ graph }: { graph: KnowledgeGraph }) {
 
   const rfNodes: Node<NodeData>[] = useMemo(() => visible.nodes.map((g) => ({
     id: g.id, type: 'g', position: positions.get(g.id) ?? { x: 0, y: 0 },
+    selected: g.id === selected,
     data: { g, dim: !!neighbors && !neighbors.has(g.id), selected: g.id === selected },
     draggable: true, selectable: true,
   })), [visible.nodes, positions, neighbors, selected]);
@@ -167,7 +168,21 @@ function Explorer({ graph }: { graph: KnowledgeGraph }) {
           tooMany ? (
             <p className="rs-notice" data-tone="caution"><strong>{visible.nodes.length} nodes exceed the {MAX_NODES}-node interactive limit.</strong>&nbsp;Narrow node types or document collections, or use the list view.</p>
           ) : (
-            <div className="rs-card h-[72vh] min-h-[480px] overflow-hidden">
+            <div
+              className="rs-card h-[72vh] min-h-[480px] overflow-hidden"
+              onFocusCapture={(e) => {
+                const el = (e.target as HTMLElement | null)?.closest?.('.react-flow__node');
+                const id = el?.getAttribute('data-id');
+                if (id) setSelected(id);
+              }}
+              onKeyDownCapture={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  const el = (e.target as HTMLElement | null)?.closest?.('.react-flow__node');
+                  const id = el?.getAttribute('data-id');
+                  if (id) setSelected(id);
+                }
+              }}
+            >
               <ReactFlow nodes={rfNodes} edges={rfEdges} nodeTypes={nodeTypes} minZoom={0.1} maxZoom={2} panOnScroll zoomOnPinch zoomActivationKeyCode="Control"
                 nodesDraggable={false} onNodeClick={(_, n) => setSelected(n.id)} onNodesChange={(changes) => { for (const c of changes) if (c.type === 'select' && c.selected) setSelected(c.id); }} onNodeMouseEnter={(_, n) => setHovered(n.id)} onNodeMouseLeave={() => setHovered(null)}
                 onPaneClick={() => setSelected(null)} proOptions={{ hideAttribution: true }} colorMode={document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'}>

@@ -375,8 +375,15 @@
   :where(p, li, dd, td, blockquote, figcaption, .rs-prose) a:not(.rs-button, .rs-chip, .rs-sha) { text-decoration-line: underline; text-decoration-thickness: 1px; }
 }
 
-/* Mobile robustness: implicit grid columns never grow past their container, and chips may wrap. */
+/* Mobile robustness: implicit grid columns never grow past their container, and chips/buttons may wrap. */
 @layer components {
   .grid { grid-template-columns: minmax(0, 1fr); }
-  .rs-chip { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+  .rs-chip, .rs-pill, .rs-badge { max-width: 100%; white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
+  .rs-pill {
+    display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.16rem 0.5rem; border-radius: 0.4rem;
+    border: 1px solid var(--border); background: var(--surface-inset); color: var(--text-2); font-size: 0.7rem; font-weight: 600;
+  }
+  @media (max-width: 640px) {
+    .rs-button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: center; }
+  }
 }

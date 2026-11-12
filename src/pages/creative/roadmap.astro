@@ -32,20 +32,20 @@ const opportunities = creative.opportunities;
       <h2 id="roadmap-list-h" class="rs-h2">Prioritized Creative Opportunities ({opportunities.length})</h2>
       <div class="grid gap-6">
         {opportunities.map((opp, index) => (
-          <article id={opp.id} class="rs-card grid gap-5 p-6">
+          <article id={opp.id} class="rs-card grid min-w-0 gap-5 p-6">
             <div class="flex flex-wrap items-start justify-between gap-4 border-b border-line pb-4">
-              <div>
+              <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
                   <span class="font-mono text-xs font-bold text-cyan">#{index + 1} · {opp.id}</span>
-                  <span class="rs-pill">{opp.category}</span>
-                  <span class="rs-pill">{opp.creative_status} (UNRATIFIED)</span>
+                  <span class="rs-pill break-all">{opp.category}</span>
+                  <span class="rs-pill break-all">{opp.creative_status} (UNRATIFIED)</span>
                 </div>
-                <h3 class="rs-h2 mt-2">{opp.title}</h3>
-                <p class="mt-1 text-sm font-semibold text-cyan">“{opp.narrative_question}”</p>
-                <p class="mt-1 text-xs text-ink-3">Inspired by: {opp.inspired_by}</p>
+                <h3 class="rs-h2 mt-2 [overflow-wrap:anywhere]">{opp.title}</h3>
+                <p class="mt-1 text-sm font-semibold text-cyan [overflow-wrap:anywhere]">“{opp.narrative_question}”</p>
+                <p class="mt-1 text-xs text-ink-3 [overflow-wrap:anywhere]">Inspired by: {opp.inspired_by}</p>
               </div>
-              <div class="flex flex-col items-end gap-2">
-                <div class="rounded-xl border border-line bg-surface-2 px-4 py-2 text-right">
+              <div class="flex min-w-0 flex-col items-start gap-2 sm:items-end">
+                <div class="rounded-xl border border-line bg-surface-2 px-4 py-2 text-left sm:text-right">
                   <span class="block text-[0.65rem] uppercase tracking-wider text-ink-3">Composite Priority</span>
                   <span class="font-mono text-lg font-extrabold text-cyan">{opp.priority_score.composite.toFixed(2)}</span>
                   <span class="block font-mono text-[0.65rem] text-ink-3">

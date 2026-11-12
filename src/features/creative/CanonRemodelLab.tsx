@@ -58,9 +58,9 @@ export default function CanonRemodelLab({
       <div className="grid gap-10">
         {/* Scenario Selector & Parameter Sandbox */}
         {activeScenario && (
-          <section aria-labelledby="scenario-lab-h" className="rs-card grid gap-6 p-6">
+          <section aria-labelledby="scenario-lab-h" className="rs-card grid min-w-0 gap-6 p-6">
             <div className="flex flex-wrap items-start justify-between gap-4 border-b border-line pb-4">
-              <div>
+              <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rs-eyebrow">Isolated Remodeling Sandbox</span>
                   <span className="rs-pill">Status: {activeScenario.canon_status} (UNRATIFIED)</span>
@@ -87,7 +87,7 @@ export default function CanonRemodelLab({
                   key={s.id}
                   type="button"
                   onClick={() => setSelectedScenarioId(s.id)}
-                  className={`rs-button !min-h-9 !px-3 !text-xs ${
+                  className={`rs-button !min-h-9 max-w-full !px-3 !text-xs !whitespace-normal text-left ${
                     activeScenario.id === s.id ? 'rs-button-primary' : 'rs-button-ghost'
                   }`}
                 >
@@ -97,18 +97,18 @@ export default function CanonRemodelLab({
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-xl border border-line bg-surface-2 p-4 text-xs">
+              <div className="min-w-0 rounded-xl border border-line bg-surface-2 p-4 text-xs">
                 <p className="rs-eyebrow">1 · Verified Production Baseline (CANON_OBSERVED)</p>
                 <p className="mt-2 leading-relaxed text-ink">{activeScenario.production_baseline.summary}</p>
                 <ul className="mt-3 grid gap-2">
                   {activeScenario.production_baseline.anchors.map((a) => (
                     <li key={a.label} className="rounded border border-line bg-[var(--bg)] p-2.5">
-                      <div className="flex justify-between gap-2">
+                      <div className="flex flex-wrap justify-between gap-2">
                         <strong className="text-ink">{a.label}</strong>
                         <span className="rs-pill text-[0.65rem]">{a.status}</span>
                       </div>
                       <p className="mt-1 text-ink-2">{a.value}</p>
-                      <p className="mt-0.5 font-mono text-[0.68rem] text-ink-3">
+                      <p className="mt-0.5 break-all font-mono text-[0.68rem] text-ink-3">
                         {a.path} · {a.commit_sha.slice(0, 10)}
                       </p>
                     </li>
@@ -116,7 +116,7 @@ export default function CanonRemodelLab({
                 </ul>
               </div>
 
-              <div className="rounded-xl border border-[var(--accent)] bg-surface-2 p-4 text-xs">
+              <div className="min-w-0 rounded-xl border border-[var(--accent)] bg-surface-2 p-4 text-xs">
                 <p className="rs-eyebrow">2 · Remodeling Candidate Changes (PROPOSED / DRAFT)</p>
                 <p className="mt-2 leading-relaxed text-ink">{activeScenario.remodeling_candidate.summary}</p>
                 <ul className="mt-3 grid gap-2">
@@ -129,7 +129,7 @@ export default function CanonRemodelLab({
                       <p className="mt-0.5 text-ink">
                         <strong>Remodeling:</strong> {c.remodeling_value}
                       </p>
-                      <p className="mt-0.5 font-mono text-[0.68rem] text-ink-3">
+                      <p className="mt-0.5 break-all font-mono text-[0.68rem] text-ink-3">
                         {c.path} {c.finding_id ? `· Drift Finding ${c.finding_id}` : ''}
                       </p>
                     </li>
