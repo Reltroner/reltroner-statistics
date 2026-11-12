@@ -1,7 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
 import { strFromU8 } from 'fflate';
 import { fixtureSnapshot } from '../../src/adapters/fixture-snapshot.ts';
 import { offlineDeployment } from '../../src/adapters/deployment.ts';
@@ -348,8 +346,24 @@ test('Gates 10, 11 & 12: story refactoring impact, scenario isolation (Reltronla
 });
 
 test('Gates 13, 14 & 15: proposal ratification boundary, 8-format creative export integrity, and private workspace isolation', async () => {
-  const creativeRaw = fs.readFileSync(path.join(import.meta.dirname, '..', '..', 'artifacts', 'creative.json'), 'utf8');
-  const creative = CreativeArtifactSchema.parse(JSON.parse(creativeRaw)) as unknown as CreativeArtifact;
+  const { prod, draft } = buildCreativeFixtures();
+  const audit = await compareSources(prod, draft, { deployment: offlineDeployment('test'), generatedAt: '2026-01-01T00:00:00Z' });
+  const stats = await extractStatistics(prod, draft);
+  const qaProd = runQa(nccmFixture(), 'PRODUCTION_MAIN');
+  const qaRemod = runQa(nccmFixture({ beluftnerArea: 363 }), 'REMODELING_MAIN');
+  const graph = await buildKnowledgeGraph({ audit, stats, qa: qaProd, production: prod, remodeling: draft });
+
+  const creative = await buildCreativeIntelligenceArtifact({
+    production: prod,
+    remodeling: draft,
+    audit,
+    stats,
+    qaProduction: qaProd,
+    qaRemodeling: qaRemod,
+    graph,
+    generatedAt: '2026-01-01T00:00:00Z',
+  });
+  assert.equal(CreativeArtifactSchema.safeParse(creative).success, true);
 
   // Gate 13: Proposal schema validation and creator ratification boundary
   const seed = creative.seed_proposals[0]!;
@@ -391,7 +405,11 @@ test('Gates 13, 14 & 15: proposal ratification boundary, 8-format creative expor
     ...creative,
     seed_proposals: [...creative.seed_proposals, privateProposal],
   };
-  const publicReportFindings = buildCreativeReportFindings({ creative: creativeWithPrivate });
+  const publicReportFindings = buildCreativeReportFindings({
+    creative: creativeWithPrivate,
+    stats,
+    graph,
+  });
   assert.ok(
     !publicReportFindings.some((f) => f.id === 'PRP-00000000PRIV' || f.title.includes('SECRET UNRELEASED TWIST')),
     'buildCreativeReportFindings excludes PRIVATE_LOCAL_SESSION proposals from public report bundles',
