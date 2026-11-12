@@ -1,0 +1,194 @@
+{
+  "$id": "https://reltroner-statistics.invalid/schemas/graph.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "reltroner-statistics-graph.v1"
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "entity",
+              "indicator",
+              "dataset",
+              "document",
+              "observation",
+              "revision"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "production",
+              "remodeling",
+              "both"
+            ]
+          },
+          "group": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attrs": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "label",
+          "side",
+          "group",
+          "attrs"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "DEFINES",
+              "DEPENDS_ON",
+              "DERIVED_FROM",
+              "REFERENCES",
+              "MENTIONS",
+              "SUPERSEDES",
+              "PROPOSES_CHANGE_TO"
+            ]
+          },
+          "source": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "production",
+              "remodeling",
+              "both"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DECLARED",
+              "VERIFIED",
+              "CANDIDATE"
+            ]
+          },
+          "evidence": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "source",
+          "target",
+          "side",
+          "status",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "nodes_by_type": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "edges_by_type": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "edges_by_status": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "edges_by_side": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      },
+      "required": [
+        "nodes_by_type",
+        "edges_by_type",
+        "edges_by_status",
+        "edges_by_side"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "nodes",
+    "edges",
+    "summary"
+  ],
+  "additionalProperties": false
+}

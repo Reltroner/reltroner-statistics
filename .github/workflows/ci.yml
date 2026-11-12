@@ -28,9 +28,36 @@ jobs:
       - run: npm ci
       - name: Unit tests (deterministic fixtures)
         run: npm test
+      - name: Contract drift check (Zod → JSON Schema)
+        run: npm run schemas:check
       - name: Pinned source pair baseline (GitHub API, read-only)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run verify:baseline
       - name: Build static preview
         run: npm run build
+
+  analytics:
+    name: Python analytics (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: analytics/python/requirements.lock
+      - name: Install locked dependencies (hash-verified)
+        run: python -m pip install --require-hashes -r analytics/python/requirements.lock
+      - name: Python tests
+        env:
+          RELTRONER_PYTHON: python
+        run: npm run test:py

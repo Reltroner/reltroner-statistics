@@ -1,0 +1,27 @@
+[project]
+name = "reltroner-analytics"
+version = "0.2.0"
+description = "Deterministic statistical computing for Reltroner Statistics. Emits versioned JSON/SVG artifacts; no server."
+requires-python = ">=3.12"
+dependencies = [
+  "numpy>=2.3,<3",
+  "pandas>=2.3,<4",
+  "scipy>=1.15,<2",
+  "scikit-learn>=1.7,<2",
+  "matplotlib>=3.10,<4",
+  "jsonschema>=4.23,<5",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.4,<10"]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["reltroner_analytics"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-p no:cacheprovider"

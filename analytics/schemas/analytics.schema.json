@@ -1,0 +1,903 @@
+{
+  "$id": "https://reltroner-statistics.invalid/schemas/analytics.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "reltroner-statistics-analytics.v1"
+    },
+    "status": {
+      "type": "string",
+      "const": "MODEL_ESTIMATE"
+    },
+    "engine": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "input": {
+      "type": "object",
+      "properties": {
+        "observations_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "model_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "production_commit": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "observations_sha256",
+        "model_version",
+        "production_commit"
+      ],
+      "additionalProperties": false
+    },
+    "descriptive": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "indicator_id": {
+            "type": "string"
+          },
+          "cohort": {
+            "type": "string",
+            "enum": [
+              "PROFILED_14",
+              "ALL_19"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "COMPUTED",
+              "INSUFFICIENT_DATA"
+            ]
+          },
+          "n": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "n_missing": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "mean": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "median": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "std": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "min": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "max": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "q1": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "q3": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "iqr": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "mad": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "whisker_low": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "whisker_high": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "outliers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "entity_id": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "entity_id",
+                "value"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "indicator_id",
+          "cohort",
+          "status",
+          "n",
+          "n_missing",
+          "mean",
+          "median",
+          "std",
+          "min",
+          "max",
+          "q1",
+          "q3",
+          "iqr",
+          "mad",
+          "whisker_low",
+          "whisker_high",
+          "outliers",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "correlation": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "COMPUTED",
+            "INSUFFICIENT_DATA"
+          ]
+        },
+        "cohort": {
+          "type": "string"
+        },
+        "features": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "n": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "pearson": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          }
+        },
+        "spearman": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          }
+        },
+        "pairwise_n": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          }
+        },
+        "min_pairwise_n": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "cohort",
+        "features",
+        "n",
+        "pearson",
+        "spearman",
+        "pairwise_n",
+        "min_pairwise_n",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "clustering": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "COMPUTED",
+            "INSUFFICIENT_DATA"
+          ]
+        },
+        "cohort": {
+          "type": "string"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "features": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "indicator_id": {
+                "type": "string"
+              },
+              "transform": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "log10"
+                ]
+              }
+            },
+            "required": [
+              "indicator_id",
+              "transform"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "scaling": {
+          "type": "string"
+        },
+        "excluded_entities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "entity_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "entity_id",
+              "reason"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "sufficiency": {
+          "type": "object",
+          "properties": {
+            "min_n": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "rule": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "min_n",
+            "rule"
+          ],
+          "additionalProperties": false
+        },
+        "pca": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "explained_variance_ratio": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "loadings": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    }
+                  }
+                },
+                "coordinates": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "entity_id": {
+                        "type": "string"
+                      },
+                      "pc1": {
+                        "type": "number"
+                      },
+                      "pc2": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "entity_id",
+                      "pc1",
+                      "pc2"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "explained_variance_ratio",
+                "loadings",
+                "coordinates"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kmeans": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "random_state": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "n_init": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "selection_rule": {
+                  "type": "string"
+                },
+                "recommended_k": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "runs": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "k": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "inertia": {
+                        "type": "number"
+                      },
+                      "silhouette": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      },
+                      "sizes": {
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "labels": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "entity_id": {
+                              "type": "string"
+                            },
+                            "cluster": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "entity_id",
+                            "cluster"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "centroids_z": {
+                        "type": "array",
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "number"
+                          }
+                        }
+                      }
+                    },
+                    "required": [
+                      "k",
+                      "inertia",
+                      "silhouette",
+                      "sizes",
+                      "labels",
+                      "centroids_z"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "random_state",
+                "n_init",
+                "selection_rule",
+                "recommended_k",
+                "runs"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dbscan": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "eps": {
+                  "type": "number"
+                },
+                "min_samples": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "eps_rule": {
+                  "type": "string"
+                },
+                "k_distances": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "labels": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "entity_id": {
+                        "type": "string"
+                      },
+                      "cluster": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "entity_id",
+                      "cluster"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "n_clusters": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "n_noise": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "eps",
+                "min_samples",
+                "eps_rule",
+                "k_distances",
+                "labels",
+                "n_clusters",
+                "n_noise"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "cohort",
+        "n",
+        "reason",
+        "features",
+        "scaling",
+        "excluded_entities",
+        "sufficiency",
+        "pca",
+        "kmeans",
+        "dbscan"
+      ],
+      "additionalProperties": false
+    },
+    "outliers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "indicator_id": {
+            "type": "string"
+          },
+          "cohort": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "COMPUTED",
+              "INSUFFICIENT_DATA"
+            ]
+          },
+          "method": {
+            "type": "string"
+          },
+          "threshold": {
+            "type": "number"
+          },
+          "n": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "median": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "mad": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "flagged": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "entity_id": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "number"
+                },
+                "robust_z": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "entity_id",
+                "value",
+                "robust_z"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "indicator_id",
+          "cohort",
+          "status",
+          "method",
+          "threshold",
+          "n",
+          "median",
+          "mad",
+          "flagged",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "history": {
+      "type": "object",
+      "properties": {
+        "rule": {
+          "type": "string"
+        },
+        "series": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "entity_id": {
+                "type": "string"
+              },
+              "indicator_id": {
+                "type": "string"
+              },
+              "n": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "years_bac": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "statuses": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "max_consecutive_annual": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "volatility": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "COMPUTED",
+                      "INSUFFICIENT_DATA"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "rolling_median": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        }
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "rolling_mad": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        }
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "status",
+                  "reason",
+                  "rolling_median",
+                  "rolling_mad"
+                ],
+                "additionalProperties": false
+              },
+              "change_point": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "COMPUTED",
+                      "INSUFFICIENT_DATA"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "status",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "entity_id",
+              "indicator_id",
+              "n",
+              "years_bac",
+              "statuses",
+              "max_consecutive_annual",
+              "volatility",
+              "change_point"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "rule",
+        "series"
+      ],
+      "additionalProperties": false
+    },
+    "charts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string",
+            "pattern": "^charts\\/[a-z0-9-]+\\.svg$"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "alt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "file",
+          "sha256",
+          "alt"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "required": [
+    "schema_version",
+    "status",
+    "engine",
+    "input",
+    "descriptive",
+    "correlation",
+    "clustering",
+    "outliers",
+    "history",
+    "charts",
+    "digest"
+  ],
+  "additionalProperties": false
+}

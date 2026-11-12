@@ -13,7 +13,10 @@
     "verify:baseline": "node scripts/verify-baseline.ts",
     "build": "node scripts/build.mjs",
     "preview": "node scripts/serve.mjs",
-    "verify": "npm test && npm run build"
+    "verify": "npm test && npm run build",
+    "test:py": "node scripts/run-python.mjs -m pytest analytics/python/tests -q --rootdir analytics/python -p no:cacheprovider",
+    "schemas": "node scripts/generate-schemas.ts",
+    "schemas:check": "node scripts/generate-schemas.ts --check"
   },
   "dependencies": {
     "@astrojs/react": "7.1.0",

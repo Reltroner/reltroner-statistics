@@ -1,0 +1,1098 @@
+{
+  "$id": "https://reltroner-statistics.invalid/schemas/observations.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "reltroner-statistics-observations.v1"
+    },
+    "model_version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "dataset_path": {
+      "type": "string"
+    },
+    "production": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "commit_sha": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "blob_sha": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          "required": [
+            "commit_sha",
+            "blob_sha"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "remodeling": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "commit_sha": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "blob_sha": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          "required": [
+            "commit_sha",
+            "blob_sha"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "country",
+              "planet",
+              "aggregate_residual"
+            ]
+          },
+          "cohort": {
+            "type": "string",
+            "enum": [
+              "PROFILED_14",
+              "DEVELOPMENT_5",
+              "PLANET",
+              "DEFERRED_18_AGGREGATE"
+            ]
+          },
+          "source_document": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "specialization": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fx_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "foundation_bac": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "represents_states": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "canon_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "cohort",
+          "source_document",
+          "specialization",
+          "fx_code",
+          "foundation_bac",
+          "represents_states",
+          "canon_status"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^OBS-[0-9A-F]{12}$"
+          },
+          "entity_id": {
+            "type": "string"
+          },
+          "entity_name": {
+            "type": "string"
+          },
+          "entity_kind": {
+            "type": "string",
+            "enum": [
+              "country",
+              "planet",
+              "aggregate_residual"
+            ]
+          },
+          "cohort": {
+            "type": "string",
+            "enum": [
+              "PROFILED_14",
+              "DEVELOPMENT_5",
+              "PLANET",
+              "DEFERRED_18_AGGREGATE"
+            ]
+          },
+          "indicator_id": {
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "value_state": {
+            "type": "string",
+            "enum": [
+              "ASSIGNED",
+              "NULL",
+              "MISSING"
+            ]
+          },
+          "unit": {
+            "type": "string"
+          },
+          "period": {
+            "type": "object",
+            "properties": {
+              "calendar": {
+                "type": "string",
+                "const": "BAC"
+              },
+              "year_bac": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 10000
+              },
+              "label": {
+                "type": "string"
+              },
+              "interval": {
+                "type": "object",
+                "properties": {
+                  "start_bac": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "end_bac": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "start_bac",
+                  "end_bac"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "calendar",
+              "year_bac",
+              "label"
+            ],
+            "additionalProperties": false
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CANON_OBSERVED",
+              "CANON_DERIVED",
+              "MODEL_ESTIMATE",
+              "SCENARIO",
+              "PROPOSED",
+              "ARCHIVED",
+              "INSUFFICIENT_DATA"
+            ]
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "enum": [
+                  "PRODUCTION_MAIN",
+                  "REMODELING_MAIN"
+                ]
+              },
+              "repository": {
+                "type": "string"
+              },
+              "commit_sha": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "path": {
+                "type": "string"
+              },
+              "blob_sha": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "pointer": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "line": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "role",
+              "repository",
+              "commit_sha",
+              "path",
+              "blob_sha",
+              "pointer",
+              "line"
+            ],
+            "additionalProperties": false
+          },
+          "model_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_status_label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "rule_id": {
+                    "type": "string"
+                  },
+                  "quote": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "rule_id",
+                  "quote",
+                  "note"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "entity_id",
+          "entity_name",
+          "entity_kind",
+          "cohort",
+          "indicator_id",
+          "value",
+          "value_state",
+          "unit",
+          "period",
+          "status",
+          "source",
+          "model_version",
+          "source_status_label",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "proposals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^OBS-[0-9A-F]{12}$"
+          },
+          "entity_id": {
+            "type": "string"
+          },
+          "entity_name": {
+            "type": "string"
+          },
+          "entity_kind": {
+            "type": "string",
+            "enum": [
+              "country",
+              "planet",
+              "aggregate_residual"
+            ]
+          },
+          "cohort": {
+            "type": "string",
+            "enum": [
+              "PROFILED_14",
+              "DEVELOPMENT_5",
+              "PLANET",
+              "DEFERRED_18_AGGREGATE"
+            ]
+          },
+          "indicator_id": {
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "value_state": {
+            "type": "string",
+            "enum": [
+              "ASSIGNED",
+              "NULL",
+              "MISSING"
+            ]
+          },
+          "unit": {
+            "type": "string"
+          },
+          "period": {
+            "type": "object",
+            "properties": {
+              "calendar": {
+                "type": "string",
+                "const": "BAC"
+              },
+              "year_bac": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 10000
+              },
+              "label": {
+                "type": "string"
+              },
+              "interval": {
+                "type": "object",
+                "properties": {
+                  "start_bac": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "end_bac": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "start_bac",
+                  "end_bac"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "calendar",
+              "year_bac",
+              "label"
+            ],
+            "additionalProperties": false
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CANON_OBSERVED",
+              "CANON_DERIVED",
+              "MODEL_ESTIMATE",
+              "SCENARIO",
+              "PROPOSED",
+              "ARCHIVED",
+              "INSUFFICIENT_DATA"
+            ]
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "enum": [
+                  "PRODUCTION_MAIN",
+                  "REMODELING_MAIN"
+                ]
+              },
+              "repository": {
+                "type": "string"
+              },
+              "commit_sha": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "path": {
+                "type": "string"
+              },
+              "blob_sha": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "pointer": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "line": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "role",
+              "repository",
+              "commit_sha",
+              "path",
+              "blob_sha",
+              "pointer",
+              "line"
+            ],
+            "additionalProperties": false
+          },
+          "model_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_status_label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "rule_id": {
+                    "type": "string"
+                  },
+                  "quote": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "rule_id",
+                  "quote",
+                  "note"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "entity_id",
+          "entity_name",
+          "entity_kind",
+          "cohort",
+          "indicator_id",
+          "value",
+          "value_state",
+          "unit",
+          "period",
+          "status",
+          "source",
+          "model_version",
+          "source_status_label",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "timeline": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "start_bac": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "end_bac": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "FOUNDATION",
+              "EVENT"
+            ]
+          },
+          "entity_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CANON_OBSERVED",
+              "CANON_DERIVED",
+              "MODEL_ESTIMATE",
+              "SCENARIO",
+              "PROPOSED",
+              "ARCHIVED",
+              "INSUFFICIENT_DATA"
+            ]
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "enum": [
+                  "PRODUCTION_MAIN",
+                  "REMODELING_MAIN"
+                ]
+              },
+              "repository": {
+                "type": "string"
+              },
+              "commit_sha": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "path": {
+                "type": "string"
+              },
+              "blob_sha": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "pointer": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "line": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "role",
+              "repository",
+              "commit_sha",
+              "path",
+              "blob_sha",
+              "pointer",
+              "line"
+            ],
+            "additionalProperties": false
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "start_bac",
+          "end_bac",
+          "kind",
+          "entity_id",
+          "status",
+          "source",
+          "note"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "ranges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "entity_id": {
+            "type": "string"
+          },
+          "indicator_id": {
+            "type": "string"
+          },
+          "low": {
+            "type": "number"
+          },
+          "high": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "timing": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CANON_OBSERVED",
+              "CANON_DERIVED",
+              "MODEL_ESTIMATE",
+              "SCENARIO",
+              "PROPOSED",
+              "ARCHIVED",
+              "INSUFFICIENT_DATA"
+            ]
+          },
+          "quote": {
+            "type": "string"
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "enum": [
+                  "PRODUCTION_MAIN",
+                  "REMODELING_MAIN"
+                ]
+              },
+              "repository": {
+                "type": "string"
+              },
+              "commit_sha": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "path": {
+                "type": "string"
+              },
+              "blob_sha": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "pointer": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "line": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "role",
+              "repository",
+              "commit_sha",
+              "path",
+              "blob_sha",
+              "pointer",
+              "line"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "entity_id",
+          "indicator_id",
+          "low",
+          "high",
+          "unit",
+          "timing",
+          "status",
+          "quote",
+          "source"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "migration": {
+      "type": "object",
+      "properties": {
+        "flows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "origin": {
+                "type": "string"
+              },
+              "destination": {
+                "type": "string"
+              },
+              "population_billion": {
+                "type": "number"
+              },
+              "source_sdi_unchanged": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "origin",
+              "destination",
+              "population_billion",
+              "source_sdi_unchanged"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "total_billion": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "CANON_OBSERVED",
+            "CANON_DERIVED",
+            "MODEL_ESTIMATE",
+            "SCENARIO",
+            "PROPOSED",
+            "ARCHIVED",
+            "INSUFFICIENT_DATA"
+          ]
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "PRODUCTION_MAIN",
+                    "REMODELING_MAIN"
+                  ]
+                },
+                "repository": {
+                  "type": "string"
+                },
+                "commit_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "blob_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                "pointer": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "line": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "role",
+                "repository",
+                "commit_sha",
+                "path",
+                "blob_sha",
+                "pointer",
+                "line"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "flows",
+        "total_billion",
+        "status",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "source_issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "enum": [
+                  "PRODUCTION_MAIN",
+                  "REMODELING_MAIN"
+                ]
+              },
+              "repository": {
+                "type": "string"
+              },
+              "commit_sha": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "path": {
+                "type": "string"
+              },
+              "blob_sha": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "pointer": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "line": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "role",
+              "repository",
+              "commit_sha",
+              "path",
+              "blob_sha",
+              "pointer",
+              "line"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "code",
+          "severity",
+          "description",
+          "source"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "evidence_checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "rule_id": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "VERIFIED",
+              "NOT_FOUND",
+              "SOURCE_MISSING"
+            ]
+          },
+          "line": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "rule_id",
+          "path",
+          "status",
+          "line"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "model_version",
+    "dataset_path",
+    "production",
+    "remodeling",
+    "entities",
+    "observations",
+    "proposals",
+    "timeline",
+    "ranges",
+    "migration",
+    "source_issues",
+    "evidence_checks",
+    "unknowns"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,257 @@
+{
+  "$id": "https://reltroner-statistics.invalid/schemas/qa.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "reltroner-statistics-qa.v1"
+    },
+    "production": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "formula": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "PRODUCTION_MAIN",
+              "REMODELING_MAIN"
+            ]
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL",
+              "NOT_EVALUABLE"
+            ]
+          },
+          "observed": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "expected": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "tolerance": {
+            "type": "number"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "failures": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "subject": {
+                  "type": "string"
+                },
+                "observed": {
+                  "type": "number"
+                },
+                "expected": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "subject",
+                "observed",
+                "expected"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "pointers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "validates": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "target": {
+                    "type": "string"
+                  },
+                  "inputs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "target",
+                  "inputs"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "formula",
+          "scope",
+          "result",
+          "observed",
+          "expected",
+          "tolerance",
+          "detail",
+          "failures",
+          "pointers",
+          "validates"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "remodeling": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "formula": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "PRODUCTION_MAIN",
+              "REMODELING_MAIN"
+            ]
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL",
+              "NOT_EVALUABLE"
+            ]
+          },
+          "observed": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "expected": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "tolerance": {
+            "type": "number"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "failures": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "subject": {
+                  "type": "string"
+                },
+                "observed": {
+                  "type": "number"
+                },
+                "expected": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "subject",
+                "observed",
+                "expected"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "pointers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "validates": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "target": {
+                    "type": "string"
+                  },
+                  "inputs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "target",
+                  "inputs"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "formula",
+          "scope",
+          "result",
+          "observed",
+          "expected",
+          "tolerance",
+          "detail",
+          "failures",
+          "pointers",
+          "validates"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "production",
+    "remodeling"
+  ],
+  "additionalProperties": false
+}

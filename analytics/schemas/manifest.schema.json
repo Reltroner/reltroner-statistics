@@ -1,0 +1,275 @@
+{
+  "$id": "https://reltroner-statistics.invalid/schemas/manifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "reltroner-statistics-artifacts.v1"
+    },
+    "mode": {
+      "type": "string",
+      "const": "SOURCE_PINNED"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "rules_version": {
+      "type": "string"
+    },
+    "semantic_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "sources": {
+      "type": "object",
+      "properties": {
+        "production": {
+          "type": "object",
+          "properties": {
+            "side": {
+              "type": "string",
+              "enum": [
+                "production",
+                "remodeling"
+              ]
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "PRODUCTION_MAIN",
+                "REMODELING_MAIN"
+              ]
+            },
+            "repository": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]+\\/[A-Za-z0-9._-]+$"
+            },
+            "requested_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "commit_sha": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "tree_sha": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "committed_at": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "headline": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "side",
+            "role",
+            "repository",
+            "requested_ref",
+            "commit_sha",
+            "tree_sha",
+            "committed_at",
+            "headline"
+          ],
+          "additionalProperties": false
+        },
+        "remodeling": {
+          "type": "object",
+          "properties": {
+            "side": {
+              "type": "string",
+              "enum": [
+                "production",
+                "remodeling"
+              ]
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "PRODUCTION_MAIN",
+                "REMODELING_MAIN"
+              ]
+            },
+            "repository": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]+\\/[A-Za-z0-9._-]+$"
+            },
+            "requested_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "commit_sha": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "tree_sha": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "committed_at": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "headline": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "side",
+            "role",
+            "repository",
+            "requested_ref",
+            "commit_sha",
+            "tree_sha",
+            "committed_at",
+            "headline"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "production",
+        "remodeling"
+      ],
+      "additionalProperties": false
+    },
+    "deployment": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "DEPLOYMENT_VERIFIED",
+            "DEPLOYMENT_UNVERIFIED"
+          ]
+        },
+        "deployed_sha": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "deployed_sha"
+      ],
+      "additionalProperties": false
+    },
+    "github": {
+      "type": "object",
+      "properties": {
+        "authenticated": {
+          "type": "boolean"
+        },
+        "requests": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "cache_hits": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "cache_misses": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "authenticated",
+        "requests",
+        "cache_hits",
+        "cache_misses"
+      ],
+      "additionalProperties": false
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "COMPLETED",
+              "SKIPPED"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "detail"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "path",
+          "bytes",
+          "sha256"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "mode",
+    "generated_at",
+    "rules_version",
+    "semantic_digest",
+    "sources",
+    "deployment",
+    "github",
+    "steps",
+    "files"
+  ],
+  "additionalProperties": false
+}
