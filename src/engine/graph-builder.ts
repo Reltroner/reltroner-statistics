@@ -86,7 +86,7 @@ export async function buildKnowledgeGraph(input: GraphInputs): Promise<Knowledge
         docIds.set(f.path, { prod: `${type}:${f.path}`, draft: `${type}~draft:${f.path}` });
       } else {
         const id = `${type}:${f.path}`;
-        docIds.set(f.path, { prod: f.classification === 'DRAFT_ONLY' ? null : id, draft: f.classification === 'PRODUCTION_ONLY' ? null : id });
+        docIds.set(f.path, { prod: id, draft: f.classification === 'PRODUCTION_ONLY' ? null : id });
       }
     }
   }

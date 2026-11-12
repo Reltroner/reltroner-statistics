@@ -1,0 +1,87 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageIntro from '../components/PageIntro.astro';
+import Notice from '../components/Notice.astro';
+import { getContext, getQa, getStats } from '../lib/data.ts';
+import { pinnedBlobUrl } from '../domain/source.ts';
+
+const ctx = getContext();
+const qa = getQa();
+const stats = getStats();
+const byId = new Map(qa.remodeling.map((q) => [q.id, q]));
+const fails = qa.production.filter((q) => q.result === 'FAIL');
+const fmt = (v: number | null) => (v === null ? '—' : Math.abs(v) >= 1e6 || (Math.abs(v) < 1e-3 && v !== 0) ? v.toExponential(4) : String(Number(v.toPrecision(8))));
+const tone = (r: string) => (r === 'PASS' ? 'good' : r === 'FAIL' ? 'critical' : 'unknown');
+const icon = (r: string) => (r === 'PASS' ? '✓' : r === 'FAIL' ? '✕' : '–');
+---
+<BaseLayout title="Quality assurance" description="Deterministic QA identities recomputed from Asthortera's production and remodeling datasets, prose-evidence checks and source-declared issues.">
+  <PageIntro
+    eyebrow="Deterministic QA"
+    title="Quality assurance"
+    lede="Thirteen identities that follow from the dataset's own conventions are recomputed from both sources: census totals, GDP shares, weighted SDI, TFR and growth, per-nation GDP identities and migration balance. A failure here is a proven internal contradiction; anything else on this site is a review candidate."
+    crumbs={[{ href: '/clustering', label: 'Analysis' }, { label: 'QA' }]}
+    sources={['production', 'remodeling', 'rules']}
+    model={stats.model_version}
+    limits={['Rules check internal consistency of each source, not whether the canon is plausible.', 'Tolerances follow the precision the source states (for example SDI to three decimals).']}
+  />
+
+  <section class="pb-10">
+    <div class="rs-container">
+      {fails.length === 0 ? (
+        <Notice title="No deterministic contradiction in production">All {qa.production.length} identities hold in production main <span class="rs-sha">{ctx.production.commit_sha.slice(0, 12)}</span>. Remodeling results are shown for comparison only.</Notice>
+      ) : (
+        <Notice title={`${fails.length} deterministic contradiction(s) in production`} tone="caution">{fails.map((f) => f.title).join('; ')}</Notice>
+      )}
+      <div class="rs-table-wrap mt-6" tabindex="0">
+        <table class="rs-table">
+          <thead><tr><th>Identity</th><th>Production</th><th>Remodeling</th><th class="num">Observed</th><th class="num">Expected</th><th class="num">Tolerance</th></tr></thead>
+          <tbody>
+            {qa.production.map((q) => {
+              const r = byId.get(q.id);
+              return (
+                <tr>
+                  <td><span class="font-semibold text-ink">{q.title}</span><code class="mt-1 block text-[0.72rem] text-ink-3">{q.formula}</code><span class="mt-1 block text-xs text-ink-3">{q.id} · {q.detail}</span>
+                    {q.failures.length > 0 && <span class="mt-1 block text-xs text-[var(--status-critical-text)]">{q.failures.slice(0, 5).map((f) => `${f.subject}: ${fmt(f.observed)} vs ${fmt(f.expected)}`).join('; ')}</span>}</td>
+                  <td><span class="rs-badge" data-tone={tone(q.result)}><span aria-hidden="true">{icon(q.result)}</span>{q.result}</span></td>
+                  <td>{r ? <span class="rs-badge" data-tone={tone(r.result)}><span aria-hidden="true">{icon(r.result)}</span>{r.result}</span> : '—'}</td>
+                  <td class="num">{fmt(q.observed)}</td><td class="num">{fmt(q.expected)}</td><td class="num">{q.tolerance}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="pb-10" aria-labelledby="ev-h">
+    <div class="rs-container">
+      <h2 id="ev-h" class="rs-h2">Prose evidence checks</h2>
+      <p class="rs-soft mt-2 max-w-3xl">Historical values stated only in prose are extracted by rules that must match the exact sentence in the pinned production text. A rule that no longer matches contributes nothing.</p>
+      <div class="rs-table-wrap mt-4" tabindex="0">
+        <table class="rs-table">
+          <thead><tr><th>Rule</th><th>Status</th><th>Location</th></tr></thead>
+          <tbody>{stats.evidence_checks.map((e) => (
+            <tr><td class="font-mono text-xs">{e.rule_id}</td><td><span class="rs-badge" data-tone={e.status === 'VERIFIED' ? 'good' : 'critical'}><span aria-hidden="true">{e.status === 'VERIFIED' ? '✓' : '✕'}</span>{e.status}</span></td>
+              <td><a href={`${pinnedBlobUrl('production', ctx.production.commit_sha, e.path)}${e.line ? `#L${e.line}` : ''}`}>{e.path}{e.line ? `:${e.line}` : ''}</a></td></tr>
+          ))}</tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="pb-6" aria-labelledby="declared-h">
+    <div class="rs-container grid gap-8 lg:grid-cols-2">
+      <div>
+        <h2 id="declared-h" class="rs-h2">Issues declared by the source</h2>
+        <p class="rs-soft mt-2">Copied from the dataset’s own <code>open_issues</code>; not findings of this site.</p>
+        <ul class="mt-4 grid gap-2">{stats.source_issues.map((i) => <li class="rs-card p-3 text-sm"><span class="rs-chip !py-0 !text-[0.65rem]">{i.severity}</span> <span class="font-mono text-xs text-ink">{i.code}</span><span class="mt-1 block text-ink-2">{i.description}</span></li>)}</ul>
+      </div>
+      <div>
+        <h2 class="rs-h2">Unknowns the canon keeps unknown</h2>
+        <p class="rs-soft mt-2">From <code>canon_ratification.unknowns_remain_unknown</code>. This site never fills them.</p>
+        <ul class="mt-4 grid gap-2">{stats.unknowns.map((u) => <li class="rs-card p-3 text-sm text-ink-2">{u}</li>)}</ul>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

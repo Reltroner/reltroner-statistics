@@ -1,0 +1,47 @@
+---
+import Breadcrumbs from './Breadcrumbs.astro';
+import SectionNav from './SectionNav.astro';
+import SourceStrip, { type SourceKey } from './SourceStrip.astro';
+
+interface Props {
+  eyebrow?: string;
+  title: string;
+  lede: string;
+  crumbs?: Array<{ href?: string; label: string }>;
+  sources: SourceKey[];
+  model?: string | null;
+  limits?: string[];
+  sectionNav?: boolean;
+}
+const { eyebrow, title, lede, crumbs = [], sources, model = null, limits = [], sectionNav = true } = Astro.props;
+const hasAside = Astro.slots.has('aside');
+---
+<section class="pt-6 pb-8 sm:pt-8 lg:pb-12">
+  <div class="rs-container">
+    {crumbs.length > 0 && <Breadcrumbs items={crumbs} />}
+    {sectionNav && <SectionNav />}
+    <div class:list={['grid gap-10', hasAside && 'lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center']}>
+      <div class="min-w-0">
+        {eyebrow && <p class="rs-eyebrow rs-reveal mb-3">{eyebrow}</p>}
+        <h1 class="rs-reveal text-[clamp(2rem,4.4vw,3.25rem)] font-[760]" style="--i: 1">{title}</h1>
+        <p class="rs-lede rs-reveal mt-4" style="--i: 2">{lede}</p>
+        {Astro.slots.has('actions') && <div class="rs-reveal mt-6 flex flex-wrap gap-3" style="--i: 3"><slot name="actions" /></div>}
+        <div class="rs-reveal mt-6 grid gap-4" style="--i: 4">
+          <div>
+            <p class="rs-label">Produced from</p>
+            <SourceStrip sources={sources} model={model} />
+          </div>
+          {limits.length > 0 && (
+            <details class="group rounded-xl border border-line bg-inset px-4 py-3 text-sm" open={limits.length <= 2}>
+              <summary class="cursor-pointer font-semibold text-ink-2 marker:text-ink-3">Not yet known or supported here</summary>
+              <ul class="mt-2 grid list-disc gap-1 pl-5 text-ink-2">
+                {limits.map((l) => <li>{l}</li>)}
+              </ul>
+            </details>
+          )}
+        </div>
+      </div>
+      {hasAside && <div class="rs-reveal min-w-0" style="--i: 2"><slot name="aside" /></div>}
+    </div>
+  </div>
+</section>

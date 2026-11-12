@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import ScatterExplorer from '../../features/statistics/ScatterExplorer.tsx';
+import { getAnalytics, getStats } from '../../lib/data.ts';
+import { countryRows, indicatorMetas } from '../../lib/views.ts';
+
+const stats = getStats();
+const analytics = getAnalytics();
+const runs = analytics?.clustering.kmeans?.runs.map((r) => ({ k: r.k, labels: Object.fromEntries(r.labels.map((l) => [l.entity_id, l.cluster])) })) ?? [];
+---
+<BaseLayout title="Scatter explorer" description="Plot any two production canon indicators against each other across Asthortera's modeled nations, with optional bubble size and cluster coloring.">
+  <PageIntro
+    eyebrow="Cross-country explorer"
+    title="Scatter explorer"
+    lede="Pick any two indicators to compare the 19 individually modeled nations. Size bubbles by a third indicator, switch to log scales for skewed quantities, or color by exploratory K-Means clusters."
+    crumbs={[{ href: '/statistics', label: 'Statistics' }, { label: 'Scatter' }]}
+    sources={['production', 'model', 'statistics']}
+    model={stats.model_version}
+    limits={['Nations whose value is unassigned for either axis are listed below the chart, not plotted at zero.', 'The combined residual of 18 deferred states is never plotted as a nation.']}
+  />
+  <section class="pb-8">
+    <div class="rs-container">
+      <ScatterExplorer client:visible rows={countryRows()} indicators={indicatorMetas()} clusterRuns={runs} recommendedK={analytics?.clustering.kmeans?.recommended_k ?? null} />
+    </div>
+  </section>
+</BaseLayout>

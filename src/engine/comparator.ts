@@ -198,7 +198,7 @@ export async function compareSources(production: SourceSnapshot, remodeling: Sou
 
     // File-level finding: one per non-identical file.
     let nature: ContentChangeNature | null = null;
-    let normProd: unknown, normDraft: unknown;
+    let normProd: unknown;
     let parsedProd: unknown, parsedDraft: unknown;
     let invalid: string | null = null;
     if (classification === 'CHANGED' && prodText !== null && draftText !== null) {
@@ -207,7 +207,6 @@ export async function compareSources(production: SourceSnapshot, remodeling: Sou
           parsedProd = JSON.parse(prodText);
           parsedDraft = JSON.parse(draftText);
           normProd = normalizeJson(parsedProd);
-          normDraft = normalizeJson(parsedDraft);
           nature = deepEqualJson(parsedProd, parsedDraft) ? 'JSON_FORMAT_ONLY' : 'CONTENT';
         } catch (err) {
           invalid = String((err as Error).message).slice(0, 180);

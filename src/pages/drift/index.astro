@@ -1,0 +1,85 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import ImageSlot from '../../components/ImageSlot.astro';
+import StatTile from '../../components/StatTile.astro';
+import BarList from '../../components/BarList.astro';
+import FindingsExplorer from '../../features/drift/FindingsExplorer.tsx';
+import { getAudit } from '../../lib/data.ts';
+import { REVIEW_DESCRIPTIONS } from '../../domain/status.ts';
+
+const audit = getAudit();
+const s = audit.summary;
+const changedFiles = audit.files.filter((f) => f.classification !== 'IDENTICAL').sort((a, b) => b.finding_count - a.finding_count || (a.path < b.path ? -1 : 1));
+const natureLabel = (n: string | null) => (n === 'CONTENT' ? 'content' : n === null ? '—' : n.toLowerCase().replaceAll('_', ' '));
+const cls = Object.entries(s.findings_by_classification).sort((a, b) => b[1] - a[1]);
+---
+<BaseLayout title="Source drift" description="Production versus remodeling for Reltroner Studio, compared by Git blob identity with field-level and section-level forensic findings.">
+  <PageIntro
+    eyebrow="Cross-repository drift"
+    title="Source drift observatory"
+    lede="Every public content file and dataset in both repositories, compared by Git blob identity at pinned commits, then analyzed field by field and section by section. Remodeling-only material is a proposal; it is never treated as a production defect."
+    crumbs={[{ label: 'Drift' }]}
+    sources={['production', 'remodeling', 'rules']}
+    limits={['Text differences are review candidates; no automated conclusion about canon is drawn from prose.', 'Only content collections and data/asthortera are in scope; runtime code and internal remodeling notes are excluded by rule.']}
+  >
+    <ImageSlot slotId="STATS_SOURCE_DRIFT" slot="aside" />
+  </PageIntro>
+
+  <section class="pb-10">
+    <div class="rs-container">
+      <div class="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+        <StatTile label="Compared paths" value={String(s.total_compared_paths)} />
+        <StatTile label="Identical" value={String(s.identical)} note="same blob" />
+        <StatTile label="Changed" value={String(s.changed)} note={`${s.changed_by_nature.CONTENT ?? 0} content · ${s.changed - (s.changed_by_nature.CONTENT ?? 0)} format only`} />
+        <StatTile label="Remodeling only" value={String(s.draft_only)} note="proposals" />
+        <StatTile label="Production only" value={String(s.production_only)} />
+        <StatTile label="Findings" value={String(s.findings_total)} note={`${s.json_field_findings} field level`} />
+      </div>
+    </div>
+  </section>
+
+  <section class="pb-10">
+    <div class="rs-container grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div>
+        <h2 class="rs-h2">Findings by classification</h2>
+        <div class="rs-card mt-4 p-5">
+          <BarList caption="Findings by classification" items={cls.map(([k, v]) => ({ label: k.replaceAll('_', ' ').toLowerCase(), value: v, display: String(v), href: `/drift?classification=${k}#explorer` }))} />
+        </div>
+      </div>
+      <div>
+        <h2 class="rs-h2">Review status</h2>
+        <ul class="mt-4 grid gap-2">
+          {Object.entries(s.findings_by_review_status).map(([k, v]) => (
+            <li class="rs-card p-3 text-sm"><a href={`/drift?review_status=${k}#explorer`} class="font-semibold">{k.replaceAll('_', ' ').toLowerCase()} · {v}</a><span class="mt-1 block text-ink-3">{REVIEW_DESCRIPTIONS[k as keyof typeof REVIEW_DESCRIPTIONS]}</span></li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="pb-10" aria-labelledby="files-h">
+    <div class="rs-container">
+      <h2 id="files-h" class="rs-h2">Files that differ</h2>
+      <div class="rs-table-wrap mt-4 max-h-[28rem] overflow-auto" tabindex="0">
+        <table class="rs-table">
+          <thead class="sticky top-0"><tr><th>Path</th><th>Classification</th><th>Nature</th><th class="num">Findings</th></tr></thead>
+          <tbody>
+            {changedFiles.map((f) => (
+              <tr><td><a href={`/drift?file=${encodeURIComponent(f.path)}#explorer`} class="font-mono text-xs">{f.path}</a>{f.title && <span class="block text-xs text-ink-3">{f.title}</span>}</td><td>{f.classification}</td><td>{natureLabel(f.content_nature)}</td><td class="num">{f.finding_count}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p class="mt-2 text-xs text-ink-3">{s.identical} identical files are omitted. “Format only” means the bytes differ but the text is identical after line-ending and trailing-whitespace normalization (here: a final newline).</p>
+    </div>
+  </section>
+
+  <section id="explorer" class="scroll-mt-20 pb-6" aria-labelledby="explorer-h">
+    <div class="rs-container">
+      <h2 id="explorer-h" class="rs-h2">Finding explorer</h2>
+      <p class="rs-soft mt-2 max-w-3xl">Filter, sort and select findings. Each ID opens a forensic page with before/after values and pinned source links; selected findings can be exported in any format.</p>
+      <div class="mt-5"><FindingsExplorer client:visible /></div>
+    </div>
+  </section>
+</BaseLayout>

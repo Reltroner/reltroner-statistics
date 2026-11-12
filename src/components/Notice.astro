@@ -1,0 +1,12 @@
+---
+interface Props { title: string; tone?: 'info' | 'caution' | 'unavailable'; class?: string }
+const { title, tone = 'info', class: className } = Astro.props;
+---
+<div role="note" class:list={['rs-notice', className]} data-tone={tone === 'info' ? undefined : tone}>
+  <svg class="mt-0.5 shrink-0" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">
+    {tone === 'caution' ? <><path d="M12 3 2 21h20L12 3z" /><path d="M12 10v5M12 18h.01" /></>
+      : tone === 'unavailable' ? <><circle cx="12" cy="12" r="9" /><path d="M8 12h8" /></>
+      : <><circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7h.01" /></>}
+  </svg>
+  <div><p><strong>{title}</strong></p><div class="mt-1"><slot /></div></div>
+</div>

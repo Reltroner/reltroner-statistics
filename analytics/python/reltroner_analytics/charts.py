@@ -1,7 +1,7 @@
 """Static report figures (SVG). Interactive charts live in the frontend; these are for HTML/PDF reports.
 
-Palette: the validated categorical set (light mode, white surface). Production/canon = slot 1 blue,
-development cohort = slot 2 orange, a third cluster = slot 3 aqua, a fourth cluster folds to gray.
+Palette (light mode, white surface): production canon = blue; cohorts share that hue and differ by
+marker; clusters use the validated blue/yellow/magenta triple and a fourth cluster folds to gray.
 The diverging scale is blue <-> red with a neutral gray midpoint and equal OKLab lightness steps.
 """
 from __future__ import annotations
@@ -16,7 +16,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.colors import LinearSegmentedColormap  # noqa: E402
 
-SERIES = ["#2a78d6", "#eb6834", "#1baf7a"]
+SERIES = ["#2a78d6", "#eb6834", "#1baf7a"]  # production, remodeling, scenario
+CLUSTERS = ["#2a78d6", "#eda100", "#e87ba4"]  # validated all-pairs; distinct from remodeling/scenario hues
 FOLD_GRAY = "#898781"
 INK, INK2, MUTED, GRID, AXIS, SURFACE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7", "#ffffff"
 MARKERS = ["o", "s", "^", "D"]
@@ -121,7 +122,8 @@ def scatter_sdi_gdp(matrix_all, entities, footer: str, path: Path) -> bytes:
     xs_all, ys_all, labels = [], [], []
     for slot, (key, label) in enumerate([("PROFILED_14", "Profiled nations (14)"), ("DEVELOPMENT_5", "Development nations (5)")]):
         rows = matrix_all[[cohort.get(e) == key for e in matrix_all.index]][["gdp_per_capita", "sdi"]].dropna()
-        ax.scatter(rows["gdp_per_capita"], rows["sdi"], s=46, c=SERIES[slot], marker=MARKERS[slot], edgecolors=SURFACE, linewidths=1.6, label=label, zorder=3)
+        style = {"c": SERIES[0], "edgecolors": SURFACE} if slot == 0 else {"facecolors": SURFACE, "edgecolors": SERIES[0]}
+        ax.scatter(rows["gdp_per_capita"], rows["sdi"], s=46, marker=MARKERS[slot], linewidths=1.6, label=label, zorder=3, **style)
         xs_all += rows["gdp_per_capita"].tolist(); ys_all += rows["sdi"].tolist(); labels += [names[e] for e in rows.index]
     ax.set_xscale("log")
     ax.set_xlabel("GDP per capita (USD per sentient, log scale)")
@@ -174,7 +176,7 @@ def cluster_scatter(clustering: dict, names: dict, footer: str, path: Path) -> b
     xs, ys, labels = [], [], []
     for c in range(k):
         pts = [p for p in coords if label[p["entity_id"]] == c]
-        color = SERIES[c] if c < len(SERIES) else FOLD_GRAY
+        color = CLUSTERS[c] if c < len(CLUSTERS) else FOLD_GRAY
         ax.scatter([p["pc1"] for p in pts], [p["pc2"] for p in pts], s=50, c=color, marker=MARKERS[c % len(MARKERS)], edgecolors=SURFACE, linewidths=1.6,
                    label=f"Cluster {c + 1} ({len(pts)})", zorder=3)
         xs += [p["pc1"] for p in pts]; ys += [p["pc2"] for p in pts]; labels += [names[p["entity_id"]] for p in pts]

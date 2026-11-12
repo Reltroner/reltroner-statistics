@@ -1,0 +1,103 @@
+---
+import { resolveSlot, type ImageSlotId } from '../lib/image-slots.ts';
+interface Props { slotId: ImageSlotId; caption?: string; priority?: boolean; class?: string }
+const { slotId: id, caption, priority = false, class: className } = Astro.props;
+const slot = resolveSlot(id);
+const C = '#35d9f2', B = '#5b9bff', O = '#e8804f', W = '#b8ddff';
+const ring = (cx: number, cy: number, r: number, n: number, phase = 0) =>
+  Array.from({ length: n }, (_, i) => {
+    const a = phase + (i / n) * Math.PI * 2;
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)] as const;
+  });
+---
+<figure class:list={['m-0', className]}>
+  {slot.approved && slot.src ? (
+    <div class="rs-slot" data-image-slot={slot.id} style={`aspect-ratio: ${slot.aspect}`}>
+      <img src={slot.src} alt={slot.alt} loading={priority ? 'eager' : 'lazy'} decoding="async" class="absolute inset-0 h-full w-full object-cover" />
+    </div>
+  ) : (
+    <div class="rs-slot" data-image-slot={slot.id} data-placeholder="true" aria-hidden="true" style={`aspect-ratio: ${slot.aspect}`}>
+      <svg viewBox="0 0 600 400" preserveAspectRatio="xMidYMid slice" fill="none" stroke-linecap="round">
+        {slot.motif === 'orbital' && (
+          <g>
+            {[60, 110, 165, 225].map((r, i) => <ellipse cx="300" cy="205" rx={r * 1.55} ry={r * 0.62} stroke={i % 2 ? C : B} stroke-width="1.2" opacity={0.55 - i * 0.08} transform="rotate(-14 300 205)" />)}
+            {Array.from({ length: 12 }, (_, i) => <line x1="300" y1="205" x2={300 + 330 * Math.cos((i * Math.PI) / 6)} y2={205 + 330 * Math.sin((i * Math.PI) / 6)} stroke={W} stroke-width="0.6" opacity="0.12" />)}
+            <circle cx="300" cy="205" r="20" fill="#0b2a5c" stroke={B} stroke-width="2" />
+            <circle cx="300" cy="205" r="7" fill={C} />
+            {ring(300, 205, 140, 5, 0.4).map(([x, y], i) => <circle cx={x} cy={y * 0.45 + 205 * 0.55} r={i === 1 ? 6 : 4} fill={i === 1 ? C : '#0b2a5c'} stroke={i === 1 ? C : B} stroke-width="1.6" />)}
+          </g>
+        )}
+        {slot.motif === 'contour' && (
+          <g>
+            {Array.from({ length: 9 }, (_, i) => <path d={`M -20 ${110 + i * 26} C 150 ${70 + i * 26}, 300 ${150 + i * 26}, 620 ${100 + i * 26}`} stroke={i % 3 === 0 ? C : B} stroke-width={i % 3 === 0 ? 1.4 : 0.9} opacity={0.5 - Math.abs(i - 4) * 0.06} />)}
+            {[0, 1, 2, 3].map((i) => <circle cx={150 + i * 100} cy={200 - (i % 2) * 22} r="3.5" fill={W} opacity="0.7" />)}
+          </g>
+        )}
+        {slot.motif === 'lattice' && (
+          <g>
+            {Array.from({ length: 9 }, (_, i) => Array.from({ length: 6 }, (_, j) => <circle cx={90 + i * 52} cy={80 + j * 48} r="2.6" fill={W} opacity="0.32" />))}
+            <path d="M90 320 H520 M90 320 V60" stroke={B} stroke-width="1.4" opacity="0.6" />
+            {[[194, 272], [246, 224], [298, 176], [350, 176], [402, 128]].map(([x, y], i) => <circle cx={x} cy={y} r={i === 4 ? 7 : 5.5} fill={i === 4 ? C : '#0b2a5c'} stroke={i === 4 ? C : B} stroke-width="2" />)}
+          </g>
+        )}
+        {slot.motif === 'chronology' && (
+          <g>
+            <path d="M40 300 Q300 40 560 300" stroke={B} stroke-width="1.6" opacity="0.7" />
+            <path d="M80 300 Q300 90 520 300" stroke={C} stroke-width="1" opacity="0.4" />
+            {Array.from({ length: 11 }, (_, i) => {
+              const t = i / 10, x = (1 - t) ** 2 * 40 + 2 * (1 - t) * t * 300 + t ** 2 * 560, y = (1 - t) ** 2 * 300 + 2 * (1 - t) * t * 40 + t ** 2 * 300;
+              return <circle cx={x} cy={y} r={i === 0 || i === 10 ? 6 : 3} fill={i === 0 || i === 10 ? C : W} opacity={i === 0 || i === 10 ? 0.95 : 0.45} />;
+            })}
+            <path d="M40 330 H560" stroke={W} stroke-width="0.8" opacity="0.25" />
+          </g>
+        )}
+        {slot.motif === 'clusters' && (
+          <g>
+            {[[180, 170, B], [400, 150, C], [300, 290, W]].map(([cx, cy, col]) => (
+              <g>
+                <circle cx={cx} cy={cy} r="58" stroke={col as string} stroke-width="1" opacity="0.35" />
+                {ring(cx as number, cy as number, 32, 7).map(([x, y]) => <circle cx={x} cy={y} r="4.5" fill={col as string} opacity="0.8" />)}
+                <circle cx={cx} cy={cy} r="3" fill={col as string} />
+              </g>
+            ))}
+          </g>
+        )}
+        {slot.motif === 'network' && (
+          <g>
+            {ring(300, 200, 130, 8, Math.PI / 8).map(([x, y], i, all) => (
+              <g>
+                <line x1="300" y1="200" x2={x} y2={y} stroke={B} stroke-width="1" opacity="0.4" />
+                <line x1={x} y1={y} x2={all[(i + 1) % all.length]![0]} y2={all[(i + 1) % all.length]![1]} stroke={C} stroke-width="0.8" opacity="0.35" />
+                <circle cx={x} cy={y} r="9" fill="#0b2a5c" stroke={i % 2 ? C : B} stroke-width="1.8" />
+              </g>
+            ))}
+            <circle cx="300" cy="200" r="22" fill="#0b2a5c" stroke={C} stroke-width="2.4" />
+            <circle cx="300" cy="200" r="8" fill={C} />
+          </g>
+        )}
+        {slot.motif === 'twin-orbits' && (
+          <g>
+            <circle cx="245" cy="200" r="118" stroke={B} stroke-width="1.8" opacity="0.75" />
+            <circle cx="355" cy="200" r="118" stroke={O} stroke-width="1.8" opacity="0.75" />
+            <circle cx="245" cy="200" r="6" fill={B} />
+            <circle cx="355" cy="200" r="6" fill={O} />
+            {[150, 175, 200, 225, 250].map((y) => <line x1="290" y1={y} x2="310" y2={y} stroke={W} stroke-width="1.2" opacity="0.5" />)}
+          </g>
+        )}
+        {slot.motif === 'documents' && (
+          <g>
+            {[2, 1, 0].map((i) => (
+              <g transform={`translate(${200 + i * 26} ${70 + i * 22})`}>
+                <rect width="200" height="250" rx="14" fill="#0b2a5c" stroke={i === 0 ? C : B} stroke-width="1.6" opacity={1 - i * 0.25} />
+                {i === 0 && [40, 64, 88, 112, 136].map((y, k) => <line x1="24" y1={y} x2={k % 2 ? 140 : 176} y2={y} stroke={W} stroke-width="2" opacity="0.5" />)}
+                {i === 0 && <rect x="24" y="168" width="70" height="44" rx="6" stroke={C} stroke-width="1.4" opacity="0.8" />}
+              </g>
+            ))}
+          </g>
+        )}
+      </svg>
+      <span class="rs-slot-tag">Illustration pending <span class="rs-slot-id">{slot.id}</span></span>
+    </div>
+  )}
+  {caption && <figcaption class="rs-muted mt-2 text-sm">{caption}</figcaption>}
+</figure>

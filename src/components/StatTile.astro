@@ -1,0 +1,16 @@
+---
+import StatusBadge from './StatusBadge.astro';
+interface Props { label: string; value: string; status?: string; note?: string; href?: string }
+const { label, value, status, note, href } = Astro.props;
+const Tag = href ? 'a' : 'div';
+---
+<Tag href={href} class:list={['rs-card rs-card-pad rs-stat', href && 'rs-card-link']}>
+  <span class="rs-stat-label">{label}</span>
+  <span class="rs-stat-value">{value}</span>
+  {(status || note) && (
+    <span class="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-3">
+      {status && <StatusBadge status={status} />}
+      {note && <span>{note}</span>}
+    </span>
+  )}
+</Tag>

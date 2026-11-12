@@ -1,0 +1,25 @@
+---
+import { getContext } from '../lib/data.ts';
+import { pinnedCommitUrl, shortSha } from '../domain/source.ts';
+
+export type SourceKey = 'production' | 'remodeling' | 'deployment' | 'model' | 'statistics' | 'rules';
+interface Props { sources: SourceKey[]; model?: string | null }
+const { sources, model = null } = Astro.props;
+const ctx = getContext();
+---
+<ul class="flex flex-wrap gap-2" aria-label="Sources behind this view">
+  {sources.includes('production') && (
+    <li class="rs-chip"><span class="h-2 w-2 rounded-full" style="background: var(--series-1)" aria-hidden="true"></span>Production main
+      <a class="font-mono text-[0.72rem]" href={pinnedCommitUrl('production', ctx.production.commit_sha)}>{shortSha(ctx.production.commit_sha)}</a></li>
+  )}
+  {sources.includes('remodeling') && (
+    <li class="rs-chip"><span class="h-2 w-2 rounded-full" style="background: var(--series-2)" aria-hidden="true"></span>Remodeling main
+      <a class="font-mono text-[0.72rem]" href={pinnedCommitUrl('remodeling', ctx.remodeling.commit_sha)}>{shortSha(ctx.remodeling.commit_sha)}</a></li>
+  )}
+  {sources.includes('deployment') && (
+    <li class="rs-chip" title={ctx.deployment.summary}>Live site: <strong class="font-semibold text-ink">{ctx.deployment.status === 'DEPLOYMENT_VERIFIED' ? `verified ${shortSha(ctx.deployment.deployed_sha)}` : 'DEPLOYMENT_UNVERIFIED'}</strong></li>
+  )}
+  {sources.includes('model') && model && <li class="rs-chip">Model <span class="font-mono text-[0.72rem]">{model}</span></li>}
+  {sources.includes('statistics') && <li class="rs-chip"><span class="rs-badge" data-tone="model">MODEL_ESTIMATE</span>Reltroner Statistics analysis</li>}
+  {sources.includes('rules') && <li class="rs-chip">Rules <span class="font-mono text-[0.72rem]">{ctx.rules_version}</span></li>}
+</ul>

@@ -1,0 +1,67 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageIntro from '../components/PageIntro.astro';
+import ImageSlot from '../components/ImageSlot.astro';
+import Notice from '../components/Notice.astro';
+import StatusBadge from '../components/StatusBadge.astro';
+import HistoryExplorer from '../features/history/HistoryExplorer.tsx';
+import { getAnalytics, getContext } from '../lib/data.ts';
+import { historyView } from '../lib/views.ts';
+import { formatValue } from '../lib/format.ts';
+import { pinnedBlobUrl } from '../domain/source.ts';
+
+const ctx = getContext();
+const view = historyView();
+const analytics = getAnalytics();
+const coverage = analytics?.history.series ?? [];
+---
+<BaseLayout title="Historical dynamics" description="Asthortera's history from 1010 BAC to Year 0 as discrete canonical anchors and labeled scenarios, with coverage limits stated rather than interpolated away.">
+  <PageIntro
+    eyebrow="1010 BAC → Year 0"
+    title="Historical dynamics"
+    lede="A thousand years with only a handful of measured points. This view shows each canonical anchor where the source states it, keeps simulations labeled as scenarios, and refuses to draw a curve the sources do not contain."
+    crumbs={[{ href: '/statistics', label: 'Statistics' }, { label: 'History' }]}
+    sources={['production', 'statistics']}
+    limits={[
+      'No series has enough consecutive annual observations for rolling volatility (needs 8) or change-point detection (needs 20).',
+      'Population-growth intervals are the source’s own “simulation V1”: scenario values, not records.',
+      'Prose anchors are extracted by evidence rules: a value appears only while its exact sentence exists in the pinned source text.',
+    ]}
+  >
+    <ImageSlot slotId="STATS_HISTORICAL_DYNAMICS" slot="aside" />
+  </PageIntro>
+
+  <section class="pb-12">
+    <div class="rs-container">
+      <HistoryExplorer client:visible points={view.points as never} timeline={view.timeline} coverage={coverage as never} repoUrl={`https://github.com/${ctx.production.repository}`} />
+    </div>
+  </section>
+
+  {view.ranges.length > 0 && (
+    <section class="pb-12" aria-labelledby="ranges-h">
+      <div class="rs-container">
+        <h2 id="ranges-h" class="rs-h2">Stated ranges without dates</h2>
+        <p class="rs-soft mt-2 max-w-3xl">Some sources give a range for unspecified years. These cannot be placed on the axis without inventing a date, so they are shown here instead.</p>
+        <ul class="mt-4 grid gap-4 md:grid-cols-2">
+          {view.ranges.map((r) => (
+            <li class="rs-card p-5">
+              <div class="flex items-center gap-2"><StatusBadge status={r.status} /><span class="text-sm text-ink-3">{r.entity}</span></div>
+              <p class="mt-2 text-2xl font-bold text-ink">{formatValue(r.low, 'ratio_pct')} to {formatValue(r.high, 'ratio_pct')} <span class="text-base font-semibold text-ink-2">real GDP growth, year over year</span></p>
+              <p class="mt-2 text-sm text-ink-2">{r.timing}</p>
+              <blockquote class="mt-3 border-l-2 border-line pl-3 text-sm text-ink-3">“{r.quote}”</blockquote>
+              <p class="mt-2 text-xs"><a href={pinnedBlobUrl('production', r.source.commit_sha, r.source.path) + (r.source.line ? `#L${r.source.line}` : '')}>{r.source.path}{r.source.line ? `:${r.source.line}` : ''}</a></p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )}
+
+  <section class="pb-6">
+    <div class="rs-container">
+      <Notice title="Why there is no trend line">
+        The sources state growth of 10% in 1010 BAC, a 15% peak in 950 BAC and 4% in Year 0, and call the 1010 BAC figure a year-specific anchor, not a long-run average. Joining these points would assert values for roughly 950 unobserved years. The history page will show trends only when the canon provides consecutive annual observations.
+      </Notice>
+    </div>
+  </section>
+</BaseLayout>

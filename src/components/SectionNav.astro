@@ -1,0 +1,21 @@
+---
+import { SECTION_PAGES, sectionFor } from '../lib/site.ts';
+const pathname = Astro.url.pathname.replace(/\/+$/, '') || '/';
+const pages = SECTION_PAGES[sectionFor(pathname)];
+const current = pages.findLast((p) => pathname === p.href || pathname.startsWith(`${p.href}/`))?.href;
+---
+{pages.length > 1 && (
+  <nav aria-label="Section" class="mb-6 overflow-x-auto">
+    <ul class="flex w-max gap-1 rounded-xl border border-line bg-inset p-1">
+      {pages.map((p) => (
+        <li>
+          <a href={p.href} aria-current={current === p.href ? 'page' : undefined}
+            class:list={['block rounded-lg px-3.5 py-1.5 text-sm font-semibold no-underline transition-colors',
+              current === p.href ? 'bg-surface-2 text-ink shadow-sm' : 'text-ink-3 hover:text-ink']}>
+            {p.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+)}

@@ -1,0 +1,136 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import PageIntro from '../../../components/PageIntro.astro';
+import BarList from '../../../components/BarList.astro';
+import Notice from '../../../components/Notice.astro';
+import StatusBadge from '../../../components/StatusBadge.astro';
+import { getAnalytics, getAudit, getContext, getStats, observationsFor } from '../../../lib/data.ts';
+import { indicatorMetas } from '../../../lib/views.ts';
+import { formatDelta, formatValue } from '../../../lib/format.ts';
+import { INDICATOR_BY_ID } from '../../../domain/indicators.ts';
+import { pinnedBlobUrl } from '../../../domain/source.ts';
+
+export function getStaticPaths() {
+  return indicatorMetas().map((m) => ({ params: { id: m.id } }));
+}
+
+const { id } = Astro.params as { id: string };
+const def = INDICATOR_BY_ID.get(id)!;
+const ctx = getContext();
+const stats = getStats();
+const analytics = getAnalytics();
+const audit = getAudit();
+const obs = observationsFor(id);
+const nations = obs.filter((o) => o.entity_kind === 'country');
+const assigned = nations.filter((o) => o.value !== null).sort((a, b) => (b.value as number) - (a.value as number));
+const unassigned = nations.filter((o) => o.value === null);
+const planet = obs.find((o) => o.entity_kind === 'planet');
+const residual = obs.find((o) => o.entity_kind === 'aggregate_residual');
+const archived = stats.observations.filter((o) => o.indicator_id === id && o.status === 'ARCHIVED');
+const desc = (analytics?.descriptive ?? []).filter((d) => d.indicator_id === id);
+const outliers = (analytics?.outliers ?? []).filter((o) => o.indicator_id === id && o.flagged.length);
+const statusLabels = [...new Set(nations.map((o) => o.source_status_label).filter(Boolean))] as string[];
+const proposals = nations.map((o) => {
+  const p = stats.proposals.find((x) => x.entity_id === o.entity_id && x.indicator_id === id && x.period.year_bac === 0 && !x.period.interval);
+  if (!p || p.value === o.value) return null;
+  const finding = audit.findings.find((f) => f.level === 'FIELD' && f.locator === p.source.pointer);
+  return { o, p, finding };
+}).filter((x): x is NonNullable<typeof x> => x !== null);
+const nameOf = (eid: string) => stats.entities.find((e) => e.id === eid)?.name ?? eid;
+const cohortLabel = (c: string) => (c === 'PROFILED_14' ? 'Profiled 14' : 'All 19');
+---
+<BaseLayout title={def.label} description={`${def.label} (${def.unit}) across Asthortera's modeled nations: production canon values, distribution, outliers and remodeling proposals with provenance.`}>
+  <PageIntro
+    eyebrow={`${def.group} · ${def.derivation === 'DERIVED' ? 'derived in source' : 'assigned in source'}`}
+    title={def.label}
+    lede={`${def.description} Unit: ${def.unit}.${def.formula ? ` Source convention: ${def.formula}.` : ''}`}
+    crumbs={[{ href: '/statistics', label: 'Statistics' }, { label: def.label }]}
+    sources={['production', 'remodeling', 'model', 'statistics']}
+    model={stats.model_version}
+    limits={[
+      ...(unassigned.length ? [`Not assigned for ${unassigned.length} nation(s): ${unassigned.map((o) => o.entity_name).join(', ')}.`] : []),
+      'Remodeling values below are proposals and never replace the production value.',
+    ]}
+  />
+
+  <section class="pb-12">
+    <div class="rs-container grid gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+      <div class="min-w-0">
+        <h2 class="rs-h2">Production values, Year 0</h2>
+        <div class="rs-card mt-4 p-5">
+          {assigned.length ? (
+            <BarList caption={`${def.label} by nation`} items={assigned.map((o) => ({ label: o.entity_name, value: o.value as number, display: formatValue(o.value, def.format), note: o.cohort === 'DEVELOPMENT_5' ? 'development nation' : undefined }))} />
+          ) : <p class="text-ink-3">No nation has an assigned value.</p>}
+        </div>
+        {(planet || residual) && (
+          <dl class="mt-4 grid gap-3 sm:grid-cols-2">
+            {planet && <div class="rs-card p-4"><dt class="text-xs text-ink-3">Planet (Asthortera)</dt><dd class="m-0 mt-1 text-lg font-bold text-ink">{formatValue(planet.value, def.format)}</dd><dd class="m-0 mt-1"><StatusBadge status={planet.status} /></dd></div>}
+            {residual && <div class="rs-card p-4"><dt class="text-xs text-ink-3">{residual.entity_name}</dt><dd class="m-0 mt-1 text-lg font-bold text-ink">{formatValue(residual.value, def.format)}</dd><dd class="m-0 mt-1 text-xs text-ink-3">One combined value for the residual, not a per-state figure.</dd></div>}
+          </dl>
+        )}
+      </div>
+      <div class="min-w-0">
+        <h2 class="rs-h2">Distribution</h2>
+        {desc.length ? (
+          <div class="rs-table-wrap mt-4" tabindex="0">
+            <table class="rs-table">
+              <thead><tr><th>Statistic</th>{desc.map((d) => <th class="num">{cohortLabel(d.cohort)}</th>)}</tr></thead>
+              <tbody>
+                {([['n', 'Assigned values'], ['median', 'Median'], ['mean', 'Mean'], ['std', 'Std. deviation'], ['q1', 'Q1'], ['q3', 'Q3'], ['mad', 'MAD'], ['min', 'Minimum'], ['max', 'Maximum']] as const).map(([k, label]) => (
+                  <tr><td>{label}</td>{desc.map((d) => <td class="num">{d.status === 'COMPUTED' ? (k === 'n' ? `${d.n} of ${d.n + d.n_missing}` : formatValue(d[k] as number | null, def.format)) : k === 'n' ? `${d.n}` : '—'}</td>)}</tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : <Notice title="Descriptive statistics unavailable" tone="unavailable">Analytics did not run for this build.</Notice>}
+        {desc.some((d) => d.status !== 'COMPUTED') && <p class="mt-2 text-xs text-ink-3">{desc.find((d) => d.status !== 'COMPUTED')?.reason}</p>}
+        {outliers.length > 0 && (
+          <div class="mt-5">
+            <h3 class="rs-h3">Robust outliers</h3>
+            <ul class="mt-2 grid gap-1 text-sm text-ink-2">
+              {outliers.map((o) => <li>{cohortLabel(o.cohort)}: {o.flagged.map((f) => `${nameOf(f.entity_id)} (modified z ${f.robust_z.toFixed(1)})`).join(', ')}</li>)}
+            </ul>
+            <p class="mt-1 text-xs text-ink-3">Statistical distance from the median, not a canon error. <a href="/anomalies">How outliers are reviewed</a>.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  </section>
+
+  <section class="pb-12" aria-labelledby="prop-h">
+    <div class="rs-container">
+      <h2 id="prop-h" class="rs-h2">Remodeling proposals for this indicator</h2>
+      {proposals.length ? (
+        <div class="rs-table-wrap mt-4" tabindex="0">
+          <table class="rs-table">
+            <thead><tr><th>Nation</th><th class="num">Production (canon)</th><th class="num">Remodeling (proposal)</th><th class="num">Change</th><th>Finding</th></tr></thead>
+            <tbody>
+              {proposals.map(({ o, p, finding }) => (
+                <tr>
+                  <td>{o.entity_name}</td>
+                  <td class="num">{formatValue(o.value, def.format)}</td>
+                  <td class="num">{formatValue(p.value, def.format)}</td>
+                  <td class="num">{o.value !== null && p.value !== null ? formatDelta(p.value - o.value, o.value !== 0 ? (p.value - o.value) / Math.abs(o.value) : null) : o.value === null ? 'newly assigned' : 'unassigned'}</td>
+                  <td>{finding ? <a href={`/drift/${finding.id}`} class="font-mono text-xs">{finding.id}</a> : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : <p class="rs-soft mt-3">The remodeling workspace proposes no change to this indicator at Year 0.</p>}
+    </div>
+  </section>
+
+  <section class="pb-6" aria-labelledby="prov-h">
+    <div class="rs-container">
+      <h2 id="prov-h" class="rs-h2">Provenance</h2>
+      <dl class="rs-card mt-4 grid gap-3 p-5 text-sm sm:grid-cols-[max-content_1fr]">
+        <dt class="text-ink-3">Source file</dt><dd class="m-0"><a href={pinnedBlobUrl('production', ctx.production.commit_sha, stats.dataset_path)}>{stats.dataset_path}</a> at <span class="rs-sha">{ctx.production.commit_sha.slice(0, 12)}</span></dd>
+        <dt class="text-ink-3">Members</dt><dd class="m-0"><code>countries_14[Name].{def.fields.PROFILED_14.join(' | ')}</code>, <code>countries_5[Name].{def.fields.DEVELOPMENT_5.join(' | ')}</code></dd>
+        <dt class="text-ink-3">Model</dt><dd class="m-0"><code>{stats.model_version}</code></dd>
+        {statusLabels.length > 0 && <><dt class="text-ink-3">Source status labels</dt><dd class="m-0 grid gap-1">{statusLabels.map((l) => <code class="text-xs">{l}</code>)}</dd></>}
+        {archived.length > 0 && <><dt class="text-ink-3">Archived values</dt><dd class="m-0">{archived.length} superseded pre-rebase value(s) are retained with status <StatusBadge status="ARCHIVED" /> and excluded from every statistic.</dd></>}
+      </dl>
+    </div>
+  </section>
+</BaseLayout>

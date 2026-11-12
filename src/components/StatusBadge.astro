@@ -1,0 +1,8 @@
+---
+import { statusTone } from '../lib/format.ts';
+import { EPISTEMIC_DESCRIPTIONS, type EpistemicStatus } from '../domain/status.ts';
+interface Props { status: string; label?: string }
+const { status, label } = Astro.props;
+const description = (EPISTEMIC_DESCRIPTIONS as Record<string, string>)[status as EpistemicStatus] ?? status;
+---
+<span class="rs-badge" data-tone={statusTone(status)} title={description}>{label ?? status}</span>

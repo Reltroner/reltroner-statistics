@@ -1,0 +1,76 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageIntro from '../components/PageIntro.astro';
+import ImageSlot from '../components/ImageSlot.astro';
+import CountryCompare from '../features/statistics/CountryCompare.tsx';
+import { getContext, getStats } from '../lib/data.ts';
+import { countryRows, indicatorMetas, residualRow } from '../lib/views.ts';
+import { formatValue } from '../lib/format.ts';
+import { pinnedBlobUrl } from '../domain/source.ts';
+
+const ctx = getContext();
+const stats = getStats();
+const rows = countryRows();
+const residual = residualRow();
+const entities = new Map(stats.entities.map((e) => [e.id, e]));
+const anchor = (id: string) => id.replace(':', '-');
+---
+<BaseLayout title="Countries" description="Catalog and side-by-side comparison of Asthortera's 19 individually modeled nations, with production canon values and source documents.">
+  <PageIntro
+    eyebrow="Nations"
+    title="Countries"
+    lede="Nineteen nations are modeled individually: fourteen fully profiled and five development nations with partial indicators. Compare up to four side by side, or open any nation's source document at the pinned commit."
+    crumbs={[{ href: '/statistics', label: 'Statistics' }, { label: 'Countries' }]}
+    sources={['production', 'model']}
+    model={stats.model_version}
+    limits={[`${residual?.states ?? 18} sovereign states have no individual profile; the source allocates them only as one combined residual.`, 'Country-specific ancestry, land area and several social indicators are not ratified for the five development nations.']}
+  >
+    <ImageSlot slotId="STATS_COUNTRY_COMPARISON" slot="aside" />
+  </PageIntro>
+
+  <section class="pb-12" aria-labelledby="cmp-h">
+    <div class="rs-container">
+      <h2 id="cmp-h" class="rs-h2">Compare nations</h2>
+      <div class="mt-5"><CountryCompare client:visible rows={rows} indicators={indicatorMetas()} initial={['country:reltronland', 'country:beluftner']} /></div>
+    </div>
+  </section>
+
+  <section class="pb-6" aria-labelledby="cat-h">
+    <div class="rs-container">
+      <h2 id="cat-h" class="rs-h2">Catalog</h2>
+      <ul class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {rows.map((r) => {
+          const e = entities.get(r.id)!;
+          return (
+            <li id={anchor(r.id)} class="rs-card scroll-mt-24 p-5">
+              <div class="flex items-start justify-between gap-3">
+                <h3 class="rs-h3">{r.name}</h3>
+                <span class="rs-chip !py-0 !text-[0.65rem]">{r.cohort === 'PROFILED_14' ? 'Profiled' : 'Development'}</span>
+              </div>
+              {e.specialization && <p class="mt-1 text-sm text-ink-3">{e.specialization}</p>}
+              <dl class="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                <div><dt class="text-xs text-ink-3">Population</dt><dd class="m-0 font-semibold text-ink">{formatValue(r.values.population, 'billion')}</dd></div>
+                <div><dt class="text-xs text-ink-3">SDI</dt><dd class="m-0 font-semibold text-ink">{formatValue(r.values.sdi, 'index')}</dd></div>
+                <div><dt class="text-xs text-ink-3">Share of planetary GDP</dt><dd class="m-0 font-semibold text-ink">{formatValue(r.values.gdp_share, 'ratio_pct')}</dd></div>
+                <div><dt class="text-xs text-ink-3">Real growth</dt><dd class="m-0 font-semibold text-ink">{formatValue(r.values.real_gdp_growth, 'ratio_pct')}</dd></div>
+                <div><dt class="text-xs text-ink-3">Founded</dt><dd class="m-0 font-semibold text-ink">{e.foundation_bac !== null ? `${e.foundation_bac} BAC` : 'Not in dataset'}</dd></div>
+                <div><dt class="text-xs text-ink-3">Currency</dt><dd class="m-0 font-semibold text-ink">{e.fx_code ?? '—'}</dd></div>
+              </dl>
+              {e.source_document && <p class="mt-4 text-sm"><a href={pinnedBlobUrl('production', ctx.production.commit_sha, e.source_document)}>Source document</a> <span class="text-ink-3">· {e.source_document}</span></p>}
+            </li>
+          );
+        })}
+        {residual && (
+          <li class="rs-card border-dashed p-5" style="border-style: dashed">
+            <h3 class="rs-h3">{residual.name}</h3>
+            <p class="mt-2 text-sm text-ink-2">One combined residual the source uses to reconcile planetary totals. It represents {residual.states} states but carries no per-state values, so it is never ranked, clustered or plotted as a nation.</p>
+            <dl class="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <div><dt class="text-xs text-ink-3">Combined population</dt><dd class="m-0 font-semibold text-ink">{formatValue(residual.values.population ?? null, 'billion')}</dd></div>
+              <div><dt class="text-xs text-ink-3">Required weighted SDI</dt><dd class="m-0 font-semibold text-ink">{formatValue(residual.values.sdi ?? null, 'index')}</dd></div>
+            </dl>
+          </li>
+        )}
+      </ul>
+    </div>
+  </section>
+</BaseLayout>

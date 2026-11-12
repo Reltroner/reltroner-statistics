@@ -1,0 +1,105 @@
+---
+import fs from 'node:fs';
+import path from 'node:path';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import SectionNav from '../../components/SectionNav.astro';
+import SourceStrip from '../../components/SourceStrip.astro';
+import FindingExport from '../../features/reports/FindingExport.tsx';
+import { getAudit } from '../../lib/data.ts';
+import { reportContext } from '../../lib/report-context.ts';
+import { formatDelta } from '../../lib/format.ts';
+import { displayValue, pinnedUrl, typeLabel } from '../../export/model.ts';
+import { REVIEW_DESCRIPTIONS } from '../../domain/status.ts';
+import type { Finding } from '../../domain/finding.ts';
+
+export function getStaticPaths() {
+  return getAudit().findings.map((f) => ({ params: { id: f.id }, props: { finding: f } }));
+}
+
+const { finding: f } = Astro.props as { finding: Finding };
+const audit = getAudit();
+const sameFile = audit.findings.filter((x) => x.file_path === f.file_path && x.id !== f.id).slice(0, 12);
+const sameEntity = f.entity && f.level === 'FIELD' ? audit.findings.filter((x) => x.entity?.name === f.entity!.name && x.id !== f.id && x.file_path !== f.file_path).slice(0, 8) : [];
+const pdfAvailable = fs.existsSync(path.join(process.cwd(), 'dist', 'reports', 'pdf', `${f.id}.pdf`)) || process.env.RELTRONER_PDF_EXPECTED === '1';
+const side = (k: 'production' | 'remodeling') => f.provenance[k];
+---
+<BaseLayout title={`${f.id} — ${f.title}`} description={`Forensic drift finding ${f.id}: ${f.title}. Production versus remodeling values with pinned source evidence.`}>
+  <section class="pt-6 pb-8 sm:pt-8">
+    <div class="rs-container">
+      <Breadcrumbs items={[{ href: '/drift', label: 'Drift' }, { label: f.id }]} />
+      <SectionNav />
+      <p class="rs-eyebrow">{f.level} finding · {f.file_kind}</p>
+      <h1 class="mt-3 text-[clamp(1.6rem,3.4vw,2.4rem)] font-[760] [overflow-wrap:anywhere]">{f.title}</h1>
+      <div class="mt-4 flex flex-wrap items-center gap-2">
+        <span class="rs-badge" data-tone={f.priority === 'P1' ? 'critical' : 'unknown'}>{f.priority}</span>
+        <span class="rs-badge" data-tone="unknown">{f.classification}</span>
+        <span class="rs-badge" data-tone="unknown">{f.change_type}</span>
+        <span class="rs-badge" data-tone={f.review_status === 'PROPOSAL' ? 'proposed' : f.review_status === 'DETERMINISTIC_CONTRADICTION' ? 'critical' : 'unknown'}>{f.review_status}</span>
+        <span class="font-mono text-sm text-ink-3">{f.id}</span>
+      </div>
+      <p class="rs-soft mt-3 max-w-3xl text-sm">{REVIEW_DESCRIPTIONS[f.review_status]}</p>
+      <div class="mt-5"><SourceStrip sources={['production', 'remodeling', 'deployment', 'rules']} /></div>
+    </div>
+  </section>
+
+  <section class="pb-10" aria-labelledby="cmp-h">
+    <div class="rs-container">
+      <h2 id="cmp-h" class="rs-h2">Production versus remodeling</h2>
+      <div class="mt-4 grid gap-4 md:grid-cols-2">
+        {(['production', 'remodeling'] as const).map((k) => (
+          <div class="rs-card overflow-hidden">
+            <div class="h-1" style={`background: var(--series-${k === 'production' ? 1 : 2})`}></div>
+            <div class="p-5">
+              <p class="rs-label">{k === 'production' ? 'Production main · authoritative' : 'Remodeling main · proposal'}</p>
+              <p class:list={['mt-2 font-semibold text-ink [overflow-wrap:anywhere]', f[k].value_type === 'text' ? 'whitespace-pre-wrap text-sm' : 'text-2xl']}>{displayValue(f[k])}</p>
+              <p class="mt-2 text-xs text-ink-3">Type: {typeLabel(f[k])}{f.unit && f[k].present && typeof f[k].value === 'number' ? ` · ${f.unit}` : ''}</p>
+              {side(k) ? (
+                <p class="mt-3 text-xs"><a href={pinnedUrl(side(k)!.repository, side(k)!.commit_sha, side(k)!.path, side(k)!.line)}>{side(k)!.repository}@{side(k)!.commit_sha.slice(0, 12)}</a><span class="block text-ink-3 [overflow-wrap:anywhere]">{side(k)!.path}{side(k)!.line ? `:${side(k)!.line}` : ''} · blob {side(k)!.blob_sha?.slice(0, 12)}</span></p>
+              ) : <p class="mt-3 text-xs text-ink-3">File absent on this side.</p>}
+            </div>
+          </div>
+        ))}
+      </div>
+      <dl class="rs-card mt-4 grid gap-x-6 gap-y-3 p-5 text-sm sm:grid-cols-[max-content_1fr]">
+        <dt class="text-ink-3">File</dt><dd class="m-0 font-mono text-xs [overflow-wrap:anywhere]">{f.file_path}</dd>
+        <dt class="text-ink-3">Locator</dt><dd class="m-0 font-mono text-xs [overflow-wrap:anywhere]">{f.locator || '(whole file)'}</dd>
+        {f.entity && <><dt class="text-ink-3">Entity</dt><dd class="m-0">{f.entity.name} ({f.entity.kind})</dd></>}
+        {f.unit && <><dt class="text-ink-3">Unit</dt><dd class="m-0">{f.unit} <span class="text-ink-3">(inferred from the field name)</span></dd></>}
+        {f.numeric_delta && <><dt class="text-ink-3">Change</dt><dd class="m-0 font-semibold text-ink">{formatDelta(f.numeric_delta.absolute, f.numeric_delta.relative)}</dd></>}
+        {f.production_canon_status && <><dt class="text-ink-3">Production canon status</dt><dd class="m-0"><code>{f.production_canon_status}</code></dd></>}
+        {f.content_nature && <><dt class="text-ink-3">Nature of change</dt><dd class="m-0">{f.content_nature.replaceAll('_', ' ').toLowerCase()}</dd></>}
+        <dt class="text-ink-3">Rule</dt><dd class="m-0">{f.rule}</dd>
+      </dl>
+      {f.diff && f.diff.excerpt.length > 0 && (
+        <div class="mt-4">
+          <p class="rs-label">Line diff (+{f.diff.added_lines} / −{f.diff.removed_lines}{f.diff.truncated ? ', excerpt truncated' : ''})</p>
+          <pre class="rs-card overflow-x-auto p-4 text-xs leading-relaxed">{f.diff.excerpt.map((l) => <span class:list={['block whitespace-pre-wrap', l.startsWith('+') ? 'text-[var(--badge-scenario-fg)]' : l.startsWith('-') ? 'text-[var(--badge-proposed-fg)]' : 'text-ink-3']}>{l}</span>)}</pre>
+        </div>
+      )}
+    </div>
+  </section>
+
+  <section class="pb-10">
+    <div class="rs-container grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div class="rs-card p-5">
+        <h2 class="rs-h3">Recommendation</h2>
+        <p class="mt-2 text-ink-2">{f.recommendation}</p>
+        <p class="mt-3 text-xs text-ink-3">Deterministic guidance for this class of change. Nothing on this site edits either repository.</p>
+      </div>
+      <div class="rs-card p-5">
+        <h2 class="rs-h3">Export this finding</h2>
+        <div class="mt-3"><FindingExport client:idle finding={f} context={reportContext()} pdfAvailable={pdfAvailable} /></div>
+      </div>
+    </div>
+  </section>
+
+  {(sameFile.length > 0 || sameEntity.length > 0) && (
+    <section class="pb-6">
+      <div class="rs-container grid gap-6 lg:grid-cols-2">
+        {sameFile.length > 0 && <div><h2 class="rs-h3">More in this file</h2><ul class="mt-3 grid gap-1 text-sm">{sameFile.map((x) => <li><a href={`/drift/${x.id}`}>{x.title}</a></li>)}</ul></div>}
+        {sameEntity.length > 0 && <div><h2 class="rs-h3">Same entity elsewhere</h2><ul class="mt-3 grid gap-1 text-sm">{sameEntity.map((x) => <li><a href={`/drift/${x.id}`}>{x.title}</a> <span class="text-ink-3">· {x.file_path.split('/').pop()}</span></li>)}</ul></div>}
+      </div>
+    </section>
+  )}
+</BaseLayout>

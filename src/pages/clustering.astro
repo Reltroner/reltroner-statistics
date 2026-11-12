@@ -1,0 +1,65 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageIntro from '../components/PageIntro.astro';
+import ImageSlot from '../components/ImageSlot.astro';
+import Notice from '../components/Notice.astro';
+import ClusterLab from '../features/clustering/ClusterLab.tsx';
+import { getAnalytics, getStats } from '../lib/data.ts';
+import { clusteringView } from '../lib/views.ts';
+
+const stats = getStats();
+const analytics = getAnalytics();
+const view = clusteringView();
+const c = analytics?.clustering;
+const best = c?.kmeans?.runs.find((r) => r.k === c.kmeans?.recommended_k);
+---
+<BaseLayout title="Clustering laboratory" description="Seeded K-Means and DBSCAN on standardized development and demography indicators for Asthortera's 14 profiled nations, with sufficiency gates and full parameters.">
+  <PageIntro
+    eyebrow="Exploratory analysis"
+    title="Clustering laboratory"
+    lede="Do the profiled nations fall into natural groups? K-Means and DBSCAN run on seven standardized indicators. Every parameter, seed and sufficiency rule is recorded, and every result is labeled as a model estimate."
+    crumbs={[{ href: '/clustering', label: 'Analysis' }, { label: 'Clustering' }]}
+    sources={['production', 'statistics']}
+    model={stats.model_version}
+    limits={[
+      `Only the 14 profiled nations have complete feature coverage; the five development nations and the 18-state residual are excluded.`,
+      'With n = 14, cluster structure is fragile. Clusters are a lens for comparison, not a canonical taxonomy.',
+    ]}
+  >
+    <ImageSlot slotId="STATS_CLUSTERING_LAB" slot="aside" />
+  </PageIntro>
+
+  <section class="pb-10">
+    <div class="rs-container">
+      {view && c ? (
+        <>
+          {best && best.silhouette !== null && best.silhouette < 0.5 && (
+            <Notice title={`Weak structure: the best mean silhouette is ${best.silhouette.toFixed(2)} (k = ${best.k})`} tone="caution">
+              Silhouettes between 0.25 and 0.5 mean nations sit only loosely closer to their own cluster than to the next. Read memberships as approximate similarity, and never as evidence about canon.
+            </Notice>
+          )}
+          <div class="mt-6"><ClusterLab client:visible clustering={view.clustering as never} names={view.names} labels={view.labels} /></div>
+        </>
+      ) : (
+        <Notice title="INSUFFICIENT_DATA or analytics unavailable" tone="unavailable">Clustering did not run for this build, or the sufficiency gate (at least 10 complete cases) was not met.</Notice>
+      )}
+    </div>
+  </section>
+
+  {c && c.status === 'COMPUTED' && (
+    <section class="pb-6" aria-labelledby="params-h">
+      <div class="rs-container">
+        <h2 id="params-h" class="rs-h2">Parameters</h2>
+        <dl class="rs-card mt-4 grid gap-3 p-5 text-sm sm:grid-cols-[max-content_1fr]">
+          <dt class="text-ink-3">Features</dt><dd class="m-0">{c.features.map((f) => `${view?.labels[f.indicator_id] ?? f.indicator_id}${f.transform === 'log10' ? ' (log₁₀)' : ''}`).join(', ')}</dd>
+          <dt class="text-ink-3">Scaling</dt><dd class="m-0">{c.scaling}</dd>
+          <dt class="text-ink-3">Sufficiency</dt><dd class="m-0">{c.sufficiency.rule}</dd>
+          <dt class="text-ink-3">K-Means</dt><dd class="m-0">k ∈ {c.kmeans!.runs.map((r) => r.k).join(', ')}; Lloyd; {c.kmeans!.n_init} initializations; random_state {c.kmeans!.random_state}; {c.kmeans!.selection_rule}</dd>
+          <dt class="text-ink-3">DBSCAN</dt><dd class="m-0">min_samples {c.dbscan!.min_samples}; eps {c.dbscan!.eps} ({c.dbscan!.eps_rule})</dd>
+          <dt class="text-ink-3">Projection</dt><dd class="m-0">PCA, 2 components, full SVD; explained variance {c.pca!.explained_variance_ratio.map((v) => `${(v * 100).toFixed(1)}%`).join(' + ')}; component signs fixed so the largest loading is positive</dd>
+          <dt class="text-ink-3">Engine</dt><dd class="m-0">{Object.entries(analytics!.engine).map(([k, v]) => `${k} ${v}`).join(' · ')}</dd>
+        </dl>
+      </div>
+    </section>
+  )}
+</BaseLayout>

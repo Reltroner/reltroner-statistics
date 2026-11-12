@@ -34,8 +34,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run verify:baseline
-      - name: Build static preview
-        run: npm run build
 
   analytics:
     name: Python analytics (${{ matrix.os }})
@@ -50,6 +48,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+      - run: npm ci
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
@@ -57,7 +57,63 @@ jobs:
           cache-dependency-path: analytics/python/requirements.lock
       - name: Install locked dependencies (hash-verified)
         run: python -m pip install --require-hashes -r analytics/python/requirements.lock
-      - name: Python tests
+      - name: Python tests (incl. XSD validation of exported XML)
         env:
           RELTRONER_PYTHON: python
         run: npm run test:py
+
+  site:
+    name: Pipeline, static build and browser tests
+    needs: [determinism, analytics]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: analytics/python/requirements.lock
+      - run: python -m pip install --require-hashes -r analytics/python/requirements.lock
+      - name: Restore immutable Git object cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/github
+          key: github-objects-${{ github.run_id }}
+          restore-keys: github-objects-
+      - name: Read-only analysis pipeline (latest main of both sources, pinned at resolution)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELTRONER_PYTHON: python
+        run: npm run pipeline
+      - name: Type check
+        run: npm run typecheck
+      - name: Install Chromium for PDF printing and browser tests
+        run: npx playwright install --with-deps chromium
+      - name: Static build (pages, PDFs from HTML, CSP headers, link validation)
+        run: npm run build
+      - name: Browser tests (routes, 4 viewports, themes, a11y, keyboard, exports)
+        run: npm run test:e2e
+      - name: Upload deploy-ready build (CI artifact, not a public deployment)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-${{ github.sha }}
+          path: |
+            dist/
+            artifacts/
+          retention-days: 14
+      - name: Upload browser test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

@@ -1,0 +1,83 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageIntro from '../components/PageIntro.astro';
+import StatusBadge from '../components/StatusBadge.astro';
+import { getContext } from '../lib/data.ts';
+import { EPISTEMIC_DESCRIPTIONS, EPISTEMIC_STATUSES, REVIEW_DESCRIPTIONS } from '../domain/status.ts';
+import { EDGE_DESCRIPTIONS, EDGE_TYPES } from '../domain/graph.ts';
+import { scopeDescription } from '../engine/scope.ts';
+
+const ctx = getContext();
+const scope = scopeDescription();
+const toc = [
+  ['authority', 'Source authority'], ['statuses', 'Epistemic statuses'], ['classification', 'Drift classification'], ['determinism', 'Determinism'],
+  ['methods', 'Statistical methods'], ['sufficiency', 'Sufficiency rules'], ['graph', 'Graph semantics'], ['color', 'Color and charts'], ['exports', 'Exports'],
+] as const;
+---
+<BaseLayout title="Methodology" description="How Reltroner Statistics reads its sources, classifies drift, computes statistics, builds the knowledge graph and produces exports.">
+  <PageIntro
+    eyebrow="Definitions and methods"
+    title="Methodology"
+    lede="Every rule this observatory applies, stated plainly: which source wins, what each status means, how differences are classified, which statistics run and when they refuse to."
+    crumbs={[{ label: 'Methodology' }]}
+    sources={['production', 'remodeling', 'rules']}
+    sectionNav={false}
+  />
+  <div class="rs-container grid gap-10 pb-10 lg:grid-cols-[14rem_minmax(0,1fr)]">
+    <nav aria-label="On this page" class="lg:sticky lg:top-24 lg:self-start">
+      <ul class="grid gap-1 text-sm">{toc.map(([id, l]) => <li><a href={`#${id}`} class="block rounded-lg px-2 py-1.5 text-ink-2 no-underline hover:bg-accent-soft hover:text-ink">{l}</a></li>)}</ul>
+    </nav>
+    <article class="rs-prose">
+      <h2 id="authority" class="scroll-mt-24">Source authority</h2>
+      <p><strong>Production main</strong> (<code>{ctx.production.repository}</code>) is the authoritative source of every statistic on this site. <strong>Remodeling main</strong> (<code>{ctx.remodeling.repository}</code>) holds drafts and proposals; its values appear only in comparison views and always as proposals. A third identity, the <strong>verified live deployment</strong>, is the commit actually serving the public Studio site. It counts as verified only when the live site publishes a build identifier; GitHub deployment records show that a provider built a commit, not what is live now, so they are reported as evidence but never accepted. Today the status is <code>{ctx.deployment.status}</code>, and production main is never substituted for it.</p>
+      <p>Sources are read only through the GitHub API at immutable commit SHAs. Each tree listing is checked by recomputing its root tree SHA; each file is checked against its Git blob SHA. Nothing is cloned and nothing is written to either repository.</p>
+
+      <h2 id="statuses" class="scroll-mt-24">Epistemic statuses</h2>
+      <ul class="!list-none !pl-0">{EPISTEMIC_STATUSES.map((s) => <li class="flex flex-wrap items-baseline gap-2"><StatusBadge status={s} /> {EPISTEMIC_DESCRIPTIONS[s]}</li>)}</ul>
+      <p>Null and missing are different facts: <em>null</em> means the source explicitly leaves a value unassigned, <em>missing</em> means the record has no such member. Neither is ever treated as zero. Values stated only in prose (such as 10% real growth in 1010 BAC) enter through evidence rules: the number is parsed from the exact sentence in the pinned production text, and the observation disappears if that sentence changes.</p>
+
+      <h2 id="classification" class="scroll-mt-24">Drift classification (rules {ctx.rules_version})</h2>
+      <p>Scope: {scope.include.join('; ')}. Excluded: {scope.exclude.join(', ')}. Files are first classified by Git blob identity as <code>IDENTICAL</code>, <code>CHANGED</code>, <code>PRODUCTION_ONLY</code> or <code>DRAFT_ONLY</code>. A changed file whose text is identical after line-ending and trailing-whitespace normalization is <em>format only</em>.</p>
+      <ul>
+        <li><code>SCHEMA_DRIFT</code>: a JSON member was added, removed or changed type.</li>
+        <li><code>VALUE_DRIFT</code>: the same member holds a different number, boolean or code, or moves between null and assigned.</li>
+        <li><code>SEMANTIC_REVIEW_CANDIDATE</code>: free text or a markdown section differs; meaning cannot be decided mechanically.</li>
+      </ul>
+      <p>Arrays of records with a unique <code>name</code>, <code>code</code> or <code>id</code> are compared by that identity, so reordering is not a change. Markdown is compared by heading path. Review statuses:</p>
+      <ul>{Object.entries(REVIEW_DESCRIPTIONS).map(([k, v]) => <li><code>{k}</code>: {v}</li>)}</ul>
+      <p>Priority P1 marks a proposed change to a numeric value of a canon-C production record; P2 removals, type changes and other value drift; P3 proposals, additions and formatting.</p>
+
+      <h2 id="determinism" class="scroll-mt-24">Determinism</h2>
+      <p>The same pinned commit pair and rules version produce a byte-identical semantic digest on Windows and Linux; continuous integration verifies this on both. Ordering uses code-unit comparison, never the host locale. The pair f54f947/1887e5d reproduces 448 compared paths, 393 identical, 41 changed, 1 production-only, 13 remodeling-only and 422 field findings. Python results are rounded to ten significant digits and use fixed seeds.</p>
+
+      <h2 id="methods" class="scroll-mt-24">Statistical methods</h2>
+      <p>Cross-sectional statistics use current canon values (CANON_OBSERVED or CANON_DERIVED) at Year 0 for two cohorts: the 14 profiled nations and all 19 modeled nations. The 18-state residual is one aggregate and is excluded from every cross-country computation.</p>
+      <ul>
+        <li>Descriptive: mean, median, sample standard deviation, quartiles (linear interpolation), IQR, median absolute deviation, 1.5 × IQR whiskers.</li>
+        <li>Correlation: Pearson (log₁₀ for population and GDP quantities) and Spearman over the 14 profiled nations.</li>
+        <li>Clustering: z-scored features; K-Means (Lloyd, 50 initializations, seed 42) for k = 2–4 chosen by mean silhouette; DBSCAN with min_samples 3 and eps at the 75th percentile of k-distances; PCA for display only.</li>
+        <li>Outliers: modified z-score 0.6745·(x − median)/MAD, flagged above 3.5.</li>
+      </ul>
+      <p>All analytical outputs carry the status <code>MODEL_ESTIMATE</code>. An outlier is not a canon error; a cluster is not a taxonomy.</p>
+
+      <h2 id="sufficiency" class="scroll-mt-24">Sufficiency rules</h2>
+      <ul>
+        <li>Descriptive statistics need 3 assigned values; outlier review needs 8 and a non-zero MAD.</li>
+        <li>Correlation needs 8 paired values per indicator pair.</li>
+        <li>Clustering needs 10 complete cases and at least 3 cases per cluster.</li>
+        <li>Rolling volatility needs 8 consecutive annual observations; change-point detection needs 20. Gaps are never interpolated.</li>
+      </ul>
+      <p>When a rule is not met the result is <code>INSUFFICIENT_DATA</code> with the reason, not a weaker estimate.</p>
+
+      <h2 id="graph" class="scroll-mt-24">Graph semantics</h2>
+      <ul>{EDGE_TYPES.map((t) => <li><code>{t}</code>: {EDGE_DESCRIPTIONS[t]}</li>)}</ul>
+      <p>Edge status: <code>DECLARED</code> when a source states the link, <code>VERIFIED</code> when a QA identity confirms a calculation dependency numerically, <code>CANDIDATE</code> when the link rests on a weaker signal. Impact traversal follows dependencies breadth-first, bounded in depth and size, and ignores mentions unless asked.</p>
+
+      <h2 id="color" class="scroll-mt-24">Color and charts</h2>
+      <p>Colors carry fixed meanings: blue is production canon, orange is a remodeling proposal, aqua is a scenario, and model clusters use a separate blue, yellow and magenta set with a fourth cluster folded to gray. Each palette was validated for color-vision deficiency in both themes. Identity never depends on color alone: shapes, labels, legends and a table view accompany every chart. Points are never joined across unobserved years.</p>
+
+      <h2 id="exports" class="scroll-mt-24">Exports</h2>
+      <p>Eight formats are equally selectable: JSON, CSV, XLSX, TXT, Markdown, HTML, PDF and XML. All render one canonical report model. HTML is self-contained, and the PDF is printed from that same HTML by headless Chromium, so there is one visual template. CSV prefixes formula-like text with an apostrophe; XLSX never writes formulas and stores formula-like text as literal text. XML validates against <a href="/reports/report.xsd">report.xsd</a>. ZIP bundles have sorted, path-safe entries, fixed timestamps, a manifest with the source SHA pair and rules version, and SHA-256 checksums.</p>
+    </article>
+  </div>
+</BaseLayout>

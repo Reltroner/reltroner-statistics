@@ -1,0 +1,62 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageIntro from '../components/PageIntro.astro';
+import ImageSlot from '../components/ImageSlot.astro';
+import ReportCenter from '../features/reports/ReportCenter.tsx';
+import { getAnalytics, getAudit } from '../lib/data.ts';
+import { ALL_REPORT_STEM } from '../lib/site.ts';
+
+const audit = getAudit();
+const analytics = getAnalytics();
+const pdfExpected = process.env.RELTRONER_PDF_EXPECTED === '1';
+const all = ['json', 'csv', 'xlsx', 'txt', 'md', 'html', 'xml'].map((ext) => ({ ext, href: `/reports/all/${ALL_REPORT_STEM}.${ext}` }));
+---
+<BaseLayout title="Report center" description="Export Reltroner Statistics drift findings in JSON, CSV, XLSX, TXT, Markdown, HTML, PDF or XML, singly or as checksummed ZIP bundles.">
+  <PageIntro
+    eyebrow="Forensic exports"
+    title="Report center"
+    lede="Export one finding, a selection or all of them, in any combination of eight equally available formats. One finding in one format downloads directly; anything more arrives as a ZIP with a manifest and SHA-256 checksums."
+    crumbs={[{ label: 'Reports' }]}
+    sources={['production', 'remodeling', 'deployment', 'rules']}
+    limits={[
+      'PDFs are printed at build time from each finding’s HTML report; a consolidated PDF exists only for the full finding set.',
+      'Bundles are assembled in your browser (up to 2,000 findings, 600 PDFs, 200 MB); no server receives your selection.',
+    ]}
+  >
+    <ImageSlot slotId="STATS_REPORT_CENTER" slot="aside" />
+  </PageIntro>
+
+  <section class="pb-12">
+    <div class="rs-container"><ReportCenter client:only="react" /></div>
+    <noscript><div class="rs-container"><p class="rs-notice">The bundle builder needs JavaScript. The precomputed full reports below download without it.</p></div></noscript>
+  </section>
+
+  <section class="pb-12" aria-labelledby="all-h">
+    <div class="rs-container">
+      <h2 id="all-h" class="rs-h2">Precomputed: all {audit.summary.findings_total} findings</h2>
+      <p class="rs-soft mt-2">Consolidated reports rendered at build time by the same renderers.</p>
+      <ul class="mt-4 flex flex-wrap gap-2">
+        {all.map((a) => <li><a class="rs-button rs-button-secondary" href={a.href} download>{a.ext.toUpperCase()}</a></li>)}
+        <li>{pdfExpected ? <a class="rs-button rs-button-secondary" href="/reports/pdf/all-findings.pdf" download>PDF</a> : <span class="rs-button rs-button-secondary" aria-disabled="true" title="Rendered only in the full build">PDF (not in this build)</span>}</li>
+        <li><a class="rs-button rs-button-ghost" href="/reports/report.xsd" download>report.xsd</a></li>
+      </ul>
+    </div>
+  </section>
+
+  {analytics && analytics.charts.length > 0 && (
+    <section class="pb-6" aria-labelledby="fig-h">
+      <div class="rs-container">
+        <h2 id="fig-h" class="rs-h2">Statistical figures</h2>
+        <p class="rs-soft mt-2">Static SVG figures from the Python analytics for use in reports. Each is a MODEL_ESTIMATE figure with its source commit in the footer.</p>
+        <ul class="mt-4 grid gap-4 sm:grid-cols-2">
+          {analytics.charts.map((c) => (
+            <li class="rs-card overflow-hidden">
+              <img src={`/reports/figures/${c.id}.svg`} alt={c.alt} loading="lazy" decoding="async" class="block w-full bg-white" width="720" height="440" />
+              <div class="flex items-center justify-between gap-3 p-4 text-sm"><span class="font-semibold text-ink">{c.title}</span><a href={`/reports/figures/${c.id}.svg`} download>SVG</a></div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )}
+</BaseLayout>

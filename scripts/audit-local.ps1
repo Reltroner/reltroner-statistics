@@ -38,10 +38,10 @@ finally {
     $env:GITHUB_TOKEN = $PreviousToken
 }
 
-& npm test
-if ($LASTEXITCODE -ne 0) { throw 'Tests failed' }
-& npm run build
-if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
+foreach ($Step in @(@('test'), @('run', 'test:py'), @('run', 'typecheck'), @('run', 'build'), @('run', 'test:e2e'))) {
+    & npm @Step
+    if ($LASTEXITCODE -ne 0) { throw "npm $($Step -join ' ') failed" }
+}
 
 Write-Host 'Artifacts: artifacts\  (last known good: artifacts.previous\)'
 Write-Host 'Deployment verified: see artifacts\manifest.json (production main is NOT a deployed SHA).'

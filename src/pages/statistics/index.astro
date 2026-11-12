@@ -1,0 +1,133 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import ImageSlot from '../../components/ImageSlot.astro';
+import Notice from '../../components/Notice.astro';
+import StatusBadge from '../../components/StatusBadge.astro';
+import DistributionExplorer from '../../features/statistics/DistributionExplorer.tsx';
+import GdpTreemap from '../../features/statistics/GdpTreemap.tsx';
+import CorrelationHeatmap from '../../features/statistics/CorrelationHeatmap.tsx';
+import { getAnalytics, getStats } from '../../lib/data.ts';
+import { correlationView, countryRows, indicatorMetas, planetValues, residualRow } from '../../lib/views.ts';
+import { formatValue } from '../../lib/format.ts';
+import { indicatorFormat, indicatorLabel, indicatorUnit } from '../../domain/indicators.ts';
+
+const stats = getStats();
+const analytics = getAnalytics();
+const rows = countryRows();
+const metas = indicatorMetas();
+const planet = planetValues();
+const residual = residualRow();
+const corr = correlationView();
+const descriptive: Record<string, Record<string, unknown>> = {};
+for (const d of analytics?.descriptive ?? []) (descriptive[d.indicator_id] ??= {})[d.cohort] = d;
+const groups = [...new Set(metas.map((m) => m.group))];
+const treemap = [
+  ...rows.filter((r) => r.values.gdp_share != null).map((r) => ({ id: r.id, name: r.name, share: r.values.gdp_share as number, cohort: r.cohort })),
+  ...(residual?.values.gdp_share != null ? [{ id: residual.id, name: `${residual.states} deferred states`, share: residual.values.gdp_share, cohort: 'RESIDUAL' as const }] : []),
+];
+const cellSymbol = (state: string | undefined) => (state === 'ASSIGNED' ? '●' : state === 'NULL' ? '○' : '·');
+---
+<BaseLayout title="Statistical dashboard" description="Production canon indicators for Asthortera's modeled nations: distributions, GDP composition, correlations and coverage, each traceable to a pinned source commit.">
+  <PageIntro
+    eyebrow="Production statistics"
+    title="Statistical dashboard"
+    lede="Year 0 canon from the NCCM V6.5 national dataset: planetary aggregates, every national indicator's distribution, the composition of planetary GDP and how indicators move together."
+    crumbs={[{ label: 'Statistics' }]}
+    sources={['production', 'deployment', 'model', 'statistics']}
+    model={stats.model_version}
+    limits={[
+      `${residual?.states ?? 18} states are only a combined residual; no per-state values exist, so they never enter distributions or correlations.`,
+      'The five development nations lack several indicators (land area, Gini, median age and more); counts show exactly what is assigned.',
+      'Descriptive statistics and correlations are Reltroner Statistics computations (MODEL_ESTIMATE), not canon.',
+    ]}
+  >
+    <ImageSlot slotId="STATS_WORLD_OVERVIEW" slot="aside" />
+  </PageIntro>
+
+  <section class="pb-12" aria-labelledby="planet-h">
+    <div class="rs-container">
+      <h2 id="planet-h" class="rs-h2">Planetary aggregates, Year 0</h2>
+      <div class="rs-table-wrap mt-4" tabindex="0">
+        <table class="rs-table">
+          <thead><tr><th>Indicator</th><th class="num">Value</th><th>Status</th><th>Source member</th></tr></thead>
+          <tbody>
+            {Object.entries(planet).map(([id, v]) => (
+              <tr><td>{indicatorLabel(id)}<span class="block text-xs text-ink-3">{indicatorUnit(id)}</span></td><td class="num">{formatValue(v.value, indicatorFormat(id))}</td><td><StatusBadge status={v.status} /></td><td><code class="text-xs">{v.pointer}</code></td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="pb-12" aria-labelledby="dist-h">
+    <div class="rs-container">
+      <h2 id="dist-h" class="rs-h2">Distributions across nations</h2>
+      <p class="rs-soft mt-2 max-w-3xl">Choose an indicator to see where each nation sits relative to the quartiles.</p>
+      <div class="mt-5">
+        {analytics ? <DistributionExplorer client:visible rows={rows} indicators={metas} descriptive={descriptive as never} /> : <Notice title="Analytics unavailable in this build" tone="unavailable">The Python analytics step did not run, so descriptive statistics are not shown. Values remain on each indicator page.</Notice>}
+      </div>
+    </div>
+  </section>
+
+  <section class="pb-12" aria-labelledby="gdp-h">
+    <div class="rs-container">
+      <h2 id="gdp-h" class="rs-h2">Composition of planetary GDP</h2>
+      <p class="rs-soft mt-2 max-w-3xl">Tile area is each entry's canon share. The gray tile is the combined residual of the deferred states, shown as one block because the source allocates no per-state figures.</p>
+      <div class="mt-5"><GdpTreemap client:visible items={treemap} /></div>
+    </div>
+  </section>
+
+  <section class="pb-12" aria-labelledby="corr-h">
+    <div class="rs-container">
+      <h2 id="corr-h" class="rs-h2">How indicators move together</h2>
+      <p class="rs-soft mt-2 max-w-3xl">Rank correlations across the 14 profiled nations, the only cohort with complete coverage. With n = 14, moderate coefficients are fragile; treat them as prompts for reading, not findings.</p>
+      <div class="mt-5">{corr ? <CorrelationHeatmap client:visible {...corr} /> : <Notice title="Correlation unavailable" tone="unavailable">Analytics did not run for this build.</Notice>}</div>
+    </div>
+  </section>
+
+  <section class="pb-12" aria-labelledby="cat-h">
+    <div class="rs-container">
+      <h2 id="cat-h" class="rs-h2">Indicator catalog</h2>
+      {groups.map((g) => (
+        <div class="mt-6">
+          <p class="rs-eyebrow">{g}</p>
+          <ul class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {metas.filter((m) => m.group === g).map((m) => {
+              const d = (descriptive[m.id]?.ALL_19 ?? null) as { n: number; n_missing: number; median: number | null; min: number | null; max: number | null } | null;
+              const assigned = rows.filter((r) => r.values[m.id] != null).length;
+              return (
+                <li>
+                  <a href={`/statistics/indicators/${m.id}`} class="rs-card rs-card-link block h-full p-4">
+                    <span class="flex items-start justify-between gap-2"><span class="font-semibold text-ink">{m.label}</span><span class="rs-chip !py-0 !text-[0.65rem]">{m.derivation === 'DERIVED' ? 'derived' : 'assigned'}</span></span>
+                    <span class="mt-1 block text-xs text-ink-3">{m.unit} · {assigned} of {rows.length} nations assigned</span>
+                    {d && d.median !== null && <span class="mt-3 block text-sm text-ink-2">Median <strong class="text-ink">{formatValue(d.median, m.format)}</strong><span class="block text-xs text-ink-3">Range {formatValue(d.min, m.format)} – {formatValue(d.max, m.format)}</span></span>}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="pb-6" aria-labelledby="cov-h">
+    <div class="rs-container">
+      <h2 id="cov-h" class="rs-h2">Coverage matrix</h2>
+      <p class="rs-soft mt-2 max-w-3xl">● assigned · ○ explicitly null in the source · · member absent from the record. Unassigned values are never treated as zero.</p>
+      <div class="rs-table-wrap mt-4" tabindex="0">
+        <table class="rs-table text-center">
+          <caption class="rs-sr">Assignment state of each indicator for each modeled nation</caption>
+          <thead><tr><th class="!text-left">Nation</th>{metas.map((m) => <th class="!px-1.5 text-center" title={m.label}><span class="inline-block max-w-[4.5rem] truncate align-bottom">{m.short}</span></th>)}</tr></thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr><td class="!text-left whitespace-nowrap">{r.name}</td>{metas.map((m) => <td class="!px-1.5" title={`${r.name} · ${m.label}: ${r.states[m.id] ?? 'MISSING'}`} aria-label={`${m.label}: ${r.states[m.id] ?? 'MISSING'}`}>{cellSymbol(r.states[m.id])}</td>)}</tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

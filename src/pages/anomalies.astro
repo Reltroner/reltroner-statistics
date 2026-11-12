@@ -1,0 +1,80 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageIntro from '../components/PageIntro.astro';
+import Notice from '../components/Notice.astro';
+import { getAnalytics, getStats } from '../lib/data.ts';
+import { formatValue } from '../lib/format.ts';
+import { indicatorFormat, indicatorLabel } from '../domain/indicators.ts';
+
+const stats = getStats();
+const analytics = getAnalytics();
+const name = (id: string) => stats.entities.find((e) => e.id === id)?.name ?? id;
+const flagged = (analytics?.outliers ?? []).filter((o) => o.status === 'COMPUTED' && o.flagged.length);
+const insufficient = (analytics?.outliers ?? []).filter((o) => o.status !== 'COMPUTED');
+const iqr = (analytics?.descriptive ?? []).filter((d) => d.status === 'COMPUTED' && d.outliers.length && d.cohort === 'ALL_19');
+const noise = analytics?.clustering.dbscan?.labels.filter((l) => l.cluster === -1) ?? [];
+---
+<BaseLayout title="Anomalies and outliers" description="Robust statistical outlier review for Asthortera's modeled nations. Outliers are flagged for reading, never treated as canon errors.">
+  <PageIntro
+    eyebrow="Statistical QA"
+    title="Anomalies and outliers"
+    lede="Which nations sit far from the rest on a given indicator? Three independent lenses (modified z-scores, box-plot fences and DBSCAN density) point to the same few cases. Distance from the median is a reason to read, not a reason to correct."
+    crumbs={[{ href: '/clustering', label: 'Analysis' }, { label: 'Anomalies' }]}
+    sources={['production', 'statistics']}
+    model={stats.model_version}
+    limits={['Outlier review needs at least 8 assigned values and a non-zero MAD; indicators below that are listed as insufficient.', 'Canon may intend extreme values: a dominant economy or a frontier land area is design, not error.']}
+  />
+
+  <section class="pb-10">
+    <div class="rs-container">
+      <Notice title="An outlier is not a canon error" tone="caution">
+        Reltronland’s 42% share of planetary GDP is far from every other nation, and the canon states it deliberately. Deterministic contradictions are a separate test on the <a href="/qa">QA page</a>; none of the flags below implies one.
+      </Notice>
+    </div>
+  </section>
+
+  <section class="pb-10" aria-labelledby="robust-h">
+    <div class="rs-container">
+      <h2 id="robust-h" class="rs-h2">Modified z-score (median and MAD)</h2>
+      <p class="rs-soft mt-2 max-w-3xl">|z| above 3.5 is flagged (Iglewicz and Hoaglin). Robust to the very outliers it looks for, unlike the mean and standard deviation.</p>
+      {flagged.length ? (
+        <div class="rs-table-wrap mt-4" tabindex="0">
+          <table class="rs-table">
+            <thead><tr><th>Indicator</th><th>Cohort</th><th>Nation</th><th class="num">Value</th><th class="num">Median</th><th class="num">Modified z</th></tr></thead>
+            <tbody>
+              {flagged.flatMap((o) => o.flagged.map((f) => (
+                <tr>
+                  <td><a href={`/statistics/indicators/${o.indicator_id}`}>{indicatorLabel(o.indicator_id)}</a></td>
+                  <td>{o.cohort === 'PROFILED_14' ? 'Profiled 14' : 'All 19'}</td>
+                  <td>{name(f.entity_id)}</td>
+                  <td class="num">{formatValue(f.value, indicatorFormat(o.indicator_id))}</td>
+                  <td class="num">{formatValue(o.median, indicatorFormat(o.indicator_id))}</td>
+                  <td class="num">{f.robust_z > 0 ? '+' : ''}{f.robust_z.toFixed(2)}</td>
+                </tr>
+              )))}
+            </tbody>
+          </table>
+        </div>
+      ) : <p class="rs-soft mt-3">{analytics ? 'No value exceeds the threshold.' : 'Analytics unavailable for this build.'}</p>}
+      {insufficient.length > 0 && <p class="mt-3 text-xs text-ink-3">Not reviewable: {insufficient.map((o) => `${indicatorLabel(o.indicator_id)} (${o.cohort === 'PROFILED_14' ? '14' : '19'}: ${o.reason})`).join('; ')}</p>}
+    </div>
+  </section>
+
+  <section class="pb-10" aria-labelledby="fence-h">
+    <div class="rs-container grid gap-8 lg:grid-cols-2">
+      <div>
+        <h2 id="fence-h" class="rs-h2">Box-plot fences</h2>
+        <p class="rs-soft mt-2">Beyond 1.5 × IQR from the quartiles, all 19 nations.</p>
+        <ul class="mt-4 grid gap-2">
+          {iqr.map((d) => <li class="rs-card p-3 text-sm"><a href={`/statistics/indicators/${d.indicator_id}`} class="font-semibold">{indicatorLabel(d.indicator_id)}</a><span class="block text-ink-2">{d.outliers.map((o) => `${name(o.entity_id)} (${formatValue(o.value, indicatorFormat(d.indicator_id))})`).join(', ')}</span></li>)}
+        </ul>
+      </div>
+      <div>
+        <h2 class="rs-h2">Density noise (DBSCAN)</h2>
+        <p class="rs-soft mt-2">Nations without enough close neighbors in the standardized feature space.</p>
+        {noise.length ? <ul class="mt-4 grid gap-2">{noise.map((n) => <li class="rs-card p-3 text-sm font-semibold text-ink">{name(n.entity_id)}</li>)}</ul> : <p class="rs-soft mt-4">No noise points.</p>}
+        {analytics?.clustering.dbscan && <p class="mt-2 text-xs text-ink-3">eps {analytics.clustering.dbscan.eps}, min_samples {analytics.clustering.dbscan.min_samples}. <a href="/clustering">Clustering details</a></p>}
+      </div>
+    </div>
+  </section>
+</BaseLayout>

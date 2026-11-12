@@ -1,0 +1,68 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageIntro from '../components/PageIntro.astro';
+import Notice from '../components/Notice.astro';
+import { getContext } from '../lib/data.ts';
+import { pinnedCommitUrl } from '../domain/source.ts';
+
+const ctx = getContext();
+const m = ctx.manifest;
+---
+<BaseLayout title="Analysis releases" description="The current Reltroner Statistics analysis release: pinned source commits, rules version, semantic digest, pipeline steps and artifact checksums.">
+  <PageIntro
+    eyebrow="Versioned analysis"
+    title="Analysis releases"
+    lede="Each build is one analysis release: two pinned source commits, one rules version and a semantic digest that any machine reproduces exactly. Artifact checksums let you verify what this site was built from."
+    crumbs={[{ href: '/reports', label: 'Reports' }, { label: 'Releases' }]}
+    sources={['production', 'remodeling', 'deployment', 'rules']}
+    limits={['A browsable archive of earlier releases is not yet published; earlier runs exist only as CI workflow artifacts.']}
+  />
+
+  <section class="pb-10" aria-labelledby="current-h">
+    <div class="rs-container">
+      <h2 id="current-h" class="rs-h2">Current release</h2>
+      <dl class="rs-card mt-4 grid gap-x-6 gap-y-3 p-5 text-sm sm:grid-cols-[max-content_1fr]">
+        <dt class="text-ink-3">Generated</dt><dd class="m-0">{m.generated_at}</dd>
+        <dt class="text-ink-3">Mode</dt><dd class="m-0"><code>{m.mode}</code></dd>
+        <dt class="text-ink-3">Rules version</dt><dd class="m-0"><code>{m.rules_version}</code></dd>
+        <dt class="text-ink-3">Semantic digest</dt><dd class="m-0 font-mono text-xs [overflow-wrap:anywhere]">{m.semantic_digest}</dd>
+        <dt class="text-ink-3">Production main</dt><dd class="m-0"><a href={pinnedCommitUrl('production', m.sources.production.commit_sha)} class="font-mono text-xs">{m.sources.production.commit_sha}</a><span class="block text-xs text-ink-3">tree {m.sources.production.tree_sha} · {m.sources.production.headline}</span></dd>
+        <dt class="text-ink-3">Remodeling main</dt><dd class="m-0"><a href={pinnedCommitUrl('remodeling', m.sources.remodeling.commit_sha)} class="font-mono text-xs">{m.sources.remodeling.commit_sha}</a><span class="block text-xs text-ink-3">tree {m.sources.remodeling.tree_sha} · {m.sources.remodeling.headline}</span></dd>
+        <dt class="text-ink-3">Live deployment</dt><dd class="m-0"><strong>{m.deployment.status}</strong><span class="block text-xs text-ink-3">{ctx.deployment.summary}</span></dd>
+        <dt class="text-ink-3">GitHub API</dt><dd class="m-0">{m.github.authenticated ? 'authenticated' : 'unauthenticated'} · {m.github.requests} requests · {m.github.cache_hits} cache hits</dd>
+      </dl>
+      {ctx.deployment.evidence.length > 0 && (
+        <div class="mt-4">
+          <h3 class="rs-h3">Deployment evidence considered</h3>
+          <ul class="mt-2 grid gap-2">{ctx.deployment.evidence.map((e) => <li class="rs-card p-3 text-sm"><span class="rs-badge" data-tone={e.accepted ? 'good' : 'unknown'}>{e.accepted ? 'ACCEPTED' : 'NOT ACCEPTED'}</span> <span class="font-mono text-xs">{e.kind}</span><span class="mt-1 block text-ink-2">{e.reference}{e.observed_sha ? ` · ${e.observed_sha.slice(0, 12)}` : ''}</span><span class="mt-1 block text-xs text-ink-3">{e.reason}</span></li>)}</ul>
+        </div>
+      )}
+    </div>
+  </section>
+
+  <section class="pb-10" aria-labelledby="steps-h">
+    <div class="rs-container grid gap-8 lg:grid-cols-2">
+      <div>
+        <h2 id="steps-h" class="rs-h2">Pipeline steps</h2>
+        <ol class="mt-4 grid gap-2">{m.steps.map((s) => <li class="rs-card p-3 text-sm"><span class="rs-badge" data-tone={s.status === 'COMPLETED' ? 'good' : 'warning'}>{s.status}</span> <span class="font-semibold text-ink">{s.id}</span><span class="mt-1 block text-xs text-ink-3 [overflow-wrap:anywhere]">{s.detail}</span></li>)}</ol>
+      </div>
+      <div>
+        <h2 class="rs-h2">Artifact checksums</h2>
+        <div class="rs-table-wrap mt-4" tabindex="0">
+          <table class="rs-table">
+            <thead><tr><th>Artifact</th><th class="num">Bytes</th><th>SHA-256</th></tr></thead>
+            <tbody>{m.files.map((f) => <tr><td class="font-mono text-xs">{f.path}</td><td class="num">{f.bytes.toLocaleString('en-US')}</td><td class="font-mono text-[0.68rem] [overflow-wrap:anywhere]">{f.sha256}</td></tr>)}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pb-6">
+    <div class="rs-container">
+      <Notice title="Reproduce this release">
+        Run <code>npm run pipeline -- --production-sha {m.sources.production.commit_sha.slice(0, 12)}… --remodeling-sha {m.sources.remodeling.commit_sha.slice(0, 12)}…</code> with the full SHAs above and rules <code>{m.rules_version}</code>; the semantic digest must match exactly on any operating system.
+      </Notice>
+    </div>
+  </section>
+</BaseLayout>

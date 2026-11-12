@@ -9,14 +9,20 @@
   },
   "scripts": {
     "test": "node --test \"tests/unit/**/*.test.ts\"",
+    "test:py": "node scripts/run-python.mjs -m pytest analytics/python/tests -q --rootdir analytics/python -p no:cacheprovider",
+    "test:e2e": "playwright test",
+    "typecheck": "astro check",
     "pipeline": "node scripts/pipeline.ts",
     "verify:baseline": "node scripts/verify-baseline.ts",
-    "build": "node scripts/build.mjs",
-    "preview": "node scripts/serve.mjs",
-    "verify": "npm test && npm run build",
-    "test:py": "node scripts/run-python.mjs -m pytest analytics/python/tests -q --rootdir analytics/python -p no:cacheprovider",
     "schemas": "node scripts/generate-schemas.ts",
-    "schemas:check": "node scripts/generate-schemas.ts --check"
+    "schemas:check": "node scripts/generate-schemas.ts --check",
+    "dev": "astro dev",
+    "build:site": "node scripts/require-artifacts.ts && astro build",
+    "build:pdf": "node scripts/render-pdf.ts",
+    "build": "node scripts/build.ts",
+    "preview": "node scripts/serve.ts",
+    "verify": "npm test && npm run schemas:check && npm run typecheck && npm run build && npm run test:e2e",
+    "build:post": "node scripts/postbuild.ts"
   },
   "dependencies": {
     "@astrojs/react": "7.1.0",
@@ -42,6 +48,7 @@
     "@types/node": "22.20.5",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "pdfjs-dist": "6.5.438",
     "typescript": "6.0.3"
   }
 }

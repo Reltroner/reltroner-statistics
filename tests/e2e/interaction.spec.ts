@@ -1,0 +1,80 @@
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test } from '@playwright/test';
+import { hydrated, setTheme, watchConsole } from './helpers.ts';
+
+test('skip link moves focus to main content', async ({ page }) => {
+  await page.goto('/statistics');
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/#main$/);
+});
+
+test('Ctrl+K palette: search, keyboard selection, Escape restores focus', async ({ page }) => {
+  await page.goto('/');
+  const trigger = page.locator('button[data-palette-open]').first();
+  await trigger.focus();
+  await page.keyboard.press('Control+k');
+  const dialog = page.getByRole('dialog', { name: 'Search the observatory' });
+  await expect(dialog).toBeVisible();
+  await page.keyboard.type('beluftner');
+  await expect(dialog.getByRole('option').first()).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+  await page.keyboard.press('Control+k');
+  await page.keyboard.type('methodology');
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/methodology/);
+});
+
+test('mobile menu is a keyboard-operable disclosure @mobile', async ({ page }, info) => {
+  test.skip(info.project.name !== 'mobile-375', 'mobile layout only');
+  await page.goto('/');
+  const toggle = page.locator('[data-menu-toggle]');
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('#mobile-nav')).toBeVisible();
+  await expect(page.locator('#mobile-nav a').first()).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#mobile-nav')).toBeHidden();
+  await expect(toggle).toBeFocused();
+});
+
+test('theme toggle switches, persists across navigation and re-themes charts', async ({ page }) => {
+  await setTheme(page, 'dark');
+  const watch = watchConsole(page);
+  await page.goto('/statistics');
+  await hydrated(page.locator('.rs-chart-frame'));
+  await page.locator('.rs-chart-frame svg').first().waitFor();
+  await page.locator('[data-theme-toggle]').first().click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.goto('/drift');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  watch.expectClean();
+});
+
+test('reduced motion disables reveals and chart animation', async ({ browser }) => {
+  const context = await browser.newContext({ reducedMotion: 'reduce' });
+  const page = await context.newPage();
+  await page.goto('/statistics');
+  const animation = await page.locator('h1.rs-reveal').evaluate((el) => getComputedStyle(el).animationName);
+  expect(animation).toBe('none');
+  await hydrated(page.locator('.rs-chart-frame'));
+  await page.locator('.rs-chart-frame svg').first().waitFor();
+  await context.close();
+});
+
+for (const path of ['/', '/statistics', '/drift', '/reports', '/methodology', '/history', '/qa']) {
+  for (const theme of ['dark', 'light'] as const) {
+    test(`accessibility: no serious or critical axe violations on ${path} (${theme})`, async ({ page }) => {
+      await setTheme(page, theme);
+      await page.goto(path);
+      await page.waitForLoadState('networkidle');
+      const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).exclude('.rs-chart-frame').analyze();
+      const serious = results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
+      expect(serious.map((v) => `${v.id}: ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join(' | ')}`)).toEqual([]);
+    });
+  }
+}

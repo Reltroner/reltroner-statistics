@@ -1,0 +1,29 @@
+---
+/**
+ * Server-rendered ranked bars (no JavaScript). One hue for nominal categories, values at the bar
+ * tips, native <title> tooltips on hover, and every value also present as text.
+ */
+interface Item { label: string; value: number; display: string; href?: string; note?: string; tone?: 'series-1' | 'series-2' | 'fold' }
+interface Props { items: Item[]; caption: string; max?: number }
+const { items, caption, max } = Astro.props;
+const top = max ?? Math.max(...items.map((i) => Math.abs(i.value)), 1e-12);
+---
+<figure class="m-0">
+  <figcaption class="rs-sr">{caption}</figcaption>
+  <ul class="grid gap-2.5" role="list">
+    {items.map((i) => {
+      const pct = Math.max(0.6, (Math.abs(i.value) / top) * 100);
+      return (
+        <li class="grid grid-cols-[minmax(7rem,11rem)_minmax(0,1fr)] items-center gap-3 text-sm">
+          <span class="truncate text-ink-2" title={i.label}>{i.href ? <a href={i.href} class="text-ink-2 hover:text-ink">{i.label}</a> : i.label}</span>
+          <span class="flex min-w-0 items-center gap-2">
+            <span class="relative h-3.5 min-w-0 flex-1" title={`${i.label}: ${i.display}${i.note ? ` (${i.note})` : ''}`}>
+              <span class="absolute inset-y-0 left-0 rounded-r-[4px]" style={`width: ${pct}%; background: var(--${i.tone ?? 'series-1'});`}></span>
+            </span>
+            <span class="w-[5.5rem] shrink-0 text-right font-semibold tabular-nums text-ink">{i.display}</span>
+          </span>
+        </li>
+      );
+    })}
+  </ul>
+</figure>

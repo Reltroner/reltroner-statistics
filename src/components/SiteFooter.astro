@@ -1,0 +1,41 @@
+---
+import { getContext } from '../lib/data.ts';
+import { ECOSYSTEM } from '../lib/site.ts';
+import { pinnedCommitUrl, shortSha } from '../domain/source.ts';
+const ctx = getContext();
+const year = new Date(ctx.generated_at).getUTCFullYear();
+---
+<footer data-site-footer class="mt-20 border-t border-line">
+  <div class="rs-container grid gap-10 py-12 md:grid-cols-[1.4fr_1fr_1fr]">
+    <div>
+      <p class="text-sm font-extrabold tracking-[0.16em] text-ink">RELTRONER <span class="text-cyan">STATISTICS</span></p>
+      <p class="rs-muted mt-3 max-w-md text-sm leading-6">
+        A read-only observatory. Production data is authoritative; remodeling content is a proposal. This site never edits either source.
+      </p>
+      <p class="rs-muted mt-4 text-xs">
+        Analysis built {ctx.generated_at.slice(0, 10)} · rules {ctx.rules_version} · digest <span class="font-mono">{ctx.semantic_digest.slice(0, 12)}</span>
+      </p>
+    </div>
+    <div>
+      <p class="rs-eyebrow mb-3">Sources</p>
+      <ul class="grid gap-2 text-sm">
+        <li>Production main <a class="rs-sha" href={pinnedCommitUrl('production', ctx.production.commit_sha)}>{shortSha(ctx.production.commit_sha)}</a></li>
+        <li>Remodeling main <a class="rs-sha" href={pinnedCommitUrl('remodeling', ctx.remodeling.commit_sha)}>{shortSha(ctx.remodeling.commit_sha)}</a></li>
+        <li>Live deployment <span class="rs-badge" data-tone={ctx.deployment.status === 'DEPLOYMENT_VERIFIED' ? 'good' : 'unknown'}>{ctx.deployment.status}</span></li>
+      </ul>
+    </div>
+    <div>
+      <p class="rs-eyebrow mb-3">Ecosystem</p>
+      <ul class="grid gap-2 text-sm">
+        {ECOSYSTEM.map((e) => <li><a href={e.href} target="_blank" rel="noopener noreferrer">{e.label}<span class="rs-sr"> (opens in a new tab)</span></a></li>)}
+        <li><a href="/methodology">Methodology</a></li>
+        <li><a href="https://github.com/Reltroner/reltroner-statistics" target="_blank" rel="noopener noreferrer">Source code<span class="rs-sr"> (opens in a new tab)</span></a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="border-t border-line">
+    <p class="rs-container rs-muted py-5 text-xs">
+      © 2025–{year} Raidan · Reltroner Statistics License. Asthortera, Reltronland and related names remain protected by the Reltroner Studio license.
+    </p>
+  </div>
+</footer>

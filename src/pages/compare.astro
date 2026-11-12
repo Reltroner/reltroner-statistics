@@ -1,0 +1,86 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageIntro from '../components/PageIntro.astro';
+import Notice from '../components/Notice.astro';
+import { getAudit, getStats } from '../lib/data.ts';
+import { formatDelta, formatValue } from '../lib/format.ts';
+import { indicatorFormat, indicatorLabel } from '../domain/indicators.ts';
+
+const audit = getAudit();
+const stats = getStats();
+const prodByKey = new Map(stats.observations.filter((o) => o.period.year_bac === 0 && !o.evidence && o.status !== 'ARCHIVED').map((o) => [`${o.entity_id}|${o.indicator_id}`, o]));
+const changes = stats.proposals
+  .map((p) => ({ p, o: prodByKey.get(`${p.entity_id}|${p.indicator_id}`) }))
+  .filter(({ p, o }) => o && p.value !== o.value)
+  .map(({ p, o }) => ({ p, o: o!, finding: audit.findings.find((f) => f.level === 'FIELD' && f.locator === p.source.pointer) }))
+  .sort((a, b) => (a.o.entity_name < b.o.entity_name ? -1 : 1));
+const additions = audit.findings.filter((f) => f.level === 'FIELD' && f.change_type === 'ADDED');
+const byTop = new Map<string, { count: number; file: string }>();
+for (const f of additions) {
+  const top = `${f.file_path.split('/').pop()} · ${f.locator.split(/[.[]/)[0]}`;
+  byTop.set(top, { count: (byTop.get(top)?.count ?? 0) + 1, file: f.file_path });
+}
+const collections = new Map<string, Record<string, number>>();
+for (const f of audit.files) {
+  const c = f.path.startsWith('data/') ? 'data/asthortera' : f.path.split('/')[1]!;
+  const row = collections.get(c) ?? {};
+  row[f.classification] = (row[f.classification] ?? 0) + 1;
+  collections.set(c, row);
+}
+---
+<BaseLayout title="Production versus remodeling" description="Side-by-side view of every value the remodeling workspace proposes to change in Asthortera's production canon, with structural additions and per-collection drift.">
+  <PageIntro
+    eyebrow="Proposals against canon"
+    title="Production versus remodeling"
+    lede="Where the remodeling workspace assigns a different Year 0 value than production, both are shown with the change and a link to the forensic finding. Production remains the public statistic until a change is ratified and committed there."
+    crumbs={[{ href: '/drift', label: 'Drift' }, { label: 'Compare' }]}
+    sources={['production', 'remodeling', 'deployment']}
+    limits={['Only indicators in the national statistics registry are compared value by value here; every other difference is in the drift explorer.']}
+  />
+
+  <section class="pb-10" aria-labelledby="values-h">
+    <div class="rs-container">
+      <h2 id="values-h" class="rs-h2">Proposed value changes ({changes.length})</h2>
+      {changes.length ? (
+        <div class="rs-table-wrap mt-4" tabindex="0">
+          <table class="rs-table">
+            <thead><tr><th>Entity</th><th>Indicator</th><th class="num">Production (canon)</th><th class="num">Remodeling (proposal)</th><th class="num">Change</th><th>Finding</th></tr></thead>
+            <tbody>{changes.map(({ p, o, finding }) => (
+              <tr>
+                <td>{o.entity_name}</td>
+                <td><a href={`/statistics/indicators/${o.indicator_id}`}>{indicatorLabel(o.indicator_id)}</a></td>
+                <td class="num" style="box-shadow: inset 3px 0 0 var(--series-1)">{formatValue(o.value, indicatorFormat(o.indicator_id))}</td>
+                <td class="num" style="box-shadow: inset 3px 0 0 var(--series-2)">{formatValue(p.value, indicatorFormat(o.indicator_id))}</td>
+                <td class="num">{o.value !== null && p.value !== null ? formatDelta(p.value - o.value, o.value !== 0 ? (p.value - o.value) / Math.abs(o.value) : null) : o.value === null ? 'newly assigned' : 'unassigned'}</td>
+                <td>{finding ? <a class="font-mono text-xs" href={`/drift/${finding.id}`}>{finding.id}</a> : '—'}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      ) : <Notice title="No value changes" tone="unavailable">The remodeling workspace assigns the same values as production for every registered indicator.</Notice>}
+    </div>
+  </section>
+
+  <section class="pb-10" aria-labelledby="add-h">
+    <div class="rs-container grid gap-8 lg:grid-cols-2">
+      <div>
+        <h2 id="add-h" class="rs-h2">Structure added in remodeling</h2>
+        <p class="rs-soft mt-2">Fields present only in remodeling, grouped by dataset and top-level member. Additions are proposals, not production gaps.</p>
+        <ul class="mt-4 grid gap-2">{[...byTop.entries()].sort((a, b) => b[1].count - a[1].count).map(([k, v]) => (
+          <li class="rs-card flex items-center justify-between gap-3 p-3 text-sm"><a href={`/drift?file=${encodeURIComponent(v.file)}&level=FIELD#explorer`} class="font-mono text-xs [overflow-wrap:anywhere]">{k}</a><span class="font-semibold text-ink">{v.count}</span></li>
+        ))}</ul>
+      </div>
+      <div>
+        <h2 class="rs-h2">Drift by collection</h2>
+        <div class="rs-table-wrap mt-4" tabindex="0">
+          <table class="rs-table">
+            <thead><tr><th>Collection</th><th class="num">Identical</th><th class="num">Changed</th><th class="num">Remodeling only</th><th class="num">Production only</th></tr></thead>
+            <tbody>{[...collections.entries()].sort().map(([c, r]) => (
+              <tr><td>{c}</td><td class="num">{r.IDENTICAL ?? 0}</td><td class="num">{r.CHANGED ?? 0}</td><td class="num">{r.DRAFT_ONLY ?? 0}</td><td class="num">{r.PRODUCTION_ONLY ?? 0}</td></tr>
+            ))}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

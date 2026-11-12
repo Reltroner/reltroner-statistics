@@ -1,0 +1,39 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageIntro from '../components/PageIntro.astro';
+import GraphExplorer from '../features/graph/GraphExplorer.tsx';
+import { getGraph } from '../lib/data.ts';
+import { EDGE_DESCRIPTIONS, EDGE_TYPES } from '../domain/graph.ts';
+
+const g = getGraph();
+---
+<BaseLayout title="Knowledge graph" description="Typed, evidence-backed relationships between Asthortera's nations, indicators, datasets, documents and historical observations, with a production/remodeling overlay.">
+  <PageIntro
+    eyebrow="Knowledge graph"
+    title="Knowledge graph"
+    lede="Nations, indicators, datasets, documents and historical observations, connected only where a source states the link, a QA identity verifies it, or the text demonstrably mentions it. Hover to focus a neighborhood; select a node to read every edge's evidence. Scroll to pan, hold Ctrl and scroll (or pinch) to zoom."
+    crumbs={[{ label: 'Graph' }]}
+    sources={['production', 'remodeling', 'rules']}
+    limits={[
+      'MENTIONS records co-occurrence of a country name in a document. It is never treated as a dependency.',
+      'Edges that cannot be established exactly are marked CANDIDATE (dashed) instead of being asserted.',
+      `The interactive canvas shows at most 260 nodes; the full graph has ${g.nodes.length}. Use filters or the list view.`,
+    ]}
+  />
+  <section class="pb-10">
+    <div class="rs-container"><GraphExplorer client:only="react" /></div>
+    <noscript><div class="rs-container"><p class="rs-notice">The interactive graph needs JavaScript. The edge vocabulary and counts below remain available.</p></div></noscript>
+  </section>
+  <section class="pb-6" aria-labelledby="vocab-h">
+    <div class="rs-container">
+      <h2 id="vocab-h" class="rs-h2">Edge vocabulary</h2>
+      <div class="rs-table-wrap mt-4" tabindex="0">
+        <table class="rs-table">
+          <thead><tr><th>Edge type</th><th>Meaning</th><th class="num">Edges</th></tr></thead>
+          <tbody>{EDGE_TYPES.map((t) => <tr><td class="font-mono text-xs">{t}</td><td>{EDGE_DESCRIPTIONS[t]}</td><td class="num">{g.summary.edges_by_type[t] ?? 0}</td></tr>)}</tbody>
+        </table>
+      </div>
+      <p class="mt-3 text-sm text-ink-3">Status: {Object.entries(g.summary.edges_by_status).map(([k, v]) => `${k} ${v}`).join(' · ')} · Side: {Object.entries(g.summary.edges_by_side).map(([k, v]) => `${k} ${v}`).join(' · ')}</p>
+    </div>
+  </section>
+</BaseLayout>

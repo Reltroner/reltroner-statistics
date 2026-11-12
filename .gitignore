@@ -21,3 +21,4 @@ __pycache__/
 test-results/
 playwright-report/
 .astro/
+blob-report/

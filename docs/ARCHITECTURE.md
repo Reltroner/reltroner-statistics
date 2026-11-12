@@ -1,56 +1,45 @@
-# Architecture — P0 Production-First Source Authority
+# Architecture
 
-**Status:** INITIAL ENGINEERING; static dashboard and read-only diff are implemented as a P0 baseline. Full source-meaning QA, multi-format renderers, true deployment verification, and auto-deployment are not certified.
+Single repository, single workspace, modular static application. No backend, database or long-running service.
 
-## Immutable input identities
+## Source identities
 
-1. `production_deployed_sha`: the verified Cloudflare success deployment SHA; **unknown until verified**.
-2. `production_main_sha`: an independently pinned GitHub `reltroner-studio` commit.
-3. `remodeling_sha`: an independently pinned GitHub `reltroner-studio-remodeling` commit.
-4. `rules_version`: comparator behavior version.
+1. `deployment` — the commit serving the live Studio site. Verified only when the live site publishes a build identifier (`STUDIO_BUILD_INFO_URL`). GitHub deployment records are reported as evidence and never accepted. Current status: `DEPLOYMENT_UNVERIFIED`.
+2. `production` — `Reltroner/reltroner-studio` at a pinned commit; authoritative for every statistic.
+3. `remodeling` — `Reltroner/reltroner-studio-remodeling` at a pinned commit; proposals for comparison only.
+4. `rules_version` — comparator behavior (`P0R-2.0.0`).
 
-`production_main_sha` and `production_deployed_sha` must not be conflated. P0 defaults to the former and clearly marks deployment status `UNVERIFIED`.
+## Ingestion and determinism (P0R)
 
-## Data boundaries
+Sources are read only through the GitHub API: commit → tree → blobs. The root tree SHA is recomputed from the listing and every blob is hashed and compared with its Git blob SHA, both on fetch and on cache read. The cache (`.cache/github`) is content-addressed and therefore never stale.
 
-- Production source: `Reltroner/reltroner-studio`.
-- Draft/modeling source: `Reltroner/reltroner-studio-remodeling`.
-- This repository: generated static views, QA output, tooling, not a canon authority.
-- Do not edit either input checkout. Paths under `content/remodeling/**` and other internal-only material are excluded from the public projection.
-- Compare `content/**/*.md` and `data/asthortera/*.json` only. Do not treat `app/`, `components/`, `lib/`, `tests/` as missing draft content.
-- A `DRAFT_ONLY` file is **not** a production defect. A changed model value is a **review candidate**, not proof the production value is wrong.
-- Do not promote data from remodeling to production automatically.
+Earlier, a Windows workstation reported 0 identical files where CI found 393: `core.autocrlf=true` converted production checkouts to CRLF while remodeling's `.gitattributes` kept Markdown LF, and identity was computed from checkout bytes. Checkouts are no longer part of the identity path, and all ordering uses code-unit comparison instead of host-locale `localeCompare`. `tests/baselines/p0r-baseline.json` pins the expected counts and semantic digest; CI verifies it on Ubuntu and Windows.
 
-## P0R pipeline (GitHub API ingestion)
+## Module boundaries
 
-```text
-GitHub API: commit SHA → tree SHA (root tree recomputed and verified) → blob SHAs
-        → strict comparison scope registry (rules version)
-        → identity by Git blob SHA (no checkout bytes, no OS line-ending influence)
-        → blobs fetched only where content is needed, each verified against its SHA
-        → structural JSON diff, markdown frontmatter/section diff, format-only detection
-        → audit.json with semantic digest + source provenance
-        → staged artifacts, swapped in only on success (artifacts.previous = last known good)
-```
+- `src/domain` is pure TypeScript (no Node, React or Astro). `graph.ts` traversal is shared with the browser.
+- `src/engine` depends on domain only; `src/adapters` performs I/O.
+- `src/export` is isomorphic: the build and the browser Report Center use the same renderers.
+- Pages read validated artifacts at build time (`src/lib/data.ts`); islands receive compact props or fetch `/data/*.json`.
+- Python reads `observations.json`, validates it against the generated JSON Schema, and emits `analytics.json` plus SVG figures validated the same way.
 
-The Windows workstation previously reported 0 identical files because `core.autocrlf=true` converted production checkouts to CRLF while remodeling's `.gitattributes` kept Markdown LF; hashing checkout bytes therefore never matched. P0R removes filesystem checkouts from the identity path entirely and replaces host-locale `localeCompare` ordering with code-unit ordering. The pinned pair f54f947/1887e5d reproduces 448/393/41/1/13 and 422 JSON field findings on Windows and Ubuntu with an identical semantic digest (tests/baselines/p0r-baseline.json).
+## Pipeline
 
-## Export contract
+`scripts/pipeline.ts`: ingest → deployment evidence → compare → observations (JSON canon + evidence rules) → QA identities (both sources) → knowledge graph → Python analytics → contract validation → atomic swap of `artifacts/` (previous output kept in `artifacts.previous/`). Any failure leaves the last good artifacts untouched.
 
-Users choose one or more formats from `json`, `csv`, `xlsx`, `txt`, `md`, `html`, `pdf`, and `xml`. **XML has equal status; selecting it is not required.** One finding and one format produces a direct file. Multiple formats or an all-findings request produces ZIP. HTML uses self-contained CSS; PDF must be rendered from the **same HTML**. Manifest and SHA-256 checksums are mandatory for ZIP.
+## Build
 
-P0 implements **selection validation and planning**, not all exporters. UI export controls must not claim that unimplemented formats are available.
+`scripts/build.ts`: verify artifact checksums → Astro static build (518 pages) → PDFs printed by Chromium from `renderHtml()` → `postbuild.ts` (CSP with inline-script hashes, security and cache headers in `_headers`, `build-info.json`, route/PDF/link validation).
+
+## Epistemic rules
+
+- Remodeling-only content is a proposal, never a production defect.
+- Text differences are review candidates; only QA identities can establish a deterministic contradiction.
+- The deferred-18 residual is one aggregate entity and never enters cross-country statistics.
+- Prose values exist only while their exact sentence is present in the pinned production text.
+- Historical series are never interpolated; insufficient coverage is reported as `INSUFFICIENT_DATA`.
+- `MENTIONS` is co-occurrence and never a dependency; unverifiable links are `CANDIDATE`.
 
 ## Event model
 
-Scheduled CI and manual dispatch are an interim polling/discovery mechanism. Per-push automation needs an authenticated `repository_dispatch` event / GitHub App source webhook wiring; no source-repo workflow or credential change is authorized by this bootstrap. Archive/build artifacts must not be represented as a successful Cloudflare production deployment.
-
-## P0 exit checks
-
-- No source writes, no Keycloak/VPS dependencies, no source secrets.
-- Same pinned files produce the same semantic diff.
-- No leakage of `content/remodeling` paths to the public UI.
-- Proper classification of `PRODUCTION_ONLY`, `DRAFT_ONLY`, `IDENTICAL`, `CHANGED`.
-- Stable finding identity and deterministic ordering.
-- No false deployed-SHA claim.
-- No automatic canon editing or publication.
+Scheduled runs (every six hours), manual dispatch with optional pinned SHAs, and `repository_dispatch` (`reltroner-source-changed`) trigger the release workflow. Source repositories do not yet send that dispatch; wiring it requires a token in those repositories, which is outside this repository's authority. Publication is gated on every check and verified against the live `build-info.json`; a CI artifact is never reported as a deployment.

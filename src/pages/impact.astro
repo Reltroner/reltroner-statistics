@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageIntro from '../components/PageIntro.astro';
+import ImpactExplorer from '../features/graph/ImpactExplorer.tsx';
+import { PROPAGATION, EDGE_TYPES } from '../domain/graph.ts';
+---
+<BaseLayout title="Impact explorer" description="Trace what is affected, directly and transitively, when a dataset, document or indicator in Asthortera's canon changes.">
+  <PageIntro
+    eyebrow="Change impact"
+    title="Impact explorer"
+    lede="Choose a node and see what a change to it would reach: first the direct dependents, then everything further along, with the path that connects them. Traversal is bounded and cycle-safe."
+    crumbs={[{ href: '/graph', label: 'Graph' }, { label: 'Impact' }]}
+    sources={['production', 'rules']}
+    limits={['Mention reach (MENTIONS) is off by default because co-occurrence is not dependency.', 'Impact follows recorded edges only; an unrecorded dependency cannot appear here.']}
+  />
+  <section class="pb-10">
+    <div class="rs-container"><ImpactExplorer client:only="react" /></div>
+  </section>
+  <section class="pb-6">
+    <div class="rs-container">
+      <h2 class="rs-h3">How change propagates</h2>
+      <ul class="mt-3 grid gap-1 text-sm text-ink-2">
+        {EDGE_TYPES.map((t) => <li><code class="text-xs">{t}</code> — {PROPAGATION[t] === 'forward' ? 'a change to the source reaches the target' : PROPAGATION[t] === 'reverse' ? 'a change to the target reaches the source' : 'no propagation'}</li>)}
+      </ul>
+    </div>
+  </section>
+</BaseLayout>

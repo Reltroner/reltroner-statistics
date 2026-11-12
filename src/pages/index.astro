@@ -1,0 +1,205 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ImageSlot from '../components/ImageSlot.astro';
+import StatTile from '../components/StatTile.astro';
+import BarList from '../components/BarList.astro';
+import StatusBadge from '../components/StatusBadge.astro';
+import { getAnalytics, getAudit, getContext, getGraph, getQa, getStats } from '../lib/data.ts';
+import { planetValues, residualRow, countryRows } from '../lib/views.ts';
+import { formatValue, plural } from '../lib/format.ts';
+import { pinnedCommitUrl, shortSha } from '../domain/source.ts';
+import { EPISTEMIC_DESCRIPTIONS, EPISTEMIC_STATUSES } from '../domain/status.ts';
+import { EXPORT_FORMATS } from '../export/plan.ts';
+
+const ctx = getContext();
+const audit = getAudit();
+const stats = getStats();
+const qa = getQa();
+const graph = getGraph();
+const analytics = getAnalytics();
+const planet = planetValues();
+const residual = residualRow();
+const rows = countryRows();
+const s = audit.summary;
+const qaPass = qa.production.filter((q) => q.result === 'PASS').length;
+const qaFail = qa.production.filter((q) => q.result === 'FAIL').length;
+const p1 = s.findings_by_priority.P1 ?? 0;
+const gdp = rows.filter((r) => r.values.gdp_share != null).sort((a, b) => (b.values.gdp_share as number) - (a.values.gdp_share as number));
+const top = gdp.slice(0, 5);
+const rest = gdp.slice(5).reduce((a, r) => a + (r.values.gdp_share as number), 0);
+const anchors = stats.observations.filter((o) => o.entity_kind === 'planet' && o.indicator_id === 'real_gdp_growth' && !o.period.interval && o.status.startsWith('CANON')).sort((a, b) => b.period.year_bac - a.period.year_bac);
+const tile = (id: string, label: string, format: string, note?: string) => ({ label, value: formatValue(planet[id]?.value ?? null, format), status: planet[id]?.status ?? 'INSUFFICIENT_DATA', note });
+const tiles = [
+  tile('population', 'Planetary population', 'billion'),
+  tile('sovereign_states', 'Sovereign states', 'number'),
+  tile('sdi', 'Planetary SDI', 'index'),
+  tile('real_gdp_growth', 'Real GDP growth, Year 0', 'ratio_pct'),
+  tile('tfr', 'Total fertility rate', 'number'),
+  tile('life_expectancy', 'Life expectancy', 'years'),
+];
+---
+<BaseLayout title="Reltroner Statistics" description="Civilizational Data Intelligence Observatory for Asthortera: production canon statistics, source drift and evidence-backed relationships, each with its source attached.">
+  <section class="pt-10 pb-12 lg:pt-16 lg:pb-16">
+    <div class="rs-container grid items-center gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+      <div class="min-w-0">
+        <p class="rs-eyebrow rs-reveal">Civilizational Data Intelligence Observatory</p>
+        <h1 class="rs-reveal mt-4 text-[clamp(2.4rem,5.6vw,4.2rem)] font-[780] leading-[1.04]" style="--i: 1">
+          Asthortera, measured<br /><span class="text-cyan">with its sources attached.</span>
+        </h1>
+        <p class="rs-lede rs-reveal mt-6" style="--i: 2">
+          Statistics for the fictional world of Asthortera, read directly from the production canon at a pinned commit. Every value carries its file, field and commit; every remodeling proposal stays labeled as a proposal.
+        </p>
+        <div class="rs-reveal mt-8 flex flex-wrap gap-3" style="--i: 3">
+          <a class="rs-button rs-button-primary" href="/statistics">Open the statistical dashboard</a>
+          <a class="rs-button rs-button-secondary" href="/drift">Review source drift</a>
+        </div>
+      </div>
+      <div class="rs-reveal min-w-0" style="--i: 2">
+        <ImageSlot slotId="STATS_HOME_HERO" priority />
+      </div>
+    </div>
+  </section>
+
+  <section class="pb-14" aria-labelledby="authority-h">
+    <div class="rs-container">
+      <div class="rs-card rs-card-pad">
+        <div class="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 id="authority-h" class="rs-h2">Three sources, never conflated</h2>
+          <a href="/methodology#authority" class="text-sm">How authority works</a>
+        </div>
+        <div class="mt-6 grid gap-5 md:grid-cols-3">
+          <div class="min-w-0 border-l-2 border-line pl-4">
+            <p class="rs-label">A · Verified live deployment</p>
+            <p class="mt-1 text-lg font-bold text-ink">{ctx.deployment.status === 'DEPLOYMENT_VERIFIED' ? shortSha(ctx.deployment.deployed_sha) : 'DEPLOYMENT_UNVERIFIED'}</p>
+            <p class="mt-2 text-sm text-ink-2">{ctx.deployment.summary}</p>
+          </div>
+          <div class="min-w-0 border-l-2 pl-4" style="border-color: var(--series-1)">
+            <p class="rs-label">B · Production main (authoritative source)</p>
+            <p class="mt-1 text-lg font-bold"><a class="rs-sha !text-base" href={pinnedCommitUrl('production', ctx.production.commit_sha)}>{shortSha(ctx.production.commit_sha)}</a></p>
+            <p class="mt-2 text-sm text-ink-2">{ctx.production.repository} · committed {ctx.production.committed_at?.slice(0, 10)}. All statistics on this site come from here.</p>
+          </div>
+          <div class="min-w-0 border-l-2 pl-4" style="border-color: var(--series-2)">
+            <p class="rs-label">C · Remodeling main (proposals)</p>
+            <p class="mt-1 text-lg font-bold"><a class="rs-sha !text-base" href={pinnedCommitUrl('remodeling', ctx.remodeling.commit_sha)}>{shortSha(ctx.remodeling.commit_sha)}</a></p>
+            <p class="mt-2 text-sm text-ink-2">{ctx.remodeling.repository}. Shown only for comparison; never presented as a public statistic.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pb-14" aria-labelledby="planet-h">
+    <div class="rs-container">
+      <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p class="rs-eyebrow">Year 0 · {stats.model_version}</p>
+          <h2 id="planet-h" class="rs-h2 mt-2">The planet at a glance</h2>
+        </div>
+        <a href="/statistics" class="text-sm">All indicators</a>
+      </div>
+      <div class="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+        {tiles.map((t) => <StatTile label={t.label} value={t.value} status={t.status} />)}
+      </div>
+      <p class="rs-muted mt-4 max-w-3xl text-sm">
+        19 nations are modeled individually (14 profiled, 5 development). {residual ? `${residual.states} further states exist only as one combined residual` : 'Remaining states are not modeled'} — they are never shown as separate observations.
+      </p>
+    </div>
+  </section>
+
+  <section class="pb-14">
+    <div class="rs-container grid gap-5 lg:grid-cols-2">
+      <a href="/statistics/scatter" class="rs-card rs-card-pad rs-card-link">
+        <p class="rs-eyebrow">Cross-country exploration</p>
+        <h3 class="rs-h3 mt-2">Share of planetary GDP</h3>
+        <div class="mt-5">
+          <BarList caption="Largest shares of planetary GDP" items={[
+            ...top.map((r) => ({ label: r.name, value: r.values.gdp_share as number, display: formatValue(r.values.gdp_share, 'ratio_pct') })),
+            { label: `${gdp.length - 5} other nations`, value: rest, display: formatValue(rest, 'ratio_pct'), tone: 'fold' as const },
+            ...(residual?.values.gdp_share != null ? [{ label: `${residual.states} deferred states`, value: residual.values.gdp_share, display: formatValue(residual.values.gdp_share, 'ratio_pct'), tone: 'fold' as const, note: 'one combined residual' }] : []),
+          ]} />
+        </div>
+        <p class="mt-5 text-sm font-semibold text-accent">Compare any two indicators →</p>
+      </a>
+      <a href="/history" class="rs-card rs-card-pad rs-card-link">
+        <p class="rs-eyebrow">Historical dynamics · 1010 BAC → Year 0</p>
+        <h3 class="rs-h3 mt-2">Planetary real GDP growth: {anchors.length} anchors, no curve</h3>
+        <ol class="mt-6 grid gap-3 sm:grid-cols-3">
+          {anchors.map((o) => (
+            <li class="rounded-xl border border-line bg-inset p-3">
+              <span class="block text-xs text-ink-3">{o.period.label}</span>
+              <span class="mt-1 block text-2xl font-bold text-ink">{formatValue(o.value, 'ratio_pct')}</span>
+              <span class="mt-2 block"><StatusBadge status={o.status} /></span>
+            </li>
+          ))}
+        </ol>
+        <p class="mt-4 text-sm text-ink-2">Centuries between anchors carry no observations. Volatility and change-point analysis report <strong class="text-ink">INSUFFICIENT_DATA</strong> instead of inventing a series.</p>
+        <p class="mt-4 text-sm font-semibold text-accent">Explore the timeline →</p>
+      </a>
+    </div>
+  </section>
+
+  <section class="pb-14">
+    <div class="rs-container grid gap-5 lg:grid-cols-[1.2fr_1fr]">
+      <a href="/drift" class="rs-card rs-card-pad rs-card-link">
+        <p class="rs-eyebrow">Source drift · production versus remodeling</p>
+        <h3 class="rs-h3 mt-2">{s.total_compared_paths} files compared by Git blob identity</h3>
+        <dl class="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div><dt class="text-xs text-ink-3">Identical</dt><dd class="m-0 text-2xl font-bold">{s.identical}</dd></div>
+          <div><dt class="text-xs text-ink-3">Changed</dt><dd class="m-0 text-2xl font-bold">{s.changed}</dd><dd class="m-0 text-xs text-ink-3">{s.changed_by_nature.CONTENT ?? 0} content · {s.changed - (s.changed_by_nature.CONTENT ?? 0)} formatting</dd></div>
+          <div><dt class="text-xs text-ink-3">Remodeling only</dt><dd class="m-0 text-2xl font-bold">{s.draft_only}</dd></div>
+          <div><dt class="text-xs text-ink-3">Production only</dt><dd class="m-0 text-2xl font-bold">{s.production_only}</dd></div>
+        </dl>
+        <p class="mt-5 text-sm text-ink-2">{plural(s.findings_total, 'finding')} ({s.json_field_findings} at field level). {p1 > 0 ? `${plural(p1, 'priority-1 proposal')} to change a canon value.` : 'No priority-1 proposals.'}</p>
+        <p class="mt-4 text-sm font-semibold text-accent">Open the drift observatory →</p>
+      </a>
+      <a href="/qa" class="rs-card rs-card-pad rs-card-link">
+        <p class="rs-eyebrow">Quality assurance</p>
+        <h3 class="rs-h3 mt-2">{qaPass} of {qa.production.length} deterministic identities hold in production</h3>
+        <p class="mt-4 text-sm text-ink-2">Census totals, GDP shares, population-weighted SDI and TFR, GDP-weighted growth and migration balance are recomputed from the source. {qaFail === 0 ? 'No deterministic contradiction was found.' : `${qaFail} contradiction(s) found.`}</p>
+        <p class="mt-3 text-sm text-ink-2">{stats.evidence_checks.filter((e) => e.status === 'VERIFIED').length} of {stats.evidence_checks.length} prose-evidence rules matched the pinned text.</p>
+        <p class="mt-4 text-sm font-semibold text-accent">See every check →</p>
+      </a>
+    </div>
+  </section>
+
+  <section class="pb-14">
+    <div class="rs-container grid gap-5 lg:grid-cols-3">
+      <a href="/graph" class="rs-card rs-card-link overflow-hidden">
+        <ImageSlot slotId="STATS_DEPENDENCY_GRAPH" class="[&_.rs-slot]:rounded-none [&_.rs-slot]:border-0" />
+        <div class="rs-card-pad">
+          <p class="rs-eyebrow">Knowledge graph</p>
+          <h3 class="rs-h3 mt-2">{graph.nodes.length} nodes · {graph.edges.length} typed edges</h3>
+          <p class="mt-2 text-sm text-ink-2">{graph.summary.edges_by_status.VERIFIED ?? 0} calculation dependencies verified numerically; mentions are never promoted to dependencies.</p>
+        </div>
+      </a>
+      <a href="/clustering" class="rs-card rs-card-link overflow-hidden">
+        <ImageSlot slotId="STATS_CLUSTERING_LAB" class="[&_.rs-slot]:rounded-none [&_.rs-slot]:border-0" />
+        <div class="rs-card-pad">
+          <p class="rs-eyebrow">Clustering laboratory</p>
+          <h3 class="rs-h3 mt-2">{analytics?.clustering.status === 'COMPUTED' ? `Seeded K-Means and DBSCAN on ${analytics.clustering.n} nations` : 'Clustering unavailable in this build'}</h3>
+          <p class="mt-2 text-sm text-ink-2">Exploratory MODEL_ESTIMATE output with recorded seeds, features and sufficiency gates.</p>
+        </div>
+      </a>
+      <a href="/reports" class="rs-card rs-card-link overflow-hidden">
+        <ImageSlot slotId="STATS_REPORT_CENTER" class="[&_.rs-slot]:rounded-none [&_.rs-slot]:border-0" />
+        <div class="rs-card-pad">
+          <p class="rs-eyebrow">Report center</p>
+          <h3 class="rs-h3 mt-2">Eight equal export formats</h3>
+          <p class="mt-2 flex flex-wrap gap-1.5">{EXPORT_FORMATS.map((f) => <span class="rs-chip !py-0">{f.toUpperCase()}</span>)}</p>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <section class="pb-6" aria-labelledby="status-h">
+    <div class="rs-container">
+      <h2 id="status-h" class="rs-h2">Every number states what it is</h2>
+      <p class="rs-lede mt-3">Epistemic status travels with each value into charts, tables and exports.</p>
+      <ul class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {EPISTEMIC_STATUSES.map((st) => (
+          <li class="rs-card p-4"><StatusBadge status={st} /><p class="mt-2 text-sm text-ink-2">{EPISTEMIC_DESCRIPTIONS[st]}</p></li>
+        ))}
+      </ul>
+    </div>
+  </section>
+</BaseLayout>

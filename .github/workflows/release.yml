@@ -1,0 +1,131 @@
+name: Analysis release — pipeline, gates, publication
+on:
+  workflow_dispatch:
+    inputs:
+      production_sha:
+        description: 'Pinned reltroner-studio commit (blank = resolve main)'
+        required: false
+      remodeling_sha:
+        description: 'Pinned reltroner-studio-remodeling commit (blank = resolve main)'
+        required: false
+  repository_dispatch:
+    types: [reltroner-source-changed]
+  schedule:
+    - cron: '17 */6 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: analysis-release
+  cancel-in-progress: false
+jobs:
+  build:
+    name: Build and verify release candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      digest: ${{ steps.summary.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: analytics/python/requirements.lock
+      - run: python -m pip install --require-hashes -r analytics/python/requirements.lock
+      - name: Restore immutable Git object cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/github
+          key: github-objects-${{ github.run_id }}
+          restore-keys: github-objects-
+      - name: Gate 1 — unit tests and contracts
+        run: npm test && npm run schemas:check
+      - name: Gate 2 — read-only pipeline through the GitHub API (pinned SHAs)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELTRONER_PYTHON: python
+          PROD_SHA: ${{ github.event.inputs.production_sha }}
+          DRAFT_SHA: ${{ github.event.inputs.remodeling_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARGS=()
+          if [ -n "${PROD_SHA:-}" ]; then ARGS+=(--production-sha "$PROD_SHA"); fi
+          if [ -n "${DRAFT_SHA:-}" ]; then ARGS+=(--remodeling-sha "$DRAFT_SHA"); fi
+          node scripts/pipeline.ts "${ARGS[@]}"
+      - name: Gate 3 — Python tests and type check
+        env:
+          RELTRONER_PYTHON: python
+        run: npm run test:py && npm run typecheck
+      - run: npx playwright install --with-deps chromium
+      - name: Gate 4 — static build with PDFs, CSP and link validation
+        run: npm run build
+      - name: Gate 5 — browser tests
+        run: npm run test:e2e
+      - id: summary
+        name: Release summary
+        shell: bash
+        run: |
+          DIGEST=$(node -e "console.log(require('./artifacts/manifest.json').semantic_digest)")
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Analysis release candidate"
+            node -e "const m=require('./artifacts/manifest.json');console.log('- production: '+m.sources.production.commit_sha+'\n- remodeling: '+m.sources.remodeling.commit_sha+'\n- rules: '+m.rules_version+'\n- digest: '+m.semantic_digest+'\n- Studio deployment: '+m.deployment.status)"
+            echo "- All gates passed. This artifact is a build, not a deployment."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: analysis-release-${{ github.run_id }}
+          path: |
+            dist/
+            artifacts/
+          retention-days: 90
+
+  publish:
+    name: Publish to Cloudflare Pages
+    needs: build
+    if: github.ref == 'refs/heads/main' && vars.CLOUDFLARE_PAGES_PROJECT != '' && vars.SITE_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: analysis-release-${{ github.run_id }}
+      - name: Require credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "CLOUDFLARE_API_TOKEN secret missing"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "CLOUDFLARE_ACCOUNT_ID secret missing"; exit 1; }
+      - name: Deploy static build (Statistics only; Studio is never deployed from here)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4.161.0 pages deploy dist --project-name "${{ vars.CLOUDFLARE_PAGES_PROJECT }}" --branch main --commit-hash "${{ github.sha }}"
+      - name: Verify the live site serves this exact build
+        run: node scripts/verify-deployment.ts "${{ vars.SITE_URL }}"
+
+  not-configured:
+    name: Publication not configured
+    needs: build
+    if: vars.CLOUDFLARE_PAGES_PROJECT == '' || vars.SITE_URL == ''
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          {
+            echo "### DEPLOYMENT_NOT_CONFIGURED"
+            echo "The release candidate passed every gate and is available as a workflow artifact."
+            echo "Publishing requires repository variables CLOUDFLARE_PAGES_PROJECT and SITE_URL,"
+            echo "secrets CLOUDFLARE_API_TOKEN (Pages: Edit) and CLOUDFLARE_ACCOUNT_ID, and an environment named production."
+          } >> "$GITHUB_STEP_SUMMARY"
