@@ -32,10 +32,10 @@ const hasAside = Astro.slots.has('aside');
             <SourceStrip sources={sources} model={model} />
           </div>
           {limits.length > 0 && (
-            <details class="group rounded-xl border border-line bg-inset px-4 py-3 text-sm" open={limits.length <= 2}>
+            <details class="group min-w-0 rounded-xl border border-line bg-inset px-4 py-3 text-sm [overflow-wrap:anywhere]" open={limits.length <= 2}>
               <summary class="cursor-pointer font-semibold text-ink-2 marker:text-ink-3">Not yet known or supported here</summary>
-              <ul class="mt-2 grid list-disc gap-1 pl-5 text-ink-2">
-                {limits.map((l) => <li>{l}</li>)}
+              <ul class="mt-2 grid min-w-0 list-disc gap-1 pl-5 text-ink-2 [overflow-wrap:anywhere]">
+                {limits.map((l) => <li class="min-w-0 break-words [overflow-wrap:anywhere]">{l}</li>)}
               </ul>
             </details>
           )}

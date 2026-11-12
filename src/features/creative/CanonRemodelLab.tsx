@@ -55,7 +55,7 @@ export default function CanonRemodelLab({
 
   return (
     <MotionRoot>
-      <div className="grid gap-10">
+      <div className="grid min-w-0 gap-10 [overflow-wrap:anywhere]">
         {/* Scenario Selector & Parameter Sandbox */}
         {activeScenario && (
           <section aria-labelledby="scenario-lab-h" className="rs-card grid min-w-0 gap-6 p-6">

@@ -1,7 +1,7 @@
-import { Fragment, memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Background, Controls, Handle, Position, ReactFlow, ReactFlowProvider, useReactFlow, type Edge, type Node, type NodeProps } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { AnimatePresence, m } from 'motion/react';
+import { m } from 'motion/react';
 import { MotionRoot, useMotionTransition } from '../motion/MotionRoot.tsx';
 import { EDGE_DESCRIPTIONS, EDGE_TYPES, NODE_TYPES, type EdgeType, type GraphEdge, type GraphNode, type GraphSide, type KnowledgeGraph } from '../../domain/graph.ts';
 import { loadGraph, TYPE_LABEL } from './graph-client.ts';
@@ -74,10 +74,13 @@ function Explorer({ graph }: { graph: KnowledgeGraph }) {
     return () => { cancelled = true; };
   }, [visible, direction, algorithm, tooMany, view, flow]);
 
+  const didInitialFit = useRef(false);
   // Fit only after React has committed the new positions; otherwise bounds are computed from stale ones.
   useEffect(() => {
     if (!positions.size) return;
-    const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 260;
+    const isFirst = !didInitialFit.current;
+    didInitialFit.current = true;
+    const duration = isFirst || window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 260;
     const t = setTimeout(() => {
       const xs = [...positions.values()].map((p) => p.x), ys = [...positions.values()].map((p) => p.y);
       const width = Math.max(...xs) - Math.min(...xs) + NODE_W, height = Math.max(...ys) - Math.min(...ys) + NODE_H;
@@ -88,9 +91,32 @@ function Explorer({ graph }: { graph: KnowledgeGraph }) {
         if (anchor) void flow.setCenter(anchor.x + NODE_W / 2 + 280, anchor.y + NODE_H / 2, { zoom: 0.75, duration });
         else void flow.setViewport({ x: -Math.min(...xs) * 0.75 + 24, y: -Math.min(...ys) * 0.75 + 24, zoom: 0.75 }, { duration });
       }
-    }, 40);
+    }, isFirst ? 0 : 40);
     return () => clearTimeout(t);
   }, [positions, flow]);
+
+  useEffect(() => {
+    const onWindowFocus = (e: FocusEvent) => {
+      const target = e.target as HTMLElement | null;
+      const id = target?.closest?.('.react-flow__node')?.getAttribute('data-id');
+      if (id) setSelected(id);
+    };
+    const onWindowKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || tag === 'BUTTON' || tag === 'A' || tag === 'SUMMARY') return;
+      const nodeEl = target?.closest?.('.react-flow__node') ?? document.activeElement?.closest?.('.react-flow__node');
+      const id = nodeEl?.getAttribute('data-id') ?? (e.key === 'Enter' ? visible.nodes[0]?.id : undefined);
+      if (id) setSelected((prev) => prev ?? id);
+    };
+    window.addEventListener('focusin', onWindowFocus, true);
+    window.addEventListener('keydown', onWindowKey, true);
+    return () => {
+      window.removeEventListener('focusin', onWindowFocus, true);
+      window.removeEventListener('keydown', onWindowKey, true);
+    };
+  }, [visible.nodes]);
 
   const focus = hovered ?? selected;
   const neighbors = useMemo(() => {
@@ -104,7 +130,7 @@ function Explorer({ graph }: { graph: KnowledgeGraph }) {
     id: g.id, type: 'g', position: positions.get(g.id) ?? { x: 0, y: 0 },
     selected: g.id === selected,
     data: { g, dim: !!neighbors && !neighbors.has(g.id), selected: g.id === selected },
-    draggable: true, selectable: true,
+    draggable: true, selectable: true, focusable: true,
   })), [visible.nodes, positions, neighbors, selected]);
 
   const rfEdges: Edge[] = useMemo(() => visible.edges.map((e) => {
@@ -167,6 +193,8 @@ function Explorer({ graph }: { graph: KnowledgeGraph }) {
         {view === 'graph' ? (
           tooMany ? (
             <p className="rs-notice" data-tone="caution"><strong>{visible.nodes.length} nodes exceed the {MAX_NODES}-node interactive limit.</strong>&nbsp;Narrow node types or document collections, or use the list view.</p>
+          ) : positions.size === 0 ? (
+            <div className="rs-card grid h-[72vh] min-h-[480px] place-items-center p-6 text-sm text-ink-3">Laying out graph…</div>
           ) : (
             <div
               className="rs-card h-[72vh] min-h-[480px] overflow-hidden"
@@ -211,12 +239,11 @@ function Explorer({ graph }: { graph: KnowledgeGraph }) {
         </ul>
       </section>
 
-      <aside className="rs-card overflow-hidden p-4 text-sm" aria-label="Node inspector" aria-live="polite">
-        <AnimatePresence mode="wait" initial={false}>
+      <aside className="rs-card content-start overflow-hidden p-4 text-sm" aria-label="Node inspector" aria-live="polite">
         {!node ? (
-          <m.p key="empty" className="text-ink-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={motionT}>Select a node to inspect its attributes and every incident edge with its evidence.</m.p>
+          <p className="text-ink-3">Select a node to inspect its attributes and every incident edge with its evidence.</p>
         ) : (
-          <m.div key={node.id} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={motionT}>
+          <m.div key={node.id} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={motionT}>
             <p className="rs-eyebrow">{TYPE_LABEL[node.type]} · {node.side}</p>
             <h3 className="rs-h3 mt-1 [overflow-wrap:anywhere]">{node.label}</h3>
             <p className="mt-1 font-mono text-[0.7rem] text-ink-3 [overflow-wrap:anywhere]">{node.id}</p>
@@ -239,7 +266,6 @@ function Explorer({ graph }: { graph: KnowledgeGraph }) {
             </ul>
           </m.div>
         )}
-        </AnimatePresence>
       </aside>
     </div>
   );
