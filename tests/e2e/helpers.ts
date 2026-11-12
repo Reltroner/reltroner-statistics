@@ -26,7 +26,7 @@ export async function expectNoHorizontalOverflow(page: Page) {
       .filter((el) => {
         const r = el.getBoundingClientRect();
         const style = getComputedStyle(el);
-        return r.right > doc.clientWidth + 1 && style.position !== 'fixed' && !el.closest('.rs-table-wrap, .rs-slot, [class*="overflow-x-auto"], [class*="overflow-auto"], [class*="overflow-hidden"], .react-flow, .rs-chart-frame, nav[aria-label="Section"]');
+        return r.right > doc.clientWidth + 1 && style.position !== 'fixed' && !el.closest('.rs-sr, .rs-table-wrap, .rs-slot, [class*="overflow-x-auto"], [class*="overflow-auto"], [class*="overflow-hidden"], .react-flow, .rs-chart-frame, nav[aria-label="Section"]');
       })
       .slice(0, 5)
       .map((el) => `${el.tagName.toLowerCase()}.${String(el.className).slice(0, 60)}`);
@@ -34,7 +34,7 @@ export async function expectNoHorizontalOverflow(page: Page) {
     const range = document.createRange();
     for (let n = walker.nextNode(); n && offenders.length < 8; n = walker.nextNode()) {
       const parent = n.parentElement;
-      if (!parent || parent.closest('.rs-table-wrap, [class*="overflow-x-auto"], [class*="overflow-auto"], .react-flow, .rs-chart-frame, nav[aria-label="Section"]')) continue;
+      if (!parent || parent.closest('.rs-sr, .rs-table-wrap, [class*="overflow-x-auto"], [class*="overflow-auto"], .react-flow, .rs-chart-frame, nav[aria-label="Section"]')) continue;
       range.selectNodeContents(n);
       if (range.getBoundingClientRect().right > doc.clientWidth + 1) offenders.push(`text in ${parent.tagName.toLowerCase()}: ${String(n.textContent).slice(0, 40)}`);
     }

@@ -12,7 +12,7 @@ test('skip link moves focus to main content', async ({ page }) => {
 
 test('Ctrl+K palette: search, keyboard selection, Escape restores focus', async ({ page }) => {
   await page.goto('/');
-  const trigger = page.locator('button[data-palette-open]').first();
+  const trigger = page.locator('button[data-palette-open]:visible').first();
   await trigger.focus();
   await page.keyboard.press('Control+k');
   const dialog = page.getByRole('dialog', { name: 'Search the observatory' });
@@ -66,7 +66,7 @@ test('reduced motion disables reveals and chart animation', async ({ browser }) 
   await context.close();
 });
 
-for (const path of ['/', '/statistics', '/drift', '/reports', '/methodology', '/history', '/qa']) {
+for (const path of ['/', '/statistics', '/drift', '/reports', '/methodology', '/history', '/qa', '/creative', '/creative/ideas', '/creative/audit']) {
   for (const theme of ['dark', 'light'] as const) {
     test(`accessibility: no serious or critical axe violations on ${path} (${theme})`, async ({ page }) => {
       await setTheme(page, theme);
@@ -78,3 +78,21 @@ for (const path of ['/', '/statistics', '/drift', '/reports', '/methodology', '/
     });
   }
 }
+
+test('responsive viewports (360, 390, 768, 1024, 1280, 1440px) and Linux fallback font simulation at 1024px have zero horizontal overflow', async ({ page }) => {
+  for (const width of [360, 390, 768, 1024, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto('/creative');
+    if (width === 1024) {
+      // Simulate wider Ubuntu Linux fallback fonts (Liberation Sans / DejaVu Sans) to verify header safety margin
+      await page.addStyleTag({
+        content: 'body, header, nav, a, button { font-family: "Liberation Sans", "DejaVu Sans", Arial, sans-serif !important; letter-spacing: 0.02em; }',
+      });
+    }
+    const metrics = await page.evaluate(() => ({
+      scroll: document.documentElement.scrollWidth,
+      client: document.documentElement.clientWidth,
+    }));
+    expect(metrics.scroll, `viewport width ${width}px`).toBeLessThanOrEqual(metrics.client + 1);
+  }
+});

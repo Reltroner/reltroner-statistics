@@ -1,0 +1,25 @@
+---
+import { SECTION_PAGES, isActive } from '../lib/site.ts';
+const pathname = Astro.url.pathname;
+const pages = SECTION_PAGES.creative;
+---
+<nav aria-label="Creative Intelligence sections" class="border-b border-line bg-surface-2/40 py-2.5">
+  <div class="rs-container flex flex-wrap items-center gap-1.5">
+    {pages.map((p) => {
+      const active = isActive(pathname, p.href);
+      return (
+        <a
+          href={p.href}
+          aria-current={active ? 'page' : undefined}
+          class:list={[
+            'rounded-lg px-3 py-1.5 text-xs font-semibold no-underline transition-colors',
+            active ? 'bg-accent-soft text-ink' : 'text-ink-2 hover:bg-accent-soft hover:text-ink',
+          ]}
+        >
+          {p.label}
+        </a>
+      );
+    })}
+  </div>
+</nav>
+

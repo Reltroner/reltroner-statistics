@@ -1,0 +1,40 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import CreativeSubnav from '../../components/CreativeSubnav.astro';
+import ImageSlot from '../../components/ImageSlot.astro';
+import NarrativeGraphExplorer from '../../features/creative/NarrativeGraphExplorer.tsx';
+import { getCreative } from '../../lib/data.ts';
+
+const creative = getCreative();
+---
+<BaseLayout
+  title="Worldbuilding explorer"
+  description="Explore source-grounded narrative entities, BAC historical anchors, verbatim prose evidence and typed relationships across Asthortera."
+>
+  <CreativeSubnav />
+  <PageIntro
+    eyebrow="Surface 1 · World & Narrative Explorer"
+    title="Worldbuilding & narrative entity explorer"
+    lede="Every worldbuilding entity—nations, characters, factions, institutions, treaties, laws, principles, philosophies and narrative arcs—extracted from pinned source blobs with exact provenance locators, BAC chronology and typed relationship verification."
+    crumbs={[{ label: 'Creative', href: '/creative' }, { label: 'Explore' }]}
+    sources={['production', 'remodeling', 'rules']}
+    limits={[
+      'Relationships are classified as VERIFIED_SOURCE_GROUNDED, DECLARED_PROVENANCE or CANDIDATE_HYPOTHESIS.',
+      'In-universe BAC dates (counting down to Year 0) are never confused with editorial frontmatter timestamps.',
+    ]}
+  >
+    <ImageSlot slotId="CREATIVE_NARRATIVE_GRAPH" slot="aside" />
+  </PageIntro>
+
+  <section class="pb-12">
+    <div class="rs-container">
+      <NarrativeGraphExplorer
+        client:load
+        entities={creative.entities}
+        relationships={creative.relationships}
+      />
+    </div>
+  </section>
+</BaseLayout>
+

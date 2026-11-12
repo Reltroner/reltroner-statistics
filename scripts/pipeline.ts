@@ -14,8 +14,9 @@ import path from 'node:path';
 import type { z } from 'zod';
 import { verifyDeployment } from '../src/adapters/deployment.ts';
 import { loadGitHubSnapshot } from '../src/adapters/snapshot.ts';
-import { AnalyticsSchema, ArtifactManifestSchema, AuditSchema, GraphSchema, QaReportSchema, StatisticsDatasetSchema } from '../src/contracts/schemas.ts';
+import { AnalyticsSchema, ArtifactManifestSchema, AuditSchema, CreativeArtifactSchema, GraphSchema, QaReportSchema, StatisticsDatasetSchema } from '../src/contracts/schemas.ts';
 import { compareSources } from '../src/engine/comparator.ts';
+import { buildCreativeIntelligenceArtifact } from '../src/engine/creative-intelligence/index.ts';
 import { sha256Hex } from '../src/engine/git-objects.ts';
 import { buildKnowledgeGraph } from '../src/engine/graph-builder.ts';
 import { extractStatistics, NCCM_DATASET_PATH } from '../src/engine/observations.ts';
@@ -68,6 +69,23 @@ const graph = await buildKnowledgeGraph({ audit, stats, qa: qa.production, produ
 steps.push({ id: 'graph', status: 'COMPLETED', detail: `${graph.nodes.length} nodes, ${graph.edges.length} edges` });
 log(steps.at(-1)!.detail);
 
+const creative = await buildCreativeIntelligenceArtifact({
+  production,
+  remodeling,
+  audit,
+  stats,
+  qaProduction: qa.production,
+  qaRemodeling: qa.remodeling,
+  graph,
+  generatedAt: audit.generated_at,
+});
+steps.push({
+  id: 'creative',
+  status: 'COMPLETED',
+  detail: `${creative.summary.entities_total} narrative entities, ${creative.summary.relationships_total} relationships, ${creative.summary.audit_findings_total} audit findings, ${creative.summary.opportunities_total} opportunities, ${creative.summary.refactoring_plans_total} refactoring plans, ${creative.summary.scenarios_total} scenarios, ${creative.summary.seed_proposals_total} proposals`,
+});
+log(steps.at(-1)!.detail);
+
 const staging = path.join(ROOT, 'artifacts.staging');
 fs.rmSync(staging, { recursive: true, force: true });
 fs.mkdirSync(staging, { recursive: true });
@@ -76,6 +94,7 @@ write('audit.json', audit);
 write('observations.json', stats);
 write('qa.json', qa);
 write('graph.json', graph);
+write('creative.json', creative);
 
 if (args['--skip-python']) {
   steps.push({ id: 'analytics', status: 'SKIPPED', detail: 'Python analytics skipped by flag; analytical pages show the unavailable state.' });
@@ -96,7 +115,7 @@ if (args['--skip-python']) {
 
 // Contract gates: every artifact must validate before anything is published.
 const gates: Array<[string, z.ZodType]> = [
-  ['audit.json', AuditSchema], ['observations.json', StatisticsDatasetSchema], ['qa.json', QaReportSchema], ['graph.json', GraphSchema],
+  ['audit.json', AuditSchema], ['observations.json', StatisticsDatasetSchema], ['qa.json', QaReportSchema], ['graph.json', GraphSchema], ['creative.json', CreativeArtifactSchema],
   ...(fs.existsSync(path.join(staging, 'analytics.json')) ? [['analytics.json', AnalyticsSchema] as [string, z.ZodType]] : []),
 ];
 for (const [name, schema] of gates) {

@@ -1,0 +1,48 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import CreativeSubnav from '../../components/CreativeSubnav.astro';
+import ImageSlot from '../../components/ImageSlot.astro';
+import IdeationWorkspace from '../../features/creative/IdeationWorkspace.tsx';
+import { getCreative } from '../../lib/data.ts';
+import { reportContext } from '../../lib/report-context.ts';
+
+const creative = getCreative();
+const rCtx = reportContext();
+---
+<BaseLayout
+  title="Story ideation workspace"
+  description="Evidence-grounded story brainstorming, Reltronland/Depcutland cooperation case study, creator review controls and private local session proposal composer."
+>
+  <CreativeSubnav />
+  <PageIntro
+    eyebrow="Surface 2 · Story Brainstorming & Opportunity Studio"
+    title="Story ideation & creative proposal studio"
+    lede="Generate source-grounded story hypotheses constrained by established worldbuilding, inspect the Reltronland/Depcutland existential cooperation benchmark, and compose private in-memory proposals with strict ratification guardrails."
+    crumbs={[{ label: 'Creative', href: '/creative' }, { label: 'Ideation' }]}
+    sources={['production', 'remodeling', 'rules']}
+    limits={[
+      'All brainstormed ideas and proposals are marked PROPOSED or SCENARIO (UNRATIFIED).',
+      'Private session drafts stay in local browser memory and are never written to public static artifacts or sent to external AI services.',
+      'Approving a proposal for authoring (APPROVED_FOR_AUTHORING) never marks it as RATIFIED_EXTERNALLY without a verified production commit SHA.',
+    ]}
+  >
+    <ImageSlot slotId="CREATIVE_IDEATION_WORKSPACE" slot="aside" />
+  </PageIntro>
+
+  <section class="pb-12">
+    <div class="rs-container">
+      <IdeationWorkspace
+        client:load
+        entities={creative.entities}
+        relationships={creative.relationships}
+        opportunities={creative.opportunities}
+        scenarios={creative.scenarios}
+        seedProposals={creative.seed_proposals}
+        aiAdapter={creative.ai_adapter}
+        reportContext={rCtx}
+      />
+    </div>
+  </section>
+</BaseLayout>
+

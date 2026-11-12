@@ -1,0 +1,86 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import CreativeSubnav from '../../components/CreativeSubnav.astro';
+import {
+  CAUSAL_CLASSES,
+  EXTRACTION_CONFIDENCES,
+  IMPACT_VERIFICATION_TIERS,
+  NARRATIVE_FINDING_CLASSIFICATIONS,
+  PROPOSAL_REVIEW_STATUSES,
+} from '../../domain/creative.ts';
+---
+<BaseLayout
+  title="Creative methodology"
+  description="Epistemic rules, source authority hierarchy, inference vs. verification boundaries, creator ratification guardrails and privacy architecture for Creative Intelligence."
+>
+  <CreativeSubnav />
+  <PageIntro
+    eyebrow="Epistemic & Creative Governance"
+    title="Creative intelligence methodology & ratification rules"
+    lede="How Reltroner Statistics extracts worldbuilding entities, evaluates narrative consistency, separates verified dependencies from speculative brainstorming, and protects creator ownership and unreleased intellectual property."
+    crumbs={[{ label: 'Creative', href: '/creative' }, { label: 'Methodology' }]}
+    sources={['production', 'remodeling', 'rules']}
+    limits={[
+      'Reltroner Statistics never replaces the Product Owner as the final creative authority.',
+      'Approving a proposal for authoring (APPROVED_FOR_AUTHORING) never transitions it to RATIFIED_EXTERNALLY or CANON_OBSERVED without verified commit evidence in Reltroner/reltroner-studio.',
+    ]}
+  />
+
+  <section class="pb-12">
+    <div class="rs-container grid gap-8 lg:grid-cols-2">
+      <article class="rs-card p-6">
+        <span class="rs-eyebrow">1 · Source Authority Hierarchy</span>
+        <h2 class="rs-h3 mt-2">Strict Separation of Canon, Remodeling & Brainstorming</h2>
+        <p class="mt-2 text-sm text-ink-2">
+          Every record in Domain F carries explicit provenance and epistemic classification so the creator never confuses established worldbuilding with exploratory ideas:
+        </p>
+        <ul class="mt-4 list-disc space-y-2 pl-5 text-xs text-ink-2">
+          <li><strong>Verified Deployed Production Canon:</strong> Live deployed commit verified via build endpoint.</li>
+          <li><strong>Production <code>main</code> Candidate (<code>CANON_OBSERVED</code> / <code>CANON_DERIVED</code>):</strong> Authoritative repository baseline at pinned commit SHA in <code>Reltroner/reltroner-studio</code>.</li>
+          <li><strong>Remodeling Proposals (<code>PROPOSED</code> / <code>DRAFT_ONLY</code>):</strong> Candidate changes and forward series dossiers in <code>Reltroner/reltroner-studio-remodeling</code>.</li>
+          <li><strong>Mathematical Derivations & ML Estimates:</strong> Deterministic formulas vs. seeded exploratory models (K-Means, DBSCAN).</li>
+          <li><strong>Creative Brainstorming & Scenarios (<code>SCENARIO</code> / <code>PROPOSED</code>):</strong> Unratified hypotheses, refactoring blueprints, and parameter simulations.</li>
+        </ul>
+      </article>
+
+      <article class="rs-card p-6">
+        <span class="rs-eyebrow">2 · Creator Ratification Boundary</span>
+        <h2 class="rs-h3 mt-2">Why UI Approval Is Never Canon Ratification</h2>
+        <p class="mt-2 text-sm text-ink-2">
+          The proposal state machine (<code>transitionProposalStatus</code>) enforces a hard programmatic guardrail:
+        </p>
+        <ul class="mt-4 list-disc space-y-2 pl-5 text-xs text-ink-2">
+          <li>Selecting <code>APPROVED_FOR_AUTHORING</code> records that the Product Owner has approved a concept for drafting, while keeping <code>canon_status</code> as <code>PROPOSED</code> or <code>SCENARIO</code>.</li>
+          <li>Transitioning to <code>RATIFIED_EXTERNALLY</code> (<code>CANON_OBSERVED</code>) is blocked unless accompanied by a verified 40-character hexadecimal commit SHA and file path in <code>Reltroner/reltroner-studio</code>.</li>
+          <li>Supported review statuses: <span class="font-mono">{PROPOSAL_REVIEW_STATUSES.join(', ')}</span>.</li>
+        </ul>
+      </article>
+
+      <article class="rs-card p-6">
+        <span class="rs-eyebrow">3 · Narrative Consistency Auditing</span>
+        <h2 class="rs-h3 mt-2">Respecting Intentional Ambiguity & Unreliable Narration</h2>
+        <p class="mt-2 text-sm text-ink-2">
+          A naive checker treats every difference in viewpoint as a bug. Reltroner Statistics classifies narrative findings across six distinct epistemic categories (<span class="font-mono text-xs">{NARRATIVE_FINDING_CLASSIFICATIONS.join(', ')}</span>):
+        </p>
+        <ul class="mt-4 list-disc space-y-2 pl-5 text-xs text-ink-2">
+          <li><strong>Objective Contradictions (<code>is_defect: true</code>):</strong> Inverted BAC intervals (where <code>start_bac &lt; end_bac</code>), state actions dated prior to sovereign foundation without ancestral framing, or failed mathematical QA invariants.</li>
+          <li><strong>Unreliable Narrator & Competing Viewpoints (<code>is_defect: false</code>):</strong> Partisan Reltronland vs. Depcutland accounts of the 1048 BAC War of Conscience, or Henchoway’s strategic misreading of Garren Harper’s assassination.</li>
+          <li><strong>Intentional Ambiguity (<code>is_defect: false</code>):</strong> Unestablished legal charter continuity between the 2560 BAC Throne Pact and modern Henchoway, or deliberately undisclosed sibling branches in House of Valethra.</li>
+        </ul>
+      </article>
+
+      <article class="rs-card p-6">
+        <span class="rs-eyebrow">4 · Causal Discipline & Privacy Architecture</span>
+        <h2 class="rs-h3 mt-2">Four Impact Tiers & Zero External Leakage</h2>
+        <ul class="mt-4 list-disc space-y-2 pl-5 text-xs text-ink-2">
+          <li><strong>Extraction Confidences:</strong> <span class="font-mono">{EXTRACTION_CONFIDENCES.join(', ')}</span>.</li>
+          <li><strong>Causal Classes:</strong> <span class="font-mono">{CAUSAL_CLASSES.join(', ')}</span>. Co-occurrence (<code>MENTIONS</code>) and thematic resonance (<code>THEMATICALLY_RELATED</code>) never propagate verified structural dependency.</li>
+          <li><strong>Impact Verification Tiers:</strong> <span class="font-mono">{IMPACT_VERIFICATION_TIERS.join(', ')}</span>. Psychological and social hypotheses without a validated formula carry <code>INSUFFICIENT_DATA_NO_QUANTITATIVE_MODEL</code>.</li>
+          <li><strong>Privacy & Optional AI Boundary:</strong> Private session proposals (<code>PRIVATE_LOCAL_SESSION</code>) remain in browser memory, never enter static build outputs or search indexes, and zero bytes are ever sent to external AI providers.</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+</BaseLayout>
+

@@ -6,10 +6,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { z } from 'zod';
+import type { CreativeArtifact } from '../domain/creative.ts';
 import type { Audit, Finding } from '../domain/finding.ts';
 import type { KnowledgeGraph } from '../domain/graph.ts';
 import type { Observation, StatisticsDataset } from '../domain/observation.ts';
-import { AnalyticsSchema, ArtifactManifestSchema, AuditSchema, GraphSchema, QaReportSchema, StatisticsDatasetSchema } from '../contracts/schemas.ts';
+import { AnalyticsSchema, ArtifactManifestSchema, AuditSchema, CreativeArtifactSchema, GraphSchema, QaReportSchema, StatisticsDatasetSchema } from '../contracts/schemas.ts';
 import type { QaCheck } from '../engine/qa.ts';
 
 export type Analytics = z.infer<typeof AnalyticsSchema>;
@@ -39,6 +40,7 @@ export const getAudit = () => load<Audit>('audit.json', AuditSchema)!;
 export const getStats = () => load<StatisticsDataset>('observations.json', StatisticsDatasetSchema)!;
 export const getQa = () => load<QaReport>('qa.json', QaReportSchema)!;
 export const getGraph = () => load<KnowledgeGraph>('graph.json', GraphSchema)!;
+export const getCreative = () => load<CreativeArtifact>('creative.json', CreativeArtifactSchema)!;
 export const getAnalytics = () => load<Analytics>('analytics.json', AnalyticsSchema, true);
 
 export function getChartSvg(id: string): string | null {

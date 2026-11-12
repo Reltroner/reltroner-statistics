@@ -113,3 +113,46 @@ test('PDF text matches the HTML it was printed from', async () => {
   expect(text).toContain(audit.sources.production.commit_sha);
   expect(text.replace(/\s+/g, ' ')).toContain('Source authority.');
 });
+
+test('creative intelligence: worldbuilding explorer, ideation case study, ratification guardrail and private workspace isolation', async ({ page }) => {
+  const watch = watchConsole(page);
+  await page.goto('/creative');
+  await expect(page.locator('[data-image-slot="CREATIVE_HOME_HERO"]')).toBeVisible();
+  await expect(page.getByText(/Reltronland & Depcutland/).first()).toBeVisible();
+
+  // Worldbuilding Explorer
+  await page.goto('/creative/explore?entity=nar:nation:reltronland');
+  await expect(page.getByRole('heading', { name: 'Reltronland', exact: true })).toBeVisible();
+  await expect(page.getByText(/Typed Narrative Relationships/)).toBeVisible();
+
+  // Ideation Studio: Reltronland/Depcutland Case Study + Ratification Guardrail + Private Draft Isolation
+  await page.goto('/creative/ideas');
+  await expect(page.getByRole('heading', { name: /Reltronland & Depcutland: Rival Custodial Sovereigns/ })).toBeVisible();
+  await hydrated(page.getByRole('button', { name: 'RATIFIED_EXTERNALLY' }));
+  await page.getByRole('button', { name: 'RATIFIED_EXTERNALLY' }).click();
+  await expect(page.getByRole('status')).toContainText(/Cannot mark proposal as RATIFIED_EXTERNALLY without verified creator publication evidence/);
+
+  await page.getByRole('button', { name: 'APPROVED_FOR_AUTHORING' }).click();
+  await expect(page.getByRole('status')).toContainText(/Canon status remains/);
+
+  // Create a private local session draft and verify it never leaks into public endpoints
+  await page.getByLabel('Draft title').fill('Private Unreleased Season 32 Arc');
+  await page.getByLabel('Narrative hypothesis').fill('Confidential creator hypothesis kept in local session memory.');
+  await page.getByRole('button', { name: /Save Private Session Proposal/ }).click();
+  await expect(page.getByText('Private Workspace Isolation Active:')).toBeVisible();
+
+  const publicCreativeText = await (await page.request.get('/data/creative.json')).text();
+  expect(publicCreativeText).not.toContain('Private Unreleased Season 32 Arc');
+  const searchIndexText = await (await page.request.get('/data/search-index.json')).text();
+  expect(searchIndexText).not.toContain('Private Unreleased Season 32 Arc');
+
+  // Consistency Audit, Refactoring & Remodeling Lab
+  await page.goto('/creative/audit');
+  await expect(page.getByText(/UNRELIABLE_NARRATOR_POSSIBILITY/).first()).toBeVisible();
+  await page.goto('/creative/refactor');
+  await expect(page.getByText(/Non-destructive guarantee:/)).toBeVisible();
+  await page.goto('/creative/remodel');
+  await expect(page.getByText(/INSUFFICIENT_DATA_NO_QUANTITATIVE_MODEL/).first()).toBeVisible();
+
+  watch.expectClean();
+});

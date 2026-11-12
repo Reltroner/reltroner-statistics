@@ -23,7 +23,19 @@
               "dataset",
               "document",
               "observation",
-              "revision"
+              "revision",
+              "character",
+              "faction",
+              "organization",
+              "event",
+              "location",
+              "technology",
+              "law",
+              "principle",
+              "philosophy",
+              "narrative_arc",
+              "theme",
+              "conflict"
             ]
           },
           "label": {
@@ -86,7 +98,18 @@
               "REFERENCES",
               "MENTIONS",
               "SUPERSEDES",
-              "PROPOSES_CHANGE_TO"
+              "PROPOSES_CHANGE_TO",
+              "APPEARS_IN",
+              "PARTICIPATES_IN",
+              "LOCATED_IN",
+              "PRECEDES",
+              "FOLLOWS",
+              "MOTIVATED_BY",
+              "CONSTRAINED_BY",
+              "CONFLICTS_WITH",
+              "CAUSES",
+              "CAUSES_CANDIDATE",
+              "THEMATICALLY_RELATED"
             ]
           },
           "source": {

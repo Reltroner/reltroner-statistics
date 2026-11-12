@@ -1,6 +1,7 @@
 import type { Audit } from '../domain/finding.ts';
 import type { StatisticsDataset } from '../domain/observation.ts';
-import type { EdgeStatus, EdgeType, GraphEdge, GraphNode, GraphSide, KnowledgeGraph } from '../domain/graph.ts';
+import type { EdgeStatus, EdgeType, GraphEdge, GraphNode, GraphSide, KnowledgeGraph, NodeType } from '../domain/graph.ts';
+import type { NarrativeEntityKind } from '../domain/creative.ts';
 import { INDICATORS, indicatorLabel } from '../domain/indicators.ts';
 import type { QaCheck } from './qa.ts';
 import type { SourceSnapshot } from './comparator.ts';
@@ -9,6 +10,7 @@ import { sha256Hex } from './git-objects.ts';
 import { isComparedPath } from './scope.ts';
 import { parseFrontmatter } from './markdown.ts';
 import { NCCM_DATASET_PATH } from './observations.ts';
+import { extractNarrativeKnowledge } from './creative-intelligence/extractor.ts';
 
 const decoder = new TextDecoder();
 
@@ -209,6 +211,84 @@ export async function buildKnowledgeGraph(input: GraphInputs): Promise<Knowledge
   }
   let i = 0;
   await Promise.all(Array.from({ length: input.concurrency ?? 8 }, async () => { while (i < tasks.length) await tasks[i++]!(); }));
+
+  // Narrative Systems Layer: add source-grounded narrative entities and typed narrative relationships.
+  const mapNarrativeKindToNodeType = (k: NarrativeEntityKind): NodeType => {
+    switch (k) {
+      case 'character': return 'character';
+      case 'faction': return 'faction';
+      case 'organization':
+      case 'institution':
+      case 'government': return 'organization';
+      case 'historical_event':
+      case 'treaty':
+      case 'decision':
+      case 'consequence': return 'event';
+      case 'location':
+      case 'world': return 'location';
+      case 'technology': return 'technology';
+      case 'law':
+      case 'constraint': return 'law';
+      case 'principle': return 'principle';
+      case 'philosophy':
+      case 'motivation':
+      case 'viewpoint': return 'philosophy';
+      case 'narrative_arc': return 'narrative_arc';
+      case 'theme': return 'theme';
+      case 'conflict': return 'conflict';
+      case 'nation':
+      case 'civilization': return 'entity';
+    }
+  };
+
+  const narrative = await extractNarrativeKnowledge({ audit, stats, production, remodeling });
+  for (const ne of narrative.entities) {
+    const nodeType = mapNarrativeKindToNodeType(ne.kind);
+    addNode({
+      id: ne.id,
+      type: nodeType,
+      label: ne.name,
+      side: ne.source_side,
+      group: ne.kind,
+      attrs: {
+        narrative_kind: ne.kind,
+        canon_status: ne.canon_status,
+        extraction_confidence: ne.extraction_confidence,
+        source_path: ne.source_path,
+        commit_sha: ne.commit_sha,
+        blob_sha: ne.blob_sha,
+        historical_bac: ne.historical_bac?.label ?? null,
+        editorial_updated_at: ne.editorial_updated_at,
+      },
+    });
+    const docNodeId = ne.source_side === 'remodeling' ? docIds.get(ne.source_path)?.draft : docIds.get(ne.source_path)?.prod;
+    if (docNodeId && docNodeId.startsWith('document:')) {
+      addEdge(
+        'DEFINES',
+        docNodeId,
+        ne.id,
+        ne.source_side,
+        ne.extraction_confidence === 'CANDIDATE_INFERENCE' ? 'CANDIDATE' : 'DECLARED',
+        `${ne.source_path}${ne.evidence_line ? `:${ne.evidence_line}` : ''}: ${ne.evidence_quote.slice(0, 180)}`,
+      );
+    }
+  }
+  for (const nr of narrative.relationships) {
+    const edgeStatus: EdgeStatus =
+      nr.verification === 'VERIFIED_SOURCE_GROUNDED'
+        ? 'VERIFIED'
+        : nr.verification === 'DECLARED_PROVENANCE'
+          ? 'DECLARED'
+          : 'CANDIDATE';
+    addEdge(
+      nr.type as EdgeType,
+      nr.source_id,
+      nr.target_id,
+      nr.source_side,
+      edgeStatus,
+      `${nr.rationale} [${nr.source_path}${nr.evidence_line ? `:${nr.evidence_line}` : ''}]`,
+    );
+  }
 
   // Keep documents that participate in at least one edge; isolated documents add no information.
   const connected = new Set<string>();

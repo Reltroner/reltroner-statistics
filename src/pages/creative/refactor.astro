@@ -1,0 +1,36 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import CreativeSubnav from '../../components/CreativeSubnav.astro';
+import ImageSlot from '../../components/ImageSlot.astro';
+import StoryRefactorWorkspace from '../../features/creative/StoryRefactorWorkspace.tsx';
+import { getCreative } from '../../lib/data.ts';
+
+const creative = getCreative();
+---
+<BaseLayout
+  title="Story refactoring workspace"
+  description="Non-destructive story restructuring and refactoring blueprints with before/after structure comparison, canon risks and graph dependency impact."
+>
+  <CreativeSubnav />
+  <PageIntro
+    eyebrow="Surface 3 · Story Refactoring & Restructuring Workspace"
+    title="Story restructuring & refactoring planner"
+    lede="Plan structural improvements across large worldbuilding dossiers—such as modularizing The Abyss of Comfort by season tier, deduplicating Henchoway division tables, or separating media pipeline notes from in-universe novel chronology—with full before/after blueprints and dependency traversal."
+    crumbs={[{ label: 'Creative', href: '/creative' }, { label: 'Refactor' }]}
+    sources={['production', 'remodeling', 'rules']}
+    limits={[
+      'All refactoring plans are non-destructive blueprints (PROPOSED) and never modify external repository files directly.',
+      'Regex-verified prose sentences in content/events/history-timeline.md are explicitly protected from inadvertent rewording.',
+    ]}
+  >
+    <ImageSlot slotId="CREATIVE_STORY_REFACTOR" slot="aside" />
+  </PageIntro>
+
+  <section class="pb-12">
+    <div class="rs-container">
+      <StoryRefactorWorkspace client:load plans={creative.refactoring_plans} />
+    </div>
+  </section>
+</BaseLayout>
+

@@ -12,5 +12,22 @@ export function loadGraph(): Promise<KnowledgeGraph> {
 }
 
 export const TYPE_LABEL: Record<string, string> = {
-  entity: 'Entity', indicator: 'Indicator', dataset: 'Dataset', document: 'Document', observation: 'Observation', revision: 'Revision',
+  entity: 'Entity',
+  indicator: 'Indicator',
+  dataset: 'Dataset',
+  document: 'Document',
+  observation: 'Observation',
+  revision: 'Revision',
+  character: 'Character',
+  faction: 'Faction / Nation',
+  organization: 'Organization',
+  event: 'Historical Event',
+  location: 'Location',
+  technology: 'Technology',
+  law: 'Law / Treaty',
+  principle: 'Principle',
+  philosophy: 'Philosophy',
+  narrative_arc: 'Narrative Arc',
+  theme: 'Theme',
+  conflict: 'Conflict',
 };

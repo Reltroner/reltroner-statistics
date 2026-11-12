@@ -1,0 +1,1741 @@
+{
+  "$id": "https://reltroner-statistics.invalid/schemas/creative.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "reltroner-statistics-creative.v1"
+    },
+    "rules_version": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "sources": {
+      "type": "object",
+      "properties": {
+        "production_commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "remodeling_commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      },
+      "required": [
+        "production_commit_sha",
+        "remodeling_commit_sha"
+      ],
+      "additionalProperties": false
+    },
+    "ai_adapter": {
+      "type": "object",
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "DETERMINISTIC_GRAPH_RETRIEVAL_ONLY",
+            "PRIVATE_AUTHENTICATED_ADAPTER"
+          ]
+        },
+        "privacy_boundary": {
+          "type": "string",
+          "const": "STRICT_NO_EXTERNAL_TRANSMISSION"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "available",
+        "mode",
+        "privacy_boundary",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "entities_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "entities_by_kind": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "relationships_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "relationships_by_type": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "relationships_by_verification": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "audit_findings_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "audit_by_classification": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "opportunities_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "refactoring_plans_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "scenarios_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "seed_proposals_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "entities_total",
+        "entities_by_kind",
+        "relationships_total",
+        "relationships_by_type",
+        "relationships_by_verification",
+        "audit_findings_total",
+        "audit_by_classification",
+        "opportunities_total",
+        "refactoring_plans_total",
+        "scenarios_total",
+        "seed_proposals_total"
+      ],
+      "additionalProperties": false
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "world",
+              "civilization",
+              "nation",
+              "government",
+              "organization",
+              "faction",
+              "character",
+              "institution",
+              "historical_event",
+              "conflict",
+              "treaty",
+              "location",
+              "technology",
+              "law",
+              "principle",
+              "philosophy",
+              "narrative_arc",
+              "theme",
+              "motivation",
+              "decision",
+              "constraint",
+              "consequence",
+              "viewpoint"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "summary": {
+            "type": "string"
+          },
+          "source_side": {
+            "type": "string",
+            "enum": [
+              "production",
+              "remodeling",
+              "both"
+            ]
+          },
+          "source_path": {
+            "type": "string"
+          },
+          "commit_sha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "blob_sha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "evidence_locator": {
+            "type": "string"
+          },
+          "evidence_line": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence_quote": {
+            "type": "string"
+          },
+          "historical_bac": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "start_bac": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "end_bac": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "start_bac",
+                  "end_bac",
+                  "label"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "editorial_updated_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "canon_status": {
+            "type": "string",
+            "enum": [
+              "CANON_OBSERVED",
+              "CANON_DERIVED",
+              "MODEL_ESTIMATE",
+              "SCENARIO",
+              "PROPOSED",
+              "ARCHIVED",
+              "INSUFFICIENT_DATA"
+            ]
+          },
+          "extraction_confidence": {
+            "type": "string",
+            "enum": [
+              "EXPLICIT_STRUCTURED",
+              "EXPLICIT_PROSE",
+              "FRONTMATTER_DECLARED",
+              "CANDIDATE_INFERENCE"
+            ]
+          },
+          "original_terminology": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "related_country_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attributes": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "summary",
+          "source_side",
+          "source_path",
+          "commit_sha",
+          "blob_sha",
+          "evidence_locator",
+          "evidence_line",
+          "evidence_quote",
+          "historical_bac",
+          "editorial_updated_at",
+          "canon_status",
+          "extraction_confidence",
+          "original_terminology",
+          "related_country_id",
+          "attributes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^NREL-[0-9A-F]{12}$"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "MENTIONS",
+              "DEFINES",
+              "APPEARS_IN",
+              "PARTICIPATES_IN",
+              "LOCATED_IN",
+              "PRECEDES",
+              "FOLLOWS",
+              "MOTIVATED_BY",
+              "CONSTRAINED_BY",
+              "CONFLICTS_WITH",
+              "DERIVED_FROM",
+              "PROPOSES_CHANGE_TO",
+              "CAUSES",
+              "CAUSES_CANDIDATE",
+              "THEMATICALLY_RELATED",
+              "SUPERSEDES"
+            ]
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "target_id": {
+            "type": "string"
+          },
+          "verification": {
+            "type": "string",
+            "enum": [
+              "VERIFIED_SOURCE_GROUNDED",
+              "DECLARED_PROVENANCE",
+              "CANDIDATE_HYPOTHESIS"
+            ]
+          },
+          "causal_class": {
+            "type": "string",
+            "enum": [
+              "VERIFIED_CAUSAL",
+              "STRUCTURAL_CONSTRAINT",
+              "CHRONOLOGICAL",
+              "PARTICIPATION",
+              "THEMATIC_ONLY",
+              "CO_OCCURRENCE_ONLY"
+            ]
+          },
+          "source_side": {
+            "type": "string",
+            "enum": [
+              "production",
+              "remodeling",
+              "both"
+            ]
+          },
+          "source_path": {
+            "type": "string"
+          },
+          "commit_sha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "blob_sha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "evidence_line": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence_quote": {
+            "type": "string"
+          },
+          "rationale": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "source_id",
+          "target_id",
+          "verification",
+          "causal_class",
+          "source_side",
+          "source_path",
+          "commit_sha",
+          "blob_sha",
+          "evidence_line",
+          "evidence_quote",
+          "rationale"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "audit_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^NAF-[0-9A-F]{12}$"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "CHRONOLOGICAL_CONTRADICTION",
+              "IMPOSSIBLE_EVENT_ORDERING",
+              "ENTITY_IDENTITY_MISMATCH",
+              "CONFLICTING_EXPLICIT_FACTS",
+              "RELATIONSHIP_INCONSISTENCY",
+              "INSTITUTIONAL_RULE_CONTRADICTION",
+              "STATISTICAL_STORY_MISMATCH",
+              "TECHNOLOGY_CAPABILITY_CONTRADICTION",
+              "GEOGRAPHICAL_INCONSISTENCY",
+              "DUPLICATE_OR_CONFLICTING_DEFINITION",
+              "DRAFT_PRODUCTION_DIVERGENCE",
+              "NARRATIVE_DEPENDENCY_CONFLICT"
+            ]
+          },
+          "classification": {
+            "type": "string",
+            "enum": [
+              "VERIFIED_CONTRADICTION",
+              "POTENTIAL_INCONSISTENCY",
+              "INTENTIONAL_AMBIGUITY",
+              "UNRELIABLE_NARRATOR_POSSIBILITY",
+              "INSUFFICIENT_EVIDENCE",
+              "CREATIVE_REVIEW_CANDIDATE"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW",
+              "INFORMATIONAL"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "affected_entities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "passages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "side": {
+                  "type": "string",
+                  "enum": [
+                    "production",
+                    "remodeling"
+                  ]
+                },
+                "repository": {
+                  "type": "string"
+                },
+                "commit_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "blob_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                "line": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "locator": {
+                  "type": "string"
+                },
+                "quote": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "side",
+                "repository",
+                "commit_sha",
+                "path",
+                "blob_sha",
+                "line",
+                "locator",
+                "quote"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "conflict_hypothesis": {
+            "type": "string"
+          },
+          "storytelling_context": {
+            "type": "string"
+          },
+          "review_guidance": {
+            "type": "string"
+          },
+          "is_defect": {
+            "type": "boolean"
+          },
+          "synthetic": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "classification",
+          "severity",
+          "title",
+          "affected_entities",
+          "passages",
+          "conflict_hypothesis",
+          "storytelling_context",
+          "review_guidance",
+          "is_defect"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "opportunities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^OPP-[0-9A-F]{12}$"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "UNDERDEVELOPED_ENTITY",
+              "UNEXPLORED_HISTORICAL_CONSEQUENCE",
+              "UNRESOLVED_INSTITUTIONAL_TENSION",
+              "CHARACTER_MOTIVATION_CONFLICT",
+              "WORLDBUILDING_RELATIONSHIP_POTENTIAL",
+              "UNDERREPRESENTED_PERSPECTIVE",
+              "MISSING_EVENT_CONSEQUENCE",
+              "CIVILIZATION_CONTRAST",
+              "UNUSED_WORLDBUILDING_CONSTRAINT",
+              "INTERSECTING_NARRATIVE_THREADS"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "inspired_by": {
+            "type": "string"
+          },
+          "canon_anchors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "commit_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                "blob_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                "line": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "quote": {
+                  "type": "string"
+                },
+                "entity_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "path",
+                "commit_sha",
+                "blob_sha",
+                "line",
+                "quote",
+                "entity_id"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "narrative_question": {
+            "type": "string"
+          },
+          "established_facts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hypothetical_space": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "potential_conflict": {
+            "type": "string"
+          },
+          "affected_entities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "possible_alternatives": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "mechanism": {
+                  "type": "string"
+                },
+                "narrative_tradeoff": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "summary",
+                "mechanism",
+                "narrative_tradeoff"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "assumptions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "consistency_risks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "development_steps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "priority_score": {
+            "type": "object",
+            "properties": {
+              "structural_reach": {
+                "type": "number"
+              },
+              "tension_density": {
+                "type": "number"
+              },
+              "coverage_gap": {
+                "type": "number"
+              },
+              "composite": {
+                "type": "number"
+              },
+              "explanation": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "structural_reach",
+              "tension_density",
+              "coverage_gap",
+              "composite",
+              "explanation"
+            ],
+            "additionalProperties": false
+          },
+          "creative_status": {
+            "type": "string",
+            "enum": [
+              "DISCOVERED_CANDIDATE",
+              "EXPLORING",
+              "PROPOSED"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "title",
+          "inspired_by",
+          "canon_anchors",
+          "narrative_question",
+          "established_facts",
+          "hypothetical_space",
+          "potential_conflict",
+          "affected_entities",
+          "possible_alternatives",
+          "assumptions",
+          "consistency_risks",
+          "development_steps",
+          "priority_score",
+          "creative_status"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "refactoring_plans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^REF-[0-9A-F]{12}$"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "SPLIT_NARRATIVE_ARC",
+              "MERGE_OVERLAPPING_STRUCTURES",
+              "REORDER_EVENTS",
+              "REORGANIZE_SECTIONS",
+              "CONSOLIDATE_DUPLICATED_INFO",
+              "RESTRUCTURE_ENTITY_RELATIONSHIPS",
+              "IMPROVE_CHRONOLOGY",
+              "CLARIFY_SOURCE_REFERENCES",
+              "SEPARATE_CANON_FROM_SPECULATION"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "current_structure": {
+            "type": "object",
+            "properties": {
+              "summary": {
+                "type": "string"
+              },
+              "units": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "section": {
+                      "type": "string"
+                    },
+                    "role": {
+                      "type": "string"
+                    },
+                    "line_count": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "path",
+                    "section",
+                    "role",
+                    "line_count"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "summary",
+              "units"
+            ],
+            "additionalProperties": false
+          },
+          "proposed_structure": {
+            "type": "object",
+            "properties": {
+              "summary": {
+                "type": "string"
+              },
+              "units": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "target": {
+                      "type": "string"
+                    },
+                    "section": {
+                      "type": "string"
+                    },
+                    "action": {
+                      "type": "string"
+                    },
+                    "rationale": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "target",
+                    "section",
+                    "action",
+                    "rationale"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "summary",
+              "units"
+            ],
+            "additionalProperties": false
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "affected_documents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "side": {
+                  "type": "string",
+                  "enum": [
+                    "production",
+                    "remodeling"
+                  ]
+                },
+                "commit_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                "blob_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                }
+              },
+              "required": [
+                "path",
+                "side",
+                "commit_sha",
+                "blob_sha"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "affected_entities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expected_benefits": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "possible_narrative_losses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "canon_risks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dependency_impact": {
+            "type": "object",
+            "properties": {
+              "direct_nodes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "transitive_nodes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "summary": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "direct_nodes",
+              "transitive_nodes",
+              "summary"
+            ],
+            "additionalProperties": false
+          },
+          "decision_status": {
+            "type": "string",
+            "enum": [
+              "IDEA",
+              "EXPLORING",
+              "PROPOSED",
+              "UNDER_REVIEW",
+              "NEEDS_REVISION",
+              "REJECTED",
+              "APPROVED_FOR_AUTHORING",
+              "RATIFIED_EXTERNALLY"
+            ]
+          },
+          "canon_status": {
+            "type": "string",
+            "enum": [
+              "PROPOSED",
+              "SCENARIO"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "operation",
+          "title",
+          "current_structure",
+          "proposed_structure",
+          "rationale",
+          "affected_documents",
+          "affected_entities",
+          "expected_benefits",
+          "possible_narrative_losses",
+          "canon_risks",
+          "dependency_impact",
+          "decision_status",
+          "canon_status"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^SCN-[0-9A-F]{12}$"
+          },
+          "title": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "focus_entities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "production_baseline": {
+            "type": "object",
+            "properties": {
+              "summary": {
+                "type": "string"
+              },
+              "anchors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "commit_sha": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{40}$"
+                    },
+                    "blob_sha": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{40}$"
+                    },
+                    "line": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "CANON_OBSERVED",
+                        "CANON_DERIVED",
+                        "MODEL_ESTIMATE",
+                        "SCENARIO",
+                        "PROPOSED",
+                        "ARCHIVED",
+                        "INSUFFICIENT_DATA"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "value",
+                    "path",
+                    "commit_sha",
+                    "blob_sha",
+                    "line",
+                    "status"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "summary",
+              "anchors"
+            ],
+            "additionalProperties": false
+          },
+          "remodeling_candidate": {
+            "type": "object",
+            "properties": {
+              "summary": {
+                "type": "string"
+              },
+              "changes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string"
+                    },
+                    "production_value": {
+                      "type": "string"
+                    },
+                    "remodeling_value": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "finding_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "production_value",
+                    "remodeling_value",
+                    "path",
+                    "finding_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "summary",
+              "changes"
+            ],
+            "additionalProperties": false
+          },
+          "perspectives": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "actor_id": {
+                  "type": "string"
+                },
+                "actor_name": {
+                  "type": "string"
+                },
+                "stance": {
+                  "type": "string"
+                },
+                "fear_or_constraint": {
+                  "type": "string"
+                },
+                "source_path": {
+                  "type": "string"
+                },
+                "evidence_line": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "evidence_quote": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "actor_id",
+                "actor_name",
+                "stance",
+                "fear_or_constraint",
+                "source_path",
+                "evidence_line",
+                "evidence_quote"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "hypothetical_parameters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "current_state": {
+                  "type": "string"
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "value",
+                      "label",
+                      "description"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "current_state",
+                "options"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "impact_dimensions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "dimension": {
+                  "type": "string",
+                  "enum": [
+                    "HISTORICAL_INTERPRETATION",
+                    "DIPLOMATIC_STORYLINES",
+                    "INSTITUTIONAL_BEHAVIOR",
+                    "CHARACTER_MOTIVATIONS",
+                    "MILITARY_COOPERATION",
+                    "CIVILIAN_PERCEPTIONS",
+                    "EXISTING_NARRATIVE_ARCS",
+                    "STATISTICAL_IMPLICATIONS"
+                  ]
+                },
+                "verification_tier": {
+                  "type": "string",
+                  "enum": [
+                    "VERIFIED_DIRECT_DEPENDENCY",
+                    "VERIFIED_TRANSITIVE_DEPENDENCY",
+                    "CANDIDATE_NARRATIVE_IMPACT",
+                    "SPECULATIVE_BRAINSTORMING"
+                  ]
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "affected_nodes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "evidence_or_constraint": {
+                  "type": "string"
+                },
+                "quantitative_status": {
+                  "type": "string",
+                  "enum": [
+                    "MATHEMATICALLY_ESTABLISHED",
+                    "INSUFFICIENT_DATA_NO_QUANTITATIVE_MODEL"
+                  ]
+                }
+              },
+              "required": [
+                "dimension",
+                "verification_tier",
+                "summary",
+                "affected_nodes",
+                "evidence_or_constraint",
+                "quantitative_status"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "alternatives": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "premise": {
+                  "type": "string"
+                },
+                "institutional_mechanism": {
+                  "type": "string"
+                },
+                "narrative_payoff": {
+                  "type": "string"
+                },
+                "contradiction_risks": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "premise",
+                "institutional_mechanism",
+                "narrative_payoff",
+                "contradiction_risks"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "speculative_assumptions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "potential_contradictions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "review_notes": {
+            "type": "string"
+          },
+          "canon_status": {
+            "type": "string",
+            "enum": [
+              "SCENARIO",
+              "PROPOSED"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "question",
+          "focus_entities",
+          "production_baseline",
+          "remodeling_candidate",
+          "perspectives",
+          "hypothetical_parameters",
+          "impact_dimensions",
+          "alternatives",
+          "speculative_assumptions",
+          "potential_contradictions",
+          "review_notes",
+          "canon_status"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "seed_proposals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "pattern": "^PRP-[0-9A-F]{12}$"
+          },
+          "schema_version": {
+            "type": "string",
+            "const": "reltroner-creative-proposal.v1"
+          },
+          "title": {
+            "type": "string"
+          },
+          "intent": {
+            "type": "string"
+          },
+          "proposal_type": {
+            "type": "string",
+            "enum": [
+              "NARRATIVE_IDEATION",
+              "WORLDBUILDING_EXPLORATION",
+              "STORY_REFACTORING",
+              "CANON_REMODELING_SCENARIO",
+              "CONSISTENCY_RESOLUTION"
+            ]
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PUBLIC_OBSERVATORY_FIXTURE",
+              "PRIVATE_LOCAL_SESSION"
+            ]
+          },
+          "originating_entities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source_references": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "repository": {
+                  "type": "string"
+                },
+                "side": {
+                  "type": "string",
+                  "enum": [
+                    "production",
+                    "remodeling"
+                  ]
+                },
+                "commit_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "blob_sha": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{40}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "line": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "quote": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "repository",
+                "side",
+                "commit_sha",
+                "path",
+                "blob_sha",
+                "line",
+                "quote"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "production_source_sha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "remodeling_source_sha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "historical_context": {
+            "type": "string"
+          },
+          "existing_constraints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "narrative_hypothesis": {
+            "type": "string"
+          },
+          "alternatives": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "pros": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "cons": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "summary",
+                "pros",
+                "cons"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "assumptions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "potential_impacts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "target_id": {
+                  "type": "string"
+                },
+                "tier": {
+                  "type": "string",
+                  "enum": [
+                    "VERIFIED_DIRECT",
+                    "VERIFIED_TRANSITIVE",
+                    "CANDIDATE_IMPACT",
+                    "SPECULATIVE"
+                  ]
+                },
+                "detail": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "target_id",
+                "tier",
+                "detail"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "consistency_risks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "creator_notes": {
+            "type": "string"
+          },
+          "review_status": {
+            "type": "string",
+            "enum": [
+              "IDEA",
+              "EXPLORING",
+              "PROPOSED",
+              "UNDER_REVIEW",
+              "NEEDS_REVISION",
+              "REJECTED",
+              "APPROVED_FOR_AUTHORING",
+              "RATIFIED_EXTERNALLY"
+            ]
+          },
+          "canon_status": {
+            "type": "string",
+            "enum": [
+              "PROPOSED",
+              "SCENARIO",
+              "CANON_OBSERVED"
+            ]
+          },
+          "ratification_evidence": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "repository": {
+                    "type": "string"
+                  },
+                  "commit_sha": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{40}$"
+                  },
+                  "path": {
+                    "type": "string"
+                  },
+                  "verified": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "repository",
+                  "commit_sha",
+                  "path",
+                  "verified"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "proposal_id",
+          "schema_version",
+          "title",
+          "intent",
+          "proposal_type",
+          "visibility",
+          "originating_entities",
+          "source_references",
+          "production_source_sha",
+          "remodeling_source_sha",
+          "historical_context",
+          "existing_constraints",
+          "narrative_hypothesis",
+          "alternatives",
+          "assumptions",
+          "potential_impacts",
+          "consistency_risks",
+          "creator_notes",
+          "review_status",
+          "canon_status",
+          "content_digest",
+          "created_at",
+          "updated_at"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "semantic_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "required": [
+    "schema_version",
+    "rules_version",
+    "generated_at",
+    "sources",
+    "ai_adapter",
+    "summary",
+    "entities",
+    "relationships",
+    "audit_findings",
+    "opportunities",
+    "refactoring_plans",
+    "scenarios",
+    "seed_proposals",
+    "semantic_digest"
+  ],
+  "additionalProperties": false
+}

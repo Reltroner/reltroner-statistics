@@ -1,0 +1,141 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import CreativeSubnav from '../../components/CreativeSubnav.astro';
+import ImageSlot from '../../components/ImageSlot.astro';
+import StatTile from '../../components/StatTile.astro';
+import { getCreative } from '../../lib/data.ts';
+
+const creative = getCreative();
+const s = creative.summary;
+const relDepScenario = creative.scenarios.find((scn) => scn.title.includes('Reltronland & Depcutland')) ?? creative.scenarios[0];
+---
+<BaseLayout
+  title="Creative intelligence"
+  description="Source-grounded worldbuilding exploration, narrative consistency auditing, story restructuring, canon remodeling scenarios and creative opportunity discovery for Reltroner Studio."
+>
+  <CreativeSubnav />
+  <PageIntro
+    eyebrow="Domain F · Creative Systems Intelligence"
+    title="Creative intelligence & narrative systems"
+    lede="Reltroner Statistics helps Reltroner Studio explore its fictional universe deeply, uncover hidden relationships across nations, characters, institutions and history, audit narrative consistency without mistaking storytelling nuance for error, and simulate the consequences of remodeling scenarios while preserving creator authority."
+    crumbs={[{ label: 'Creative' }]}
+    sources={['production', 'remodeling', 'rules']}
+    limits={[
+      'Every extracted narrative entity and relationship cites its exact repository, commit SHA, blob SHA and source path.',
+      'Co-occurrence (MENTIONS) and thematic resonance (THEMATICALLY_RELATED) never propagate verified plot causality.',
+      'Brainstorming proposals, refactoring plans and remodeling scenarios remain UNRATIFIED (PROPOSED / SCENARIO) until committed to Reltroner/reltroner-studio.',
+    ]}
+  >
+    <ImageSlot slotId="CREATIVE_HOME_HERO" slot="aside" priority={true} />
+  </PageIntro>
+
+  <section class="pb-10" aria-label="Creative intelligence headline metrics">
+    <div class="rs-container">
+      <div class="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
+        <StatTile label="Narrative entities" value={String(s.entities_total)} note="23 typed kinds" />
+        <StatTile label="Relationships" value={String(s.relationships_total)} note={`${s.relationships_by_verification.VERIFIED_SOURCE_GROUNDED ?? 0} verified`} />
+        <StatTile label="Consistency checks" value={String(s.audit_findings_total)} note="6 classifications" />
+        <StatTile label="Opportunities" value={String(s.opportunities_total)} note="priority-scored" />
+        <StatTile label="Refactoring plans" value={String(s.refactoring_plans_total)} note="non-destructive" />
+        <StatTile label="Remodel scenarios" value={String(s.scenarios_total)} note="isolated sandbox" />
+        <StatTile label="Seed proposals" value={String(s.seed_proposals_total)} note="UNRATIFIED" />
+      </div>
+    </div>
+  </section>
+
+  <section class="pb-12" aria-labelledby="surfaces-h">
+    <div class="rs-container">
+      <h2 id="surfaces-h" class="rs-h2">Four-Surface Creative Architecture</h2>
+      <p class="rs-soft mt-2 max-w-3xl">
+        Designed to reduce cognitive burden as the Asthortera universe grows, while keeping canonical facts, remodeling candidates, and speculative brainstorming strictly separated.
+      </p>
+      <div class="mt-6 grid gap-5 md:grid-cols-2">
+        <article class="rs-card flex flex-col justify-between p-6">
+          <div>
+            <span class="rs-eyebrow">Surface 1 · World & Narrative Explorer</span>
+            <h3 class="rs-h3 mt-2">Source-Grounded Entity & Relationship Graph</h3>
+            <p class="mt-2 text-sm text-ink-2">
+              Inspect {s.entities_total} extracted entities across nations, characters, factions, institutions, treaties, laws, philosophies and narrative arcs with verbatim prose evidence and BAC historical anchors.
+            </p>
+          </div>
+          <div class="mt-5 flex flex-wrap gap-2">
+            <a href="/creative/explore" class="rs-button rs-button-primary !min-h-9 !px-3.5 !text-xs no-underline">Open Narrative Explorer →</a>
+            <a href="/creative/audit" class="rs-button rs-button-ghost !min-h-9 !px-3.5 !text-xs no-underline">Consistency Audit ({s.audit_findings_total}) →</a>
+          </div>
+        </article>
+
+        <article class="rs-card flex flex-col justify-between p-6">
+          <div>
+            <span class="rs-eyebrow">Surface 2 · Story Brainstorming & Opportunity Studio</span>
+            <h3 class="rs-h3 mt-2">Evidence-Anchored Ideation & Private Session Composer</h3>
+            <p class="mt-2 text-sm text-ink-2">
+              Brainstorm new story arcs grounded in existing historical constraints, explore the Reltronland/Depcutland cooperation benchmark, and compose private in-memory proposals with zero external data transmission.
+            </p>
+          </div>
+          <div class="mt-5 flex flex-wrap gap-2">
+            <a href="/creative/ideas" class="rs-button rs-button-primary !min-h-9 !px-3.5 !text-xs no-underline">Open Ideation Workspace →</a>
+            <a href="/creative/roadmap" class="rs-button rs-button-ghost !min-h-9 !px-3.5 !text-xs no-underline">Development Roadmap ({s.opportunities_total}) →</a>
+          </div>
+        </article>
+
+        <article class="rs-card flex flex-col justify-between p-6">
+          <div>
+            <span class="rs-eyebrow">Surface 3 · Story Refactoring & Restructuring Workspace</span>
+            <h3 class="rs-h3 mt-2">Non-Destructive Narrative Blueprints & Impact Analysis</h3>
+            <p class="mt-2 text-sm text-ink-2">
+              Compare current vs. proposed document and season structures—including modularizing <em>The Abyss of Comfort</em> and deduplicating Henchoway division tables—with full graph dependency traversal.
+            </p>
+          </div>
+          <div class="mt-5 flex flex-wrap gap-2">
+            <a href="/creative/refactor" class="rs-button rs-button-primary !min-h-9 !px-3.5 !text-xs no-underline">Open Refactoring Workspace →</a>
+            <a href="/creative/methodology" class="rs-button rs-button-ghost !min-h-9 !px-3.5 !text-xs no-underline">Ratification Rules →</a>
+          </div>
+        </article>
+
+        <article class="rs-card flex flex-col justify-between p-6">
+          <div>
+            <span class="rs-eyebrow">Surface 4 · Canon Remodeling & Consequence Laboratory</span>
+            <h3 class="rs-h3 mt-2">Isolated Scenario Sandbox & 4-Tier Impact Simulator</h3>
+            <p class="mt-2 text-sm text-ink-2">
+              Simulate how proposed changes propagate across verified direct dependencies, verified transitive dependencies, candidate narrative links, and non-quantitative speculative dimensions.
+            </p>
+          </div>
+          <div class="mt-5 flex flex-wrap gap-2">
+            <a href="/creative/remodel" class="rs-button rs-button-primary !min-h-9 !px-3.5 !text-xs no-underline">Open Remodeling Lab →</a>
+            <a href="/creative/impact" class="rs-button rs-button-ghost !min-h-9 !px-3.5 !text-xs no-underline">Consequence Simulator →</a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  {relDepScenario && (
+    <section class="pb-12" aria-labelledby="benchmark-h">
+      <div class="rs-container">
+        <div class="rs-card grid gap-6 p-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+          <div>
+            <span class="rs-eyebrow">Featured Capability Benchmark · Reltronland & Depcutland</span>
+            <h2 id="benchmark-h" class="rs-h2 mt-2">{relDepScenario.title}</h2>
+            <p class="mt-2 text-sm font-semibold text-cyan">“{relDepScenario.question}”</p>
+            <p class="mt-3 text-sm leading-relaxed text-ink-2">{relDepScenario.production_baseline.summary}</p>
+            <div class="mt-5 flex flex-wrap gap-2">
+              <a href="/creative/ideas#case-study-h" class="rs-button rs-button-primary !min-h-9 !px-3.5 !text-xs no-underline">Explore Full Case Study →</a>
+              <a href={`/creative/remodel#${relDepScenario.id}`} class="rs-button rs-button-ghost !min-h-9 !px-3.5 !text-xs no-underline">Simulate Scenario Parameters →</a>
+              <a href={`/reports?id=${encodeURIComponent(relDepScenario.id)}`} class="rs-button rs-button-ghost !min-h-9 !px-3.5 !text-xs no-underline">Export in 8 Formats →</a>
+            </div>
+          </div>
+          <div class="rounded-xl border border-line bg-surface-2 p-4 text-xs">
+            <p class="rs-eyebrow">Canonical Guardrails Enforced</p>
+            <ul class="mt-2.5 list-disc space-y-2 pl-4 text-ink-2">
+              {relDepScenario.potential_contradictions.map((c) => <li>{c}</li>)}
+            </ul>
+            <p class="mt-4 font-mono text-[0.7rem] text-ink-3">
+              Sources: content/factions/reltronland-vs-depcutland.md · content/factions/henchoway.md · data/asthortera/nccm-v6-active-cross-domain.json
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+</BaseLayout>

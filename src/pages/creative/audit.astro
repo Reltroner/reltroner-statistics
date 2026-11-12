@@ -1,0 +1,36 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import CreativeSubnav from '../../components/CreativeSubnav.astro';
+import ImageSlot from '../../components/ImageSlot.astro';
+import ConsistencyAuditExplorer from '../../features/creative/ConsistencyAuditExplorer.tsx';
+import { getCreative } from '../../lib/data.ts';
+
+const creative = getCreative();
+---
+<BaseLayout
+  title="Narrative consistency audit"
+  description="Source-grounded narrative consistency auditing across 12 categories and 6 epistemic classifications, distinguishing objective contradictions from intentional ambiguity and unreliable narration."
+>
+  <CreativeSubnav />
+  <PageIntro
+    eyebrow="Narrative Consistency Auditing"
+    title="Narrative consistency & continuity audit"
+    lede="Evaluates chronological ordering, entity identity, institutional rules, statistical-to-prose alignment and cross-document references while explicitly preserving intentional storytelling mystery, competing national viewpoints and unreliable narration."
+    crumbs={[{ label: 'Creative', href: '/creative' }, { label: 'Audit' }]}
+    sources={['production', 'remodeling', 'rules']}
+    limits={[
+      'Intentional ambiguity (e.g., 2560 BAC Throne Pact to modern Henchoway continuity) and unreliable narrator perspectives are never misclassified as canon defects.',
+      'Remodeling-only series dossiers (Seasons 41–44) are evaluated as forward architecture proposals, not production contradictions.',
+    ]}
+  >
+    <ImageSlot slotId="CREATIVE_CONSISTENCY_AUDIT" slot="aside" />
+  </PageIntro>
+
+  <section class="pb-12">
+    <div class="rs-container">
+      <ConsistencyAuditExplorer client:load findings={creative.audit_findings} />
+    </div>
+  </section>
+</BaseLayout>
+

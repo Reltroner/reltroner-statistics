@@ -1,0 +1,105 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import CreativeSubnav from '../../components/CreativeSubnav.astro';
+import ImageSlot from '../../components/ImageSlot.astro';
+import { getCreative } from '../../lib/data.ts';
+
+const creative = getCreative();
+const opportunities = creative.opportunities;
+---
+<BaseLayout
+  title="Creative development roadmap"
+  description="Prioritized worldbuilding and story opportunities ranked by structural reach, narrative tension density and coverage gap."
+>
+  <CreativeSubnav />
+  <PageIntro
+    eyebrow="Long-Term Creative Development Planning"
+    title="Creative development roadmap & opportunity registry"
+    lede="Every discovered worldbuilding opportunity is grounded in specific canon anchors and ranked transparently by structural reach, tension density and coverage gap—helping the Product Owner decide where new lore or story arcs deliver the highest creative leverage."
+    crumbs={[{ label: 'Creative', href: '/creative' }, { label: 'Roadmap' }]}
+    sources={['production', 'remodeling', 'rules']}
+    limits={[
+      'Opportunity priority scores are transparent planning aids, never automated editorial mandates.',
+      'All opportunities remain DISCOVERED_CANDIDATE or PROPOSED until selected and ratified by the creator.',
+    ]}
+  >
+    <ImageSlot slotId="CREATIVE_DEVELOPMENT_ROADMAP" slot="aside" />
+  </PageIntro>
+
+  <section class="pb-12" aria-labelledby="roadmap-list-h">
+    <div class="rs-container grid gap-6">
+      <h2 id="roadmap-list-h" class="rs-h2">Prioritized Creative Opportunities ({opportunities.length})</h2>
+      <div class="grid gap-6">
+        {opportunities.map((opp, index) => (
+          <article id={opp.id} class="rs-card grid gap-5 p-6">
+            <div class="flex flex-wrap items-start justify-between gap-4 border-b border-line pb-4">
+              <div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="font-mono text-xs font-bold text-cyan">#{index + 1} · {opp.id}</span>
+                  <span class="rs-pill">{opp.category}</span>
+                  <span class="rs-pill">{opp.creative_status} (UNRATIFIED)</span>
+                </div>
+                <h3 class="rs-h2 mt-2">{opp.title}</h3>
+                <p class="mt-1 text-sm font-semibold text-cyan">“{opp.narrative_question}”</p>
+                <p class="mt-1 text-xs text-ink-3">Inspired by: {opp.inspired_by}</p>
+              </div>
+              <div class="flex flex-col items-end gap-2">
+                <div class="rounded-xl border border-line bg-surface-2 px-4 py-2 text-right">
+                  <span class="block text-[0.65rem] uppercase tracking-wider text-ink-3">Composite Priority</span>
+                  <span class="font-mono text-lg font-extrabold text-cyan">{opp.priority_score.composite.toFixed(2)}</span>
+                  <span class="block font-mono text-[0.65rem] text-ink-3">
+                    reach {opp.priority_score.structural_reach.toFixed(2)} · tension {opp.priority_score.tension_density.toFixed(2)} · gap {opp.priority_score.coverage_gap.toFixed(2)}
+                  </span>
+                </div>
+                <a href={`/reports?id=${encodeURIComponent(opp.id)}`} class="rs-button rs-button-ghost !min-h-8 !px-3 !text-xs no-underline">
+                  Export Opportunity Report →
+                </a>
+              </div>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="rounded-xl border border-line bg-surface-2 p-4 text-xs">
+                <p class="rs-eyebrow">Established Canon Facts</p>
+                <ul class="mt-2 list-disc space-y-1 pl-4 text-ink-2">
+                  {opp.established_facts.map((fact) => <li>{fact}</li>)}
+                </ul>
+              </div>
+              <div class="rounded-xl border border-line bg-surface-2 p-4 text-xs">
+                <p class="rs-eyebrow">Open Hypothetical Space & Potential Conflict</p>
+                <p class="mt-2 text-ink">{opp.potential_conflict}</p>
+                <ul class="mt-2 list-disc space-y-1 pl-4 text-ink-2">
+                  {opp.hypothetical_space.map((h) => <li>{h}</li>)}
+                </ul>
+              </div>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="rounded-xl border border-line p-4 text-xs">
+                <p class="rs-eyebrow">Possible Creative Alternatives</p>
+                <ul class="mt-2 grid gap-2">
+                  {opp.possible_alternatives.map((alt) => (
+                    <li class="rounded bg-surface-2 p-2.5">
+                      <strong class="text-ink">{alt.label}:</strong> <span class="text-ink-2">{alt.summary}</span>
+                      <span class="mt-1 block text-[0.7rem] text-cyan">Mechanism: {alt.mechanism}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div class="rounded-xl border border-line p-4 text-xs">
+                <p class="rs-eyebrow">Recommended Development Steps & Consistency Risks</p>
+                <ol class="mt-2 list-decimal space-y-1 pl-4 text-ink-2">
+                  {opp.development_steps.map((step) => <li>{step}</li>)}
+                </ol>
+                <p class="mt-3 text-[var(--status-warning-text)]">
+                  <strong>Risks to avoid:</strong> {opp.consistency_risks.join(' ')}
+                </p>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+

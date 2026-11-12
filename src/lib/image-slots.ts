@@ -3,7 +3,20 @@
  * assigned (set `src` to a file under public/ and `approved: true`, keeping the aspect ratio so
  * replacement causes no layout shift). Placeholders never reference missing files.
  */
-export type SlotMotif = 'orbital' | 'contour' | 'lattice' | 'chronology' | 'clusters' | 'network' | 'twin-orbits' | 'documents';
+export type SlotMotif =
+  | 'orbital'
+  | 'contour'
+  | 'lattice'
+  | 'chronology'
+  | 'clusters'
+  | 'network'
+  | 'twin-orbits'
+  | 'documents'
+  | 'constellation'
+  | 'prism'
+  | 'scales'
+  | 'blueprint'
+  | 'ripples';
 
 export interface ImageSlot {
   id: string;
@@ -24,6 +37,14 @@ export const IMAGE_SLOTS = Object.freeze({
   STATS_DEPENDENCY_GRAPH: { id: 'STATS_DEPENDENCY_GRAPH', aspect: '3 / 2', motif: 'network', purpose: 'Data relationships', approved: false, src: null, alt: '' },
   STATS_SOURCE_DRIFT: { id: 'STATS_SOURCE_DRIFT', aspect: '3 / 2', motif: 'twin-orbits', purpose: 'Production and remodeling comparison', approved: false, src: null, alt: '' },
   STATS_REPORT_CENTER: { id: 'STATS_REPORT_CENTER', aspect: '4 / 3', motif: 'documents', purpose: 'Report and export preview', approved: false, src: null, alt: '' },
+  CREATIVE_HOME_HERO: { id: 'CREATIVE_HOME_HERO', aspect: '16 / 9', motif: 'constellation', purpose: 'Creative Intelligence overview', approved: false, src: null, alt: '' },
+  CREATIVE_NARRATIVE_GRAPH: { id: 'CREATIVE_NARRATIVE_GRAPH', aspect: '3 / 2', motif: 'network', purpose: 'Narrative relationship graph', approved: false, src: null, alt: '' },
+  CREATIVE_IDEATION_WORKSPACE: { id: 'CREATIVE_IDEATION_WORKSPACE', aspect: '3 / 2', motif: 'prism', purpose: 'Story brainstorming and ideation', approved: false, src: null, alt: '' },
+  CREATIVE_CONSISTENCY_AUDIT: { id: 'CREATIVE_CONSISTENCY_AUDIT', aspect: '3 / 2', motif: 'scales', purpose: 'Narrative consistency findings', approved: false, src: null, alt: '' },
+  CREATIVE_STORY_REFACTOR: { id: 'CREATIVE_STORY_REFACTOR', aspect: '3 / 2', motif: 'blueprint', purpose: 'Story restructuring and refactoring', approved: false, src: null, alt: '' },
+  CREATIVE_CANON_REMODEL: { id: 'CREATIVE_CANON_REMODEL', aspect: '3 / 2', motif: 'twin-orbits', purpose: 'Canon remodeling and scenarios', approved: false, src: null, alt: '' },
+  CREATIVE_IMPACT_EXPLORER: { id: 'CREATIVE_IMPACT_EXPLORER', aspect: '3 / 2', motif: 'ripples', purpose: 'Consequence and impact explorer', approved: false, src: null, alt: '' },
+  CREATIVE_DEVELOPMENT_ROADMAP: { id: 'CREATIVE_DEVELOPMENT_ROADMAP', aspect: '16 / 9', motif: 'chronology', purpose: 'Creative roadmap and opportunities', approved: false, src: null, alt: '' },
 } satisfies Record<string, ImageSlot>);
 
 export type ImageSlotId = keyof typeof IMAGE_SLOTS;

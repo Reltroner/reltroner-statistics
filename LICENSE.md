@@ -32,9 +32,20 @@ Violation of these terms may result in public takedown requests, DMCA complaints
 
 This license is adapted from the official [Reltroner Studio LICENSE.md](https://github.com/Reltroner/reltroner-studio/blob/main/LICENSE.md) to preserve the original owner's intellectual-property protections. It does not claim ownership over third-party software or override the separate licenses of dependencies.
 
+All content in this repository is **© 2026 by Rei Reltroner**.  
+Unauthorized reproduction or plagiarism of **Reltronland**, **Asthortera**, or any affiliated fictional entities is strictly prohibited.
+
+---
+
+📝 License: [Reltroner Studio Legal Declaration (IPFS)](https://bafybeib3wnhcrc4e3lg2f7wdiew3hrpwumdigsa5ltm3v5ap23l7apszv4.ipfs.w3s.link/reltroner-studio-legal-declaration.pdf), [Reltroner Studio Legal Declaration (ArDrive)](https://app.ardrive.io/#/file/021c69cf-e79c-4f7b-8106-4094a98e04bb/view)
+
+![License](https://img.shields.io/badge/license-Custom-red)
+
+---
+
 For licensing requests, collaborations, or permissions, please contact:
 
-📧 **reltroner@gmail.com**
+📧 **studio@reltroner.com**
 
 > *"Imagination is a fortress. You are free to visit, but not to conquer."*
 > — Raidan, Founder of Reltroner Studio

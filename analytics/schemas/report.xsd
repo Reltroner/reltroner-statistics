@@ -7,7 +7,7 @@
 
   <xs:simpleType name="sha40"><xs:restriction base="xs:string"><xs:pattern value="[0-9a-f]{40}"/></xs:restriction></xs:simpleType>
   <xs:simpleType name="sha64"><xs:restriction base="xs:string"><xs:pattern value="[0-9a-f]{64}"/></xs:restriction></xs:simpleType>
-  <xs:simpleType name="findingId"><xs:restriction base="xs:string"><xs:pattern value="CRD-[0-9A-F]{12}"/></xs:restriction></xs:simpleType>
+  <xs:simpleType name="findingId"><xs:restriction base="xs:string"><xs:pattern value="(CRD|STA|NAF|REF|SCN|IMP|OPP|PRP)-[0-9A-F]{12}"/></xs:restriction></xs:simpleType>
   <xs:simpleType name="level"><xs:restriction base="xs:string">
     <xs:enumeration value="FILE"/><xs:enumeration value="FIELD"/><xs:enumeration value="FRONTMATTER"/><xs:enumeration value="SECTION"/>
   </xs:restriction></xs:simpleType>

@@ -7,13 +7,14 @@ export interface RouteDef {
   summary: string;
 }
 
-export type SectionId = 'overview' | 'statistics' | 'analysis' | 'drift' | 'knowledge' | 'reports' | 'methodology';
+export type SectionId = 'overview' | 'statistics' | 'analysis' | 'drift' | 'knowledge' | 'creative' | 'reports' | 'methodology';
 
 export const SECTIONS: ReadonlyArray<{ id: SectionId; label: string; href: string }> = [
   { id: 'statistics', label: 'Statistics', href: '/statistics' },
   { id: 'analysis', label: 'Analysis', href: '/clustering' },
   { id: 'drift', label: 'Drift', href: '/drift' },
   { id: 'knowledge', label: 'Graph', href: '/graph' },
+  { id: 'creative', label: 'Creative', href: '/creative' },
   { id: 'reports', label: 'Reports', href: '/reports' },
   { id: 'methodology', label: 'Methodology', href: '/methodology' },
 ];
@@ -31,6 +32,15 @@ export const ROUTES: readonly RouteDef[] = [
   { path: '/compare', title: 'Production versus remodeling', section: 'drift', summary: 'Proposed value changes side by side with production canon.' },
   { path: '/graph', title: 'Knowledge graph', section: 'knowledge', summary: 'Typed, evidence-backed relationships between sources and statistics.' },
   { path: '/impact', title: 'Impact explorer', section: 'knowledge', summary: 'Direct and transitive impact of a change.' },
+  { path: '/creative', title: 'Creative intelligence', section: 'creative', summary: 'Source-grounded narrative intelligence, worldbuilding exploration, auditing and scenario simulation.' },
+  { path: '/creative/explore', title: 'Worldbuilding explorer', section: 'creative', summary: 'Typed narrative entities, provenance locators and multi-layer relationship graph.' },
+  { path: '/creative/ideas', title: 'Story ideation workspace', section: 'creative', summary: 'Evidence-grounded brainstorming, Reltronland/Depcutland case study and private session composer.' },
+  { path: '/creative/audit', title: 'Narrative consistency audit', section: 'creative', summary: 'Contradiction checks, intentional ambiguity, unreliable narration and review candidates.' },
+  { path: '/creative/refactor', title: 'Story refactoring workspace', section: 'creative', summary: 'Non-destructive narrative restructuring plans with before/after structure and graph impact.' },
+  { path: '/creative/remodel', title: 'Canon remodeling laboratory', section: 'creative', summary: 'Isolated scenario comparison between production canon, remodeling candidates and hypotheses.' },
+  { path: '/creative/impact', title: 'Narrative impact simulator', section: 'creative', summary: 'Verified direct, verified transitive, candidate narrative and speculative consequence analysis.' },
+  { path: '/creative/roadmap', title: 'Creative development roadmap', section: 'creative', summary: 'Prioritized worldbuilding opportunities ranked by structural reach, tension density and coverage gap.' },
+  { path: '/creative/methodology', title: 'Creative methodology', section: 'creative', summary: 'Source authority, ratification boundaries, privacy rules and inference separation.' },
   { path: '/reports', title: 'Report center', section: 'reports', summary: 'Eight equally selectable export formats with ZIP integrity.' },
   { path: '/releases', title: 'Analysis releases', section: 'reports', summary: 'Versioned, checksummed analysis outputs.' },
   { path: '/methodology', title: 'Methodology', section: 'methodology', summary: 'Definitions, statuses, rules and statistical methods.' },
@@ -57,6 +67,17 @@ export const SECTION_PAGES: Readonly<Record<SectionId, ReadonlyArray<{ href: str
     { href: '/graph', label: 'Graph' },
     { href: '/impact', label: 'Impact' },
   ],
+  creative: [
+    { href: '/creative', label: 'Overview' },
+    { href: '/creative/explore', label: 'Explore' },
+    { href: '/creative/ideas', label: 'Ideation' },
+    { href: '/creative/audit', label: 'Audit' },
+    { href: '/creative/refactor', label: 'Refactor' },
+    { href: '/creative/remodel', label: 'Remodel' },
+    { href: '/creative/impact', label: 'Impact' },
+    { href: '/creative/roadmap', label: 'Roadmap' },
+    { href: '/creative/methodology', label: 'Methodology' },
+  ],
   reports: [
     { href: '/reports', label: 'Report center' },
     { href: '/releases', label: 'Releases' },
@@ -76,6 +97,7 @@ export function sectionFor(pathname: string): SectionId {
   if (clean.startsWith('/clustering') || clean.startsWith('/anomalies') || clean.startsWith('/qa')) return 'analysis';
   if (clean.startsWith('/drift') || clean.startsWith('/compare')) return 'drift';
   if (clean.startsWith('/graph') || clean.startsWith('/impact')) return 'knowledge';
+  if (clean.startsWith('/creative')) return 'creative';
   if (clean.startsWith('/reports') || clean.startsWith('/releases')) return 'reports';
   if (clean.startsWith('/methodology')) return 'methodology';
   return 'overview';
@@ -83,7 +105,7 @@ export function sectionFor(pathname: string): SectionId {
 
 export function isActive(pathname: string, href: string): boolean {
   const clean = pathname.replace(/\/+$/, '') || '/';
-  return href === '/' ? clean === '/' : clean === href || (href !== '/statistics' && clean.startsWith(`${href}/`));
+  return href === '/' ? clean === '/' : clean === href || (href !== '/statistics' && href !== '/creative' && clean.startsWith(`${href}/`));
 }
 
 /** File stem of the precomputed consolidated report of every finding. */

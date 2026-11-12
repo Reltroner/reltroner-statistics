@@ -5,6 +5,21 @@
 import { z } from 'zod';
 import { CHANGE_TYPES, CONTENT_CHANGE_NATURES, EPISTEMIC_STATUSES, FILE_CLASSIFICATIONS, FINDING_CLASSIFICATIONS, FINDING_LEVELS, REVIEW_STATUSES } from '../domain/status.ts';
 import { EDGE_TYPES, NODE_TYPES } from '../domain/graph.ts';
+import {
+  CAUSAL_CLASSES,
+  EXTRACTION_CONFIDENCES,
+  IMPACT_DIMENSIONS,
+  IMPACT_VERIFICATION_TIERS,
+  NARRATIVE_AUDIT_CATEGORIES,
+  NARRATIVE_ENTITY_KINDS,
+  NARRATIVE_FINDING_CLASSIFICATIONS,
+  NARRATIVE_RELATIONSHIP_TYPES,
+  OPPORTUNITY_CATEGORIES,
+  PROPOSAL_REVIEW_STATUSES,
+  PROPOSAL_TYPES,
+  REFACTOR_OPERATIONS,
+  RELATIONSHIP_VERIFICATIONS,
+} from '../domain/creative.ts';
 
 const sha = z.string().regex(/^[0-9a-f]{40}$/);
 const sha256 = z.string().regex(/^[0-9a-f]{64}$/);
@@ -246,6 +261,296 @@ export const ArtifactManifestSchema = z.object({
   files: z.array(z.object({ path: z.string(), bytes: z.number().int(), sha256 })),
 });
 
+export const NarrativeEntitySchema = z.object({
+  id: z.string().min(1),
+  kind: z.enum(NARRATIVE_ENTITY_KINDS),
+  name: z.string().min(1),
+  summary: z.string(),
+  source_side: z.enum(['production', 'remodeling', 'both']),
+  source_path: z.string(),
+  commit_sha: sha,
+  blob_sha: sha,
+  evidence_locator: z.string(),
+  evidence_line: z.number().int().positive().nullable(),
+  evidence_quote: z.string(),
+  historical_bac: z.object({ start_bac: z.number().int(), end_bac: z.number().int(), label: z.string() }).nullable(),
+  editorial_updated_at: z.string().nullable(),
+  canon_status: epistemic,
+  extraction_confidence: z.enum(EXTRACTION_CONFIDENCES),
+  original_terminology: z.array(z.string()),
+  related_country_id: z.string().nullable(),
+  attributes: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])),
+});
+
+export const NarrativeRelationshipSchema = z.object({
+  id: z.string().regex(/^NREL-[0-9A-F]{12}$/),
+  type: z.enum(NARRATIVE_RELATIONSHIP_TYPES),
+  source_id: z.string(),
+  target_id: z.string(),
+  verification: z.enum(RELATIONSHIP_VERIFICATIONS),
+  causal_class: z.enum(CAUSAL_CLASSES),
+  source_side: z.enum(['production', 'remodeling', 'both']),
+  source_path: z.string(),
+  commit_sha: sha,
+  blob_sha: sha,
+  evidence_line: z.number().int().positive().nullable(),
+  evidence_quote: z.string(),
+  rationale: z.string(),
+});
+
+export const NarrativeAuditFindingSchema = z.object({
+  id: z.string().regex(/^NAF-[0-9A-F]{12}$/),
+  category: z.enum(NARRATIVE_AUDIT_CATEGORIES),
+  classification: z.enum(NARRATIVE_FINDING_CLASSIFICATIONS),
+  severity: z.enum(['HIGH', 'MEDIUM', 'LOW', 'INFORMATIONAL']),
+  title: z.string(),
+  affected_entities: z.array(z.string()),
+  passages: z.array(z.object({
+    side: z.enum(['production', 'remodeling']),
+    repository: z.string(),
+    commit_sha: sha,
+    path: z.string(),
+    blob_sha: sha,
+    line: z.number().int().positive().nullable(),
+    locator: z.string(),
+    quote: z.string(),
+  })),
+  conflict_hypothesis: z.string(),
+  storytelling_context: z.string(),
+  review_guidance: z.string(),
+  is_defect: z.boolean(),
+  synthetic: z.boolean().optional(),
+});
+
+export const CreativeOpportunitySchema = z.object({
+  id: z.string().regex(/^OPP-[0-9A-F]{12}$/),
+  category: z.enum(OPPORTUNITY_CATEGORIES),
+  title: z.string(),
+  inspired_by: z.string(),
+  canon_anchors: z.array(z.object({
+    path: z.string(),
+    commit_sha: sha,
+    blob_sha: sha,
+    line: z.number().int().positive().nullable(),
+    quote: z.string(),
+    entity_id: z.string().nullable(),
+  })),
+  narrative_question: z.string(),
+  established_facts: z.array(z.string()),
+  hypothetical_space: z.array(z.string()),
+  potential_conflict: z.string(),
+  affected_entities: z.array(z.string()),
+  possible_alternatives: z.array(z.object({
+    id: z.string(),
+    label: z.string(),
+    summary: z.string(),
+    mechanism: z.string(),
+    narrative_tradeoff: z.string(),
+  })),
+  assumptions: z.array(z.string()),
+  consistency_risks: z.array(z.string()),
+  development_steps: z.array(z.string()),
+  priority_score: z.object({
+    structural_reach: finite,
+    tension_density: finite,
+    coverage_gap: finite,
+    composite: finite,
+    explanation: z.string(),
+  }),
+  creative_status: z.enum(['DISCOVERED_CANDIDATE', 'EXPLORING', 'PROPOSED']),
+});
+
+export const StoryRefactoringPlanSchema = z.object({
+  id: z.string().regex(/^REF-[0-9A-F]{12}$/),
+  operation: z.enum(REFACTOR_OPERATIONS),
+  title: z.string(),
+  current_structure: z.object({
+    summary: z.string(),
+    units: z.array(z.object({ path: z.string(), section: z.string(), role: z.string(), line_count: z.number().int().nonnegative() })),
+  }),
+  proposed_structure: z.object({
+    summary: z.string(),
+    units: z.array(z.object({ target: z.string(), section: z.string(), action: z.string(), rationale: z.string() })),
+  }),
+  rationale: z.string(),
+  affected_documents: z.array(z.object({ path: z.string(), side: z.enum(['production', 'remodeling']), commit_sha: sha, blob_sha: sha })),
+  affected_entities: z.array(z.string()),
+  expected_benefits: z.array(z.string()),
+  possible_narrative_losses: z.array(z.string()),
+  canon_risks: z.array(z.string()),
+  dependency_impact: z.object({
+    direct_nodes: z.array(z.string()),
+    transitive_nodes: z.array(z.string()),
+    summary: z.string(),
+  }),
+  decision_status: z.enum(PROPOSAL_REVIEW_STATUSES),
+  canon_status: z.enum(['PROPOSED', 'SCENARIO']),
+});
+
+export const RemodelingScenarioSchema = z.object({
+  id: z.string().regex(/^SCN-[0-9A-F]{12}$/),
+  title: z.string(),
+  question: z.string(),
+  focus_entities: z.array(z.string()),
+  production_baseline: z.object({
+    summary: z.string(),
+    anchors: z.array(z.object({
+      label: z.string(),
+      value: z.string(),
+      path: z.string(),
+      commit_sha: sha,
+      blob_sha: sha,
+      line: z.number().int().positive().nullable(),
+      status: epistemic,
+    })),
+  }),
+  remodeling_candidate: z.object({
+    summary: z.string(),
+    changes: z.array(z.object({
+      label: z.string(),
+      production_value: z.string(),
+      remodeling_value: z.string(),
+      path: z.string(),
+      finding_id: z.string().nullable(),
+    })),
+  }),
+  perspectives: z.array(z.object({
+    actor_id: z.string(),
+    actor_name: z.string(),
+    stance: z.string(),
+    fear_or_constraint: z.string(),
+    source_path: z.string(),
+    evidence_line: z.number().int().positive().nullable(),
+    evidence_quote: z.string(),
+  })),
+  hypothetical_parameters: z.array(z.object({
+    id: z.string(),
+    label: z.string(),
+    current_state: z.string(),
+    options: z.array(z.object({ value: z.string(), label: z.string(), description: z.string() })),
+  })),
+  impact_dimensions: z.array(z.object({
+    dimension: z.enum(IMPACT_DIMENSIONS),
+    verification_tier: z.enum(IMPACT_VERIFICATION_TIERS),
+    summary: z.string(),
+    affected_nodes: z.array(z.string()),
+    evidence_or_constraint: z.string(),
+    quantitative_status: z.enum(['MATHEMATICALLY_ESTABLISHED', 'INSUFFICIENT_DATA_NO_QUANTITATIVE_MODEL']),
+  })),
+  alternatives: z.array(z.object({
+    id: z.string(),
+    title: z.string(),
+    premise: z.string(),
+    institutional_mechanism: z.string(),
+    narrative_payoff: z.string(),
+    contradiction_risks: z.array(z.string()),
+  })),
+  speculative_assumptions: z.array(z.string()),
+  potential_contradictions: z.array(z.string()),
+  review_notes: z.string(),
+  canon_status: z.enum(['SCENARIO', 'PROPOSED']),
+});
+
+export const CreativeProposalSchema = z.object({
+  proposal_id: z.string().regex(/^PRP-[0-9A-F]{12}$/),
+  schema_version: z.literal('reltroner-creative-proposal.v1'),
+  title: z.string(),
+  intent: z.string(),
+  proposal_type: z.enum(PROPOSAL_TYPES),
+  visibility: z.enum(['PUBLIC_OBSERVATORY_FIXTURE', 'PRIVATE_LOCAL_SESSION']),
+  originating_entities: z.array(z.string()),
+  source_references: z.array(z.object({
+    repository: z.string(),
+    side: z.enum(['production', 'remodeling']),
+    commit_sha: sha,
+    path: z.string(),
+    blob_sha: sha.nullable(),
+    line: z.number().int().positive().nullable(),
+    quote: z.string(),
+  })),
+  production_source_sha: sha,
+  remodeling_source_sha: sha,
+  historical_context: z.string(),
+  existing_constraints: z.array(z.string()),
+  narrative_hypothesis: z.string(),
+  alternatives: z.array(z.object({
+    id: z.string(),
+    title: z.string(),
+    summary: z.string(),
+    pros: z.array(z.string()),
+    cons: z.array(z.string()),
+  })),
+  assumptions: z.array(z.string()),
+  potential_impacts: z.array(z.object({
+    target_id: z.string(),
+    tier: z.enum(['VERIFIED_DIRECT', 'VERIFIED_TRANSITIVE', 'CANDIDATE_IMPACT', 'SPECULATIVE']),
+    detail: z.string(),
+  })),
+  consistency_risks: z.array(z.string()),
+  creator_notes: z.string(),
+  review_status: z.enum(PROPOSAL_REVIEW_STATUSES),
+  canon_status: z.enum(['PROPOSED', 'SCENARIO', 'CANON_OBSERVED']),
+  ratification_evidence: z.object({
+    repository: z.string(),
+    commit_sha: sha,
+    path: z.string(),
+    verified: z.boolean(),
+  }).nullable().optional(),
+  content_digest: sha256,
+  created_at: z.string(),
+  updated_at: z.string(),
+}).refine(
+  (p) => (p.review_status === 'RATIFIED_EXTERNALLY') === (p.canon_status === 'CANON_OBSERVED' && !!p.ratification_evidence?.verified),
+  'RATIFIED_EXTERNALLY requires verified ratification_evidence and CANON_OBSERVED status; unratified proposals must remain PROPOSED or SCENARIO',
+);
+
+export const CreativeArtifactSchema = z.object({
+  schema_version: z.literal('reltroner-statistics-creative.v1'),
+  rules_version: z.string(),
+  generated_at: z.string(),
+  sources: z.object({
+    production_commit_sha: sha,
+    remodeling_commit_sha: sha,
+  }),
+  ai_adapter: z.object({
+    available: z.boolean(),
+    mode: z.enum(['DETERMINISTIC_GRAPH_RETRIEVAL_ONLY', 'PRIVATE_AUTHENTICATED_ADAPTER']),
+    privacy_boundary: z.literal('STRICT_NO_EXTERNAL_TRANSMISSION'),
+    reason: z.string(),
+  }),
+  summary: z.object({
+    entities_total: z.number().int().nonnegative(),
+    entities_by_kind: counts,
+    relationships_total: z.number().int().nonnegative(),
+    relationships_by_type: counts,
+    relationships_by_verification: counts,
+    audit_findings_total: z.number().int().nonnegative(),
+    audit_by_classification: counts,
+    opportunities_total: z.number().int().nonnegative(),
+    refactoring_plans_total: z.number().int().nonnegative(),
+    scenarios_total: z.number().int().nonnegative(),
+    seed_proposals_total: z.number().int().nonnegative(),
+  }),
+  entities: z.array(NarrativeEntitySchema),
+  relationships: z.array(NarrativeRelationshipSchema),
+  audit_findings: z.array(NarrativeAuditFindingSchema),
+  opportunities: z.array(CreativeOpportunitySchema),
+  refactoring_plans: z.array(StoryRefactoringPlanSchema),
+  scenarios: z.array(RemodelingScenarioSchema),
+  seed_proposals: z.array(CreativeProposalSchema),
+  semantic_digest: sha256,
+}).refine(
+  (c) =>
+    c.summary.entities_total === c.entities.length &&
+    c.summary.relationships_total === c.relationships.length &&
+    c.summary.audit_findings_total === c.audit_findings.length &&
+    c.summary.opportunities_total === c.opportunities.length &&
+    c.summary.refactoring_plans_total === c.refactoring_plans.length &&
+    c.summary.scenarios_total === c.scenarios.length &&
+    c.summary.seed_proposals_total === c.seed_proposals.length,
+  'creative summary counts must match array lengths',
+);
+
 export const JSON_SCHEMA_EXPORTS = Object.freeze({
   'audit.schema.json': AuditSchema,
   'observations.schema.json': StatisticsDatasetSchema,
@@ -253,4 +558,5 @@ export const JSON_SCHEMA_EXPORTS = Object.freeze({
   'graph.schema.json': GraphSchema,
   'analytics.schema.json': AnalyticsSchema,
   'manifest.schema.json': ArtifactManifestSchema,
+  'creative.schema.json': CreativeArtifactSchema,
 });

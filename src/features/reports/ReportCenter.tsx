@@ -16,13 +16,23 @@ const FORMAT_INFO: Record<ExportFormat, { label: string; detail: string }> = {
   xml: { label: 'XML', detail: 'Valid against the bundled report.xsd schema.' },
 };
 
-interface Loaded { context: ReportContext; findings: Finding[]; pdf: Set<string>; xsd: string | null }
+type ReportDomainFilter = 'ALL_UNIFIED' | 'DRIFT' | 'CREATIVE_ALL' | 'NAF' | 'REF' | 'SCN' | 'IMP' | 'OPP' | 'PRP' | 'STA';
+
+interface Loaded {
+  context: ReportContext;
+  findings: Finding[];
+  creativeFindings: Finding[];
+  allFindings: Finding[];
+  pdf: Set<string>;
+  xsd: string | null;
+}
 interface Outcome { filename: string; size: number; entries: BundleEntry[] | null; notes: string[] }
 
 export default function ReportCenter() {
   const [data, setData] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scope, setScope] = useState<ExportScope>('all');
+  const [domainFilter, setDomainFilter] = useState<ReportDomainFilter>('ALL_UNIFIED');
   const [picked, setPicked] = useState<string[]>([]);
   const [formats, setFormats] = useState<Set<ExportFormat>>(new Set());
   const [layout, setLayout] = useState<BundleLayout>('per-finding');
@@ -35,22 +45,33 @@ export default function ReportCenter() {
       fetch('/data/findings.json').then((r) => (r.ok ? r.json() : Promise.reject(new Error('findings')))),
       fetch('/reports/pdf/index.json').then((r) => (r.ok ? r.json() : { files: {} })).catch(() => ({ files: {} })),
       fetch('/reports/report.xsd').then((r) => (r.ok ? r.text() : null)).catch(() => null),
-    ]).then(([f, p, xsd]: [{ context: ReportContext; findings: Finding[] }, { files: Record<string, unknown> }, string | null]) => {
-      setData({ context: f.context, findings: f.findings, pdf: new Set(Object.keys(p.files)), xsd });
+    ]).then(([f, p, xsd]: [{ context: ReportContext; findings: Finding[]; creative_findings?: Finding[] }, { files: Record<string, unknown> }, string | null]) => {
+      const creativeFindings = f.creative_findings ?? [];
+      const allFindings = [...f.findings, ...creativeFindings];
+      setData({ context: f.context, findings: f.findings, creativeFindings, allFindings, pdf: new Set(Object.keys(p.files)), xsd });
       const params = new URLSearchParams(window.location.search);
       const id = params.get('id');
-      if (id && f.findings.some((x) => x.id === id)) { setScope('single'); setPicked([id]); return; }
+      if (id && allFindings.some((x) => x.id === id)) { setScope('single'); setPicked([id]); return; }
+      const family = params.get('family') as ReportDomainFilter | null;
+      if (family && ['CREATIVE_ALL', 'NAF', 'REF', 'SCN', 'IMP', 'OPP', 'PRP', 'STA'].includes(family)) {
+        setDomainFilter(family);
+        setScope('selected');
+        const famIds = allFindings.filter((x) => family === 'CREATIVE_ALL' ? !x.id.startsWith('CRD-') : x.id.startsWith(`${family}-`)).map((x) => x.id);
+        setPicked(famIds);
+        return;
+      }
       if (params.get('selection') === 'drift') {
         try {
-          const ids = (JSON.parse(sessionStorage.getItem(SELECTION_KEY) ?? '[]') as string[]).filter((x) => f.findings.some((y) => y.id === x));
+          const ids = (JSON.parse(sessionStorage.getItem(SELECTION_KEY) ?? '[]') as string[]).filter((x) => allFindings.some((y) => y.id === x));
           if (ids.length) { setScope(ids.length === 1 ? 'single' : 'selected'); setPicked(ids); }
         } catch { /* ignore */ }
       }
     }).catch(() => setError('Report data could not be loaded.'));
   }, []);
 
-  const ids = useMemo(() => data?.findings.map((f) => f.id) ?? [], [data]);
-  const effective = scope === 'all' ? ids : picked;
+  const driftIds = useMemo(() => data?.findings.map((f) => f.id) ?? [], [data]);
+  const universeIds = useMemo(() => (scope === 'all' ? driftIds : data?.allFindings.map((f) => f.id) ?? []), [data, scope, driftIds]);
+  const effective = scope === 'all' ? driftIds : picked;
   const pdfReady = !!data && (scope === 'all' && layout === 'consolidated' ? data.pdf.has('ALL') : effective.length > 0 && effective.every((id) => data.pdf.has(id)));
   const planResult = useMemo(() => {
     if (!data) return null;
@@ -58,14 +79,19 @@ export default function ReportCenter() {
       return { plan: makeExportPlan({
         scope, audit_id: 'REPORT-CENTER', production_sha: data.context.production.commit_sha, remodeling_sha: data.context.remodeling.commit_sha,
         formats: [...formats], finding_ids: scope === 'all' ? [] : picked, bundle_layout: scope === 'single' ? 'per-finding' : layout,
-      }, ids) };
+      }, universeIds) };
     } catch (e) { return { error: (e as Error).message }; }
-  }, [data, scope, picked, formats, layout, ids]);
+  }, [data, scope, picked, formats, layout, universeIds]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return (data?.findings ?? []).filter((f) => !q || `${f.id} ${f.title} ${f.file_path}`.toLowerCase().includes(q));
-  }, [data, query]);
+    return (data?.allFindings ?? []).filter((f) => {
+      if (domainFilter === 'DRIFT' && !f.id.startsWith('CRD-')) return false;
+      if (domainFilter === 'CREATIVE_ALL' && f.id.startsWith('CRD-')) return false;
+      if (['NAF', 'REF', 'SCN', 'IMP', 'OPP', 'PRP', 'STA'].includes(domainFilter) && !f.id.startsWith(`${domainFilter}-`)) return false;
+      return !q || `${f.id} ${f.title} ${f.file_path} ${f.rule}`.toLowerCase().includes(q);
+    });
+  }, [data, query, domainFilter]);
 
   const toggleFormat = (f: ExportFormat) => setFormats((s) => { const n = new Set(s); if (n.has(f)) n.delete(f); else n.add(f); return n; });
   const togglePick = (id: string) => setPicked((p) => (scope === 'single' ? [id] : p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
@@ -75,7 +101,7 @@ export default function ReportCenter() {
     setBusy(true); setOutcome(null); setError(null);
     try {
       const { executeExport } = await import('../../export/bundle.ts');
-      const res = await executeExport({ plan: planResult.plan, findings: data.findings, context: data.context, loadPdf: pdfLoader, xsd: data.xsd ?? undefined });
+      const res = await executeExport({ plan: planResult.plan, findings: data.allFindings, context: data.context, loadPdf: pdfLoader, xsd: data.xsd ?? undefined });
       saveBytes(res.bytes, res.filename, res.mime);
       setOutcome({ filename: res.filename, size: res.bytes.byteLength, entries: res.entries, notes: res.notes });
     } catch (e) {
@@ -92,16 +118,65 @@ export default function ReportCenter() {
         <fieldset>
           <legend className="rs-h3 mb-3">1 · What to export</legend>
           <div className="grid gap-2 sm:grid-cols-3">
-            {([['single', 'One finding'], ['selected', 'Selected findings'], ['all', `All ${ids.length} findings`]] as const).map(([v, l]) => (
+            {([['single', 'One finding'], ['selected', 'Selected findings'], ['all', `All ${driftIds.length} findings`]] as const).map(([v, l]) => (
               <label key={v} className={`rs-card flex cursor-pointer items-center gap-2 p-3 text-sm font-semibold ${scope === v ? '!border-[var(--accent)]' : ''}`}>
                 <input type="radio" name="scope" checked={scope === v} onChange={() => { setScope(v); if (v === 'single') setPicked((p) => p.slice(0, 1)); }} />{l}
               </label>
             ))}
           </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+            <span className="font-semibold text-ink-2">Quick report family presets:</span>
+            {([
+              ['CREATIVE_ALL', `Creative & Narrative (${data.creativeFindings.length})`],
+              ['NAF', 'Consistency Audit (NAF)'],
+              ['REF', 'Story Refactor (REF)'],
+              ['SCN', 'Remodel Scenarios (SCN)'],
+              ['IMP', 'Narrative Impact (IMP)'],
+              ['OPP', 'Opportunities (OPP)'],
+              ['PRP', 'Seed Proposals (PRP)'],
+              ['STA', 'Statistical Summary (STA)'],
+            ] as const).map(([fam, label]) => (
+              <button
+                key={fam}
+                type="button"
+                className={`rs-button rs-button-ghost !px-2.5 !py-1 !text-xs ${domainFilter === fam && scope !== 'all' ? '!border-[var(--accent)] font-semibold' : ''}`}
+                onClick={() => {
+                  setDomainFilter(fam);
+                  const matching = data.allFindings
+                    .filter((f) => (fam === 'CREATIVE_ALL' ? !f.id.startsWith('CRD-') : f.id.startsWith(`${fam}-`)))
+                    .map((f) => f.id);
+                  if (matching.length === 1) {
+                    setScope('single');
+                    setPicked(matching);
+                  } else {
+                    setScope('selected');
+                    setPicked(matching);
+                  }
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           {scope !== 'all' && (
             <div className="mt-4">
               <div className="flex flex-wrap items-end gap-3">
-                <label className="min-w-[14rem] flex-1"><span className="rs-label">Find findings</span><input className="rs-input w-full" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ID, title or path" /></label>
+                <label className="min-w-[14rem] flex-1"><span className="rs-label">Find findings</span><input className="rs-input w-full" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ID (CRD, NAF, REF, SCN, IMP, OPP, PRP, STA), title or path" /></label>
+                <label className="min-w-[11rem]">
+                  <span className="rs-label">Report family</span>
+                  <select className="rs-input w-full" value={domainFilter} onChange={(e) => setDomainFilter(e.target.value as ReportDomainFilter)}>
+                    <option value="ALL_UNIFIED">All families ({data.allFindings.length})</option>
+                    <option value="DRIFT">Source Drift CRD ({data.findings.length})</option>
+                    <option value="CREATIVE_ALL">All Creative & Narrative ({data.creativeFindings.length})</option>
+                    <option value="NAF">Narrative Audit (NAF)</option>
+                    <option value="REF">Story Refactoring (REF)</option>
+                    <option value="SCN">Scenario Comparison (SCN)</option>
+                    <option value="IMP">Narrative Impact (IMP)</option>
+                    <option value="OPP">Creative Opportunities (OPP)</option>
+                    <option value="PRP">Creative Proposals (PRP)</option>
+                    <option value="STA">Statistical Summary (STA)</option>
+                  </select>
+                </label>
                 {scope === 'selected' && <button type="button" className="rs-button rs-button-ghost" onClick={() => setPicked([...new Set([...picked, ...filtered.map((f) => f.id)])])}>Select {filtered.length} shown</button>}
                 {picked.length > 0 && <button type="button" className="rs-button rs-button-ghost" onClick={() => setPicked([])}>Clear ({picked.length})</button>}
               </div>
@@ -110,7 +185,13 @@ export default function ReportCenter() {
                   <li key={f.id}>
                     <label className="flex cursor-pointer items-start gap-3 px-3 py-2 text-sm hover:bg-accent-soft">
                       <input type={scope === 'single' ? 'radio' : 'checkbox'} name="pick" className="mt-1" checked={picked.includes(f.id)} onChange={() => togglePick(f.id)} />
-                      <span className="min-w-0"><span className="font-mono text-[0.75rem] text-ink-3">{f.id} · {f.priority} · {f.classification}</span><span className="block truncate text-ink">{f.title}</span></span>
+                      <span className="min-w-0">
+                        <span className="font-mono text-[0.75rem] text-ink-3">
+                          {f.id} · {f.priority} · {f.classification}
+                          {f.production_canon_status?.startsWith('UNRATIFIED') ? ` · ${f.production_canon_status}` : ''}
+                        </span>
+                        <span className="block truncate text-ink">{f.title}</span>
+                      </span>
                     </label>
                   </li>
                 ))}
@@ -174,7 +255,7 @@ export default function ReportCenter() {
             </div>
           )}
         </div>
-        <p className="mt-3 text-xs text-ink-3">Bundles are built in your browser from the published evidence; nothing is uploaded. Sources: production {data.context.production.commit_sha.slice(0, 12)}, remodeling {data.context.remodeling.commit_sha.slice(0, 12)}, rules {data.context.rules_version}.</p>
+        <p className="mt-3 text-xs text-ink-3">Bundles are built in your browser from the published evidence; nothing is uploaded. All Creative Intelligence proposals, refactoring plans, and scenarios carry explicit UNRATIFIED status markers. Sources: production {data.context.production.commit_sha.slice(0, 12)}, remodeling {data.context.remodeling.commit_sha.slice(0, 12)}, rules {data.context.rules_version}.</p>
       </aside>
     </div>
   );

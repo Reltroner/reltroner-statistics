@@ -1,0 +1,44 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import CreativeSubnav from '../../components/CreativeSubnav.astro';
+import ImageSlot from '../../components/ImageSlot.astro';
+import CanonRemodelLab from '../../features/creative/CanonRemodelLab.tsx';
+import { getCreative, getGraph } from '../../lib/data.ts';
+
+const creative = getCreative();
+const graph = getGraph();
+---
+<BaseLayout
+  title="Narrative impact simulator"
+  description="Simulate downstream narrative and structural consequences across verified direct dependencies, verified transitive dependencies, candidate links and speculative brainstorming."
+>
+  <CreativeSubnav />
+  <PageIntro
+    eyebrow="Narrative Consequence Simulation"
+    title="Narrative impact & consequence simulator"
+    lede="Select any worldbuilding entity or graph node to trace how a proposed revision propagates through the knowledge graph, separating verified direct and transitive dependencies from non-causal co-occurrence and speculative brainstorming."
+    crumbs={[{ label: 'Creative', href: '/creative' }, { label: 'Impact' }]}
+    sources={['production', 'remodeling', 'rules']}
+    limits={[
+      'MENTIONS and THEMATICALLY_RELATED edges are surfaced as candidate narrative links and never propagate verified causal dependency.',
+      'Social and psychological hypotheses are marked INSUFFICIENT_DATA_NO_QUANTITATIVE_MODEL rather than fabricated numbers.',
+    ]}
+  >
+    <ImageSlot slotId="CREATIVE_IMPACT_EXPLORER" slot="aside" />
+  </PageIntro>
+
+  <section class="pb-12">
+    <div class="rs-container">
+      <CanonRemodelLab
+        client:load
+        scenarios={creative.scenarios}
+        entities={creative.entities}
+        relationships={creative.relationships}
+        graph={graph}
+        defaultMode="impact"
+      />
+    </div>
+  </section>
+</BaseLayout>
+
