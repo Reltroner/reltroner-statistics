@@ -1,0 +1,12 @@
+node_modules/
+dist/
+artifacts/
+.local/
+.next/
+out/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store

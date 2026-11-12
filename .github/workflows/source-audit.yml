@@ -1,0 +1,56 @@
+name: Source Drift — Read-only CI audit
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [reltroner-source-changed]
+  schedule:
+    - cron: '17 */6 * * *'
+permissions:
+  contents: read
+jobs:
+  source-drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Statistics (tooling only)
+        uses: actions/checkout@v4
+        with:
+          path: statistics
+      - name: Checkout public production candidate (read-only)
+        uses: actions/checkout@v4
+        with:
+          repository: Reltroner/reltroner-studio
+          ref: main
+          path: source-production
+          persist-credentials: false
+      - name: Checkout public remodeling (read-only)
+        uses: actions/checkout@v4
+        with:
+          repository: Reltroner/reltroner-studio-remodeling
+          ref: main
+          path: source-remodeling
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate read-only audit and static preview
+        shell: bash
+        working-directory: statistics
+        run: |
+          set -euo pipefail
+          PROD_SHA="$(git -C ../source-production rev-parse HEAD)"
+          DRAFT_SHA="$(git -C ../source-remodeling rev-parse HEAD)"
+          node scripts/analyze.mjs \
+            --production-dir ../source-production \
+            --remodeling-dir ../source-remodeling \
+            --production-sha "$PROD_SHA" \
+            --remodeling-sha "$DRAFT_SHA"
+          npm test
+          npm run build
+      - name: Upload audit evidence (not production deployment)
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-drift-snapshot
+          path: |
+            statistics/artifacts/audit.json
+            statistics/dist/
