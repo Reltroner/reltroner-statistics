@@ -93,7 +93,7 @@ test('report center builds a checksummed ZIP for all findings', async ({ page })
     expect(sha(files[p!]!), p).toBe(hash);
   }
   const manifest = JSON.parse(strFromU8(files[names.find((n) => n.endsWith('/MANIFEST.json'))!]!));
-  expect(manifest.selection.formats).toEqual(['csv', 'html', 'json', 'xml']);
+  expect(manifest.selection.formats).toEqual(['csv', 'xml']);
   expect(names.some((n) => n.endsWith('/schemas/report.xsd'))).toBe(true);
   await expect(center.getByText(/entries checksummed/)).toBeVisible();
 });

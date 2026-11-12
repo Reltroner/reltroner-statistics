@@ -24,7 +24,7 @@ export default function ReportCenter() {
   const [error, setError] = useState<string | null>(null);
   const [scope, setScope] = useState<ExportScope>('all');
   const [picked, setPicked] = useState<string[]>([]);
-  const [formats, setFormats] = useState<Set<ExportFormat>>(new Set(['json', 'html']));
+  const [formats, setFormats] = useState<Set<ExportFormat>>(new Set());
   const [layout, setLayout] = useState<BundleLayout>('per-finding');
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
