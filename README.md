@@ -36,6 +36,7 @@ Requirements: Node.js 22+, Git, PowerShell 5.1+.
 cd C:\Projects\reltroner-statistics
 npm test
 npm run build
+npm run preview
 ```
 
 To analyze two **already cloned** read-only snapshots:
@@ -45,7 +46,7 @@ node scripts/analyze.mjs --production-dir C:\Path\To\ProductionSnapshot --remode
 npm run build
 ```
 
-The comparator never writes into either source snapshot. `dist/` contains public-safe projections only. See `docs/ARCHITECTURE.md` for source and publication boundaries.
+The comparator never writes into either source snapshot. `dist/` contains public-safe projections only. For a full local read-only analysis, run `./scripts/audit-local.ps1` from PowerShell, then `npm run preview` and open http://127.0.0.1:4173. See `docs/ARCHITECTURE.md` for source and publication boundaries.
 
 ## License
 
