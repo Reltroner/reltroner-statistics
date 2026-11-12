@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Reltroner Statistics forensic report, schema version reltroner-statistics-report.v1 -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="https://reltroner-statistics.invalid/schema/report/v1"
+           xmlns="https://reltroner-statistics.invalid/schema/report/v1"
+           elementFormDefault="qualified">
+
+  <xs:simpleType name="sha40"><xs:restriction base="xs:string"><xs:pattern value="[0-9a-f]{40}"/></xs:restriction></xs:simpleType>
+  <xs:simpleType name="sha64"><xs:restriction base="xs:string"><xs:pattern value="[0-9a-f]{64}"/></xs:restriction></xs:simpleType>
+  <xs:simpleType name="findingId"><xs:restriction base="xs:string"><xs:pattern value="CRD-[0-9A-F]{12}"/></xs:restriction></xs:simpleType>
+  <xs:simpleType name="level"><xs:restriction base="xs:string">
+    <xs:enumeration value="FILE"/><xs:enumeration value="FIELD"/><xs:enumeration value="FRONTMATTER"/><xs:enumeration value="SECTION"/>
+  </xs:restriction></xs:simpleType>
+  <xs:simpleType name="classification"><xs:restriction base="xs:string">
+    <xs:enumeration value="CHANGED"/><xs:enumeration value="PRODUCTION_ONLY"/><xs:enumeration value="DRAFT_ONLY"/>
+    <xs:enumeration value="SCHEMA_DRIFT"/><xs:enumeration value="VALUE_DRIFT"/><xs:enumeration value="SEMANTIC_REVIEW_CANDIDATE"/>
+  </xs:restriction></xs:simpleType>
+  <xs:simpleType name="changeType"><xs:restriction base="xs:string">
+    <xs:enumeration value="ADDED"/><xs:enumeration value="REMOVED"/><xs:enumeration value="VALUE_CHANGED"/><xs:enumeration value="TYPE_CHANGED"/>
+    <xs:enumeration value="UNASSIGNED_TO_ASSIGNED"/><xs:enumeration value="ASSIGNED_TO_UNASSIGNED"/><xs:enumeration value="SECTION_ADDED"/>
+    <xs:enumeration value="SECTION_REMOVED"/><xs:enumeration value="SECTION_CHANGED"/><xs:enumeration value="CONTENT_CHANGED"/>
+    <xs:enumeration value="FORMAT_ONLY"/><xs:enumeration value="INVALID_SOURCE"/><xs:enumeration value="FILE_ADDED"/><xs:enumeration value="FILE_REMOVED"/>
+  </xs:restriction></xs:simpleType>
+  <xs:simpleType name="reviewStatus"><xs:restriction base="xs:string">
+    <xs:enumeration value="REVIEW_CANDIDATE"/><xs:enumeration value="PROPOSAL"/><xs:enumeration value="DETERMINISTIC_CONTRADICTION"/><xs:enumeration value="INFORMATIONAL"/>
+  </xs:restriction></xs:simpleType>
+  <xs:simpleType name="priority"><xs:restriction base="xs:string">
+    <xs:enumeration value="P1"/><xs:enumeration value="P2"/><xs:enumeration value="P3"/>
+  </xs:restriction></xs:simpleType>
+
+  <xs:complexType name="repositoryRef">
+    <xs:attribute name="repository" type="xs:string" use="required"/>
+    <xs:attribute name="commit" type="sha40" use="required"/>
+    <xs:attribute name="tree" type="sha40" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="sourceRef">
+    <xs:attribute name="repository" type="xs:string" use="required"/>
+    <xs:attribute name="commit" type="sha40" use="required"/>
+    <xs:attribute name="path" type="xs:string" use="required"/>
+    <xs:attribute name="blob" type="sha40"/>
+    <xs:attribute name="line" type="xs:positiveInteger"/>
+  </xs:complexType>
+
+  <xs:complexType name="side">
+    <xs:sequence>
+      <xs:element name="value" minOccurs="0">
+        <xs:complexType><xs:simpleContent><xs:extension base="xs:string"><xs:attribute name="null" type="xs:boolean"/></xs:extension></xs:simpleContent></xs:complexType>
+      </xs:element>
+      <xs:element name="source" type="sourceRef" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="present" type="xs:boolean" use="required"/>
+    <xs:attribute name="type" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="finding">
+    <xs:sequence>
+      <xs:element name="title" type="xs:string"/>
+      <xs:element name="file">
+        <xs:complexType>
+          <xs:attribute name="path" type="xs:string" use="required"/>
+          <xs:attribute name="kind" use="required"><xs:simpleType><xs:restriction base="xs:string"><xs:enumeration value="json"/><xs:enumeration value="markdown"/></xs:restriction></xs:simpleType></xs:attribute>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="locator" type="xs:string"/>
+      <xs:element name="entity" minOccurs="0">
+        <xs:complexType><xs:simpleContent><xs:extension base="xs:string"><xs:attribute name="kind" type="xs:string" use="required"/></xs:extension></xs:simpleContent></xs:complexType>
+      </xs:element>
+      <xs:element name="unit" minOccurs="0">
+        <xs:complexType><xs:simpleContent><xs:extension base="xs:string"><xs:attribute name="source" type="xs:string" use="required"/></xs:extension></xs:simpleContent></xs:complexType>
+      </xs:element>
+      <xs:element name="production" type="side"/>
+      <xs:element name="remodeling" type="side"/>
+      <xs:element name="delta" minOccurs="0">
+        <xs:complexType>
+          <xs:attribute name="absolute" type="xs:double" use="required"/>
+          <xs:attribute name="relative" type="xs:double"/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="canonStatus" type="xs:string" minOccurs="0"/>
+      <xs:element name="diff" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence><xs:element name="line" type="xs:string" minOccurs="0" maxOccurs="unbounded"/></xs:sequence>
+          <xs:attribute name="added" type="xs:nonNegativeInteger" use="required"/>
+          <xs:attribute name="removed" type="xs:nonNegativeInteger" use="required"/>
+          <xs:attribute name="truncated" type="xs:boolean" use="required"/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="rule" type="xs:string"/>
+      <xs:element name="recommendation" type="xs:string"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="findingId" use="required"/>
+    <xs:attribute name="level" type="level" use="required"/>
+    <xs:attribute name="classification" type="classification" use="required"/>
+    <xs:attribute name="changeType" type="changeType" use="required"/>
+    <xs:attribute name="reviewStatus" type="reviewStatus" use="required"/>
+    <xs:attribute name="priority" type="priority" use="required"/>
+  </xs:complexType>
+
+  <xs:element name="report">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="title" type="xs:string"/>
+        <xs:element name="context">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="production" type="repositoryRef"/>
+              <xs:element name="remodeling" type="repositoryRef"/>
+              <xs:element name="deployment">
+                <xs:complexType><xs:simpleContent><xs:extension base="xs:string">
+                  <xs:attribute name="status" use="required"><xs:simpleType><xs:restriction base="xs:string"><xs:enumeration value="DEPLOYMENT_VERIFIED"/><xs:enumeration value="DEPLOYMENT_UNVERIFIED"/></xs:restriction></xs:simpleType></xs:attribute>
+                  <xs:attribute name="sha" type="sha40"/>
+                </xs:extension></xs:simpleContent></xs:complexType>
+              </xs:element>
+            </xs:sequence>
+            <xs:attribute name="generatedAt" type="xs:string" use="required"/>
+            <xs:attribute name="rulesVersion" type="xs:string" use="required"/>
+            <xs:attribute name="semanticDigest" type="sha64" use="required"/>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="authorityNotice" type="xs:string"/>
+        <xs:element name="findings">
+          <xs:complexType>
+            <xs:sequence><xs:element name="finding" type="finding" minOccurs="0" maxOccurs="unbounded"/></xs:sequence>
+            <xs:attribute name="count" type="xs:nonNegativeInteger" use="required"/>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="schemaVersion" type="xs:string" use="required" fixed="reltroner-statistics-report.v1"/>
+      <xs:attribute name="layout" use="required"><xs:simpleType><xs:restriction base="xs:string"><xs:enumeration value="single"/><xs:enumeration value="consolidated"/></xs:restriction></xs:simpleType></xs:attribute>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

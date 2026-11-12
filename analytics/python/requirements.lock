@@ -88,6 +88,10 @@ cycler==0.12.1 \
     --hash=sha256:85cef7cff222d8644161529808465972e51340599459b8ac3ccbac5a854e0d30 \
     --hash=sha256:88bb128f02ba341da8ef447245a9e138fae777f6a23943da4540077d3601eb1c
     # via matplotlib
+elementpath==5.1.4 \
+    --hash=sha256:3c912a9c41311ac5244c038867670d7c0b0fec0e444813608e5b846dbb3428ac \
+    --hash=sha256:5ec8d7bb44b16c98414a6a95e20cb150f3cbfc3cac65edc14773288c7a937376
+    # via xmlschema
 fonttools==4.68.0 \
     --hash=sha256:039142b75a068c93f8596ef68787f82c74940b9153d24c224ab31e750eb083a2 \
     --hash=sha256:03c9ef1272e464747f67c623f76449b888da6d5de7fb46275bb36488b9ceedba \
@@ -882,3 +886,7 @@ tzdata==2026.6 \
     # via
     #   pandas
     #   python-dateutil
+xmlschema==4.3.2 \
+    --hash=sha256:cf5c970a30f6ebcb3da35260e694704cc0b6794d8ace46125bb2a95e38ed9307 \
+    --hash=sha256:f3b33a21a2b2cdc404ddc3fb599d8bc1dee90b155d547370672e6e684746b8d6
+    # via reltroner-analytics (pyproject.toml)
