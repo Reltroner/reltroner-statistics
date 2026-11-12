@@ -82,13 +82,27 @@ function kindOf(value) {
 
 export function compareJsonValues(production, remodeling) {
   const differences = [];
+  const emitSubtree=(value,pointer,change) => {
+    if (value && typeof value === 'object') {
+      const pairs = Array.isArray(value) ? value.map((x,i)=>['['+i+']',x]) : Object.entries(value).sort(([a],[b])=>a.localeCompare(b));
+      if (pairs.length) {
+        for (const [key,child] of pairs) {
+          const next=key.startsWith('[') ? pointer+key : (pointer ? pointer+'.'+key : key);
+          emitSubtree(child,next,change);
+        }
+        return;
+      }
+    }
+    differences.push({pointer,change,
+      ...(change==='ADDED'?{remodeling_value:value}:{production_value:value})});
+  };
   const walk = (a,b,pointer) => {
     if (a && b && typeof a === 'object' && typeof b === 'object' && !Array.isArray(a) && !Array.isArray(b)) {
       const keys = new Set([...Object.keys(a),...Object.keys(b)]);
       for (const key of [...keys].sort()) {
         const next = key.startsWith('[') ? pointer + key : (pointer ? pointer + '.' + key : key);
-        if (!(key in a)) differences.push({pointer:next,change:'ADDED',production_value:undefined,remodeling_value:b[key]});
-        else if (!(key in b)) differences.push({pointer:next,change:'REMOVED',production_value:a[key],remodeling_value:undefined});
+        if (!(key in a)) emitSubtree(b[key],next,'ADDED');
+        else if (!(key in b)) emitSubtree(a[key],next,'REMOVED');
         else walk(a[key],b[key],next);
       }
       return;

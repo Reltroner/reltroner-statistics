@@ -43,6 +43,13 @@ input,select{padding:12px 14px;color:#ebf3ff;background:#0c1424;border-radius:10
 <div class="card"><div class="kicker">Remodeling only</div><div class="metric" id="draft">—</div></div>
 <div class="card"><div class="kicker">JSON field findings</div><div class="metric" id="fields">—</div></div>
 </div>
+<section class="panel"><h2>Production source indicators</h2><p class="muted">Values derived strictly from the production Git snapshot. This is not yet a verified live deployment.</p>
+<div class="cards">
+<div class="card"><div class="kicker">Asthortera population</div><div class="metric" id="population">—</div></div>
+<div class="card"><div class="kicker">Planetary SDI</div><div class="metric" id="sdi">—</div></div>
+<div class="card"><div class="kicker">Sovereign states</div><div class="metric" id="states">—</div></div>
+<div class="card"><div class="kicker">Year 0 real GDP growth</div><div class="metric" id="growth">—</div></div>
+</div><div class="muted" id="modelVersion"></div></section>
 <section class="panel"><h2>Source provenance</h2><div id="provenance" class="muted">No audit artifacts available yet. Run the read-only CI audit.</div></section>
 <section class="panel"><h2>File drift explorer</h2>
 <p class="muted">Byte-exact file inventory with semantic JSON field review candidates. Draft-only is not equivalent to an error.</p>
@@ -68,6 +75,14 @@ async function init(){
    el('changed').textContent=x.summary.changed;
    el('draft').textContent=x.summary.draft_only;
    el('fields').textContent=x.summary.json_field_findings;
+   const indicators=x.production_indicators;
+   if(indicators){
+     el('population').textContent=indicators.planet_population_billion==null?'—':Number(indicators.planet_population_billion).toLocaleString('en-US')+'B';
+     el('sdi').textContent=indicators.planet_sdi==null?'—':Number(indicators.planet_sdi).toFixed(3);
+     el('states').textContent=indicators.sovereign_states??'—';
+     el('growth').textContent=indicators.year0_real_gdp_growth==null?'—':(indicators.year0_real_gdp_growth*100).toFixed(2)+'%';
+     el('modelVersion').textContent='Source model: '+String(indicators.model??'UNAVAILABLE');
+   }
    el('provenance').replaceChildren();
    for(const [label,value] of [['Production main',x.sources.production_main_sha],['Remodeling main',x.sources.remodeling_sha],['Live deployment',x.sources.production_deployment_status],['Rules',x.rules_version]]){
      const p=document.createElement('p'),strong=document.createElement('strong');

@@ -46,3 +46,11 @@ test('read-only scan classifies files and never writes in source roots',()=>{
 test('SHA validation is mandatory',()=>{
   assert.throws(()=>compareRepositories({productionDir:'.',remodelingDir:'.',productionSha:'not-sha',remodelingSha:b}));
 });
+
+test('new structured subtrees expand into field-level evidence',()=>{
+  const delta=compareJsonValues({planet:{}},{planet:{spatial:{area:100,unit:'km2'}}});
+  assert.deepEqual(delta,[
+    {pointer:'planet.spatial.area',change:'ADDED',remodeling_value:100},
+    {pointer:'planet.spatial.unit',change:'ADDED',remodeling_value:'km2'}
+  ]);
+});
