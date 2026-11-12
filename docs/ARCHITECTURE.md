@@ -21,18 +21,19 @@
 - A `DRAFT_ONLY` file is **not** a production defect. A changed model value is a **review candidate**, not proof the production value is wrong.
 - Do not promote data from remodeling to production automatically.
 
-## P0 pipeline
+## P0R pipeline (GitHub API ingestion)
 
 ```text
-GitHub pinned source snapshots (separate read-only directories)
-        → file inclusion policy
-        → deterministic blob hash and structural JSON diff
-        → source provenance / separate SHA labels
-        → audit.json + static dashboard
-        → CI artifact (no production deploy until authorized)
+GitHub API: commit SHA → tree SHA (root tree recomputed and verified) → blob SHAs
+        → strict comparison scope registry (rules version)
+        → identity by Git blob SHA (no checkout bytes, no OS line-ending influence)
+        → blobs fetched only where content is needed, each verified against its SHA
+        → structural JSON diff, markdown frontmatter/section diff, format-only detection
+        → audit.json with semantic digest + source provenance
+        → staged artifacts, swapped in only on success (artifacts.previous = last known good)
 ```
 
-The Node comparator uses Git-compatible SHA-1 blob identifiers for byte comparison and handles named object arrays by stable `name`/`code` keys rather than positional indexes.
+The Windows workstation previously reported 0 identical files because `core.autocrlf=true` converted production checkouts to CRLF while remodeling's `.gitattributes` kept Markdown LF; hashing checkout bytes therefore never matched. P0R removes filesystem checkouts from the identity path entirely and replaces host-locale `localeCompare` ordering with code-unit ordering. The pinned pair f54f947/1887e5d reproduces 448/393/41/1/13 and 422 JSON field findings on Windows and Ubuntu with an identical semantic digest (tests/baselines/p0r-baseline.json).
 
 ## Export contract
 

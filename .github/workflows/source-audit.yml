@@ -1,58 +1,57 @@
-name: Source Drift — Read-only CI audit
+name: Source Drift — Read-only API audit
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      production_sha:
+        description: 'Pinned reltroner-studio commit (blank = resolve main)'
+        required: false
+      remodeling_sha:
+        description: 'Pinned reltroner-studio-remodeling commit (blank = resolve main)'
+        required: false
   repository_dispatch:
     types: [reltroner-source-changed]
   schedule:
     - cron: '17 */6 * * *'
 permissions:
   contents: read
+concurrency:
+  group: source-audit
+  cancel-in-progress: false
 jobs:
   source-drift:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
-      - name: Checkout Statistics (tooling only)
-        uses: actions/checkout@v4
-        with:
-          path: statistics
-      - name: Checkout public production candidate (read-only)
-        uses: actions/checkout@v4
-        with:
-          repository: Reltroner/reltroner-studio
-          ref: main
-          path: source-production
-          persist-credentials: false
-      - name: Checkout public remodeling (read-only)
-        uses: actions/checkout@v4
-        with:
-          repository: Reltroner/reltroner-studio-remodeling
-          ref: main
-          path: source-remodeling
-          persist-credentials: false
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Generate read-only audit and static preview
+          cache: npm
+      - run: npm ci
+      - name: Restore immutable Git object cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/github
+          key: github-objects-${{ github.run_id }}
+          restore-keys: github-objects-
+      - name: Read-only pipeline through the GitHub API
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROD_SHA: ${{ github.event.inputs.production_sha }}
+          DRAFT_SHA: ${{ github.event.inputs.remodeling_sha }}
         shell: bash
-        working-directory: statistics
         run: |
           set -euo pipefail
-          PROD_SHA="$(git -C ../source-production rev-parse HEAD)"
-          DRAFT_SHA="$(git -C ../source-remodeling rev-parse HEAD)"
-          node scripts/analyze.mjs \
-            --production-dir ../source-production \
-            --remodeling-dir ../source-remodeling \
-            --production-sha "$PROD_SHA" \
-            --remodeling-sha "$DRAFT_SHA"
-          npm test
-          npm run build
-      - name: Upload audit evidence (not production deployment)
+          ARGS=()
+          if [ -n "${PROD_SHA:-}" ]; then ARGS+=(--production-sha "$PROD_SHA"); fi
+          if [ -n "${DRAFT_SHA:-}" ]; then ARGS+=(--remodeling-sha "$DRAFT_SHA"); fi
+          node scripts/pipeline.ts "${ARGS[@]}"
+      - run: npm test
+      - run: npm run build
+      - name: Upload audit evidence (CI artifact, not a public deployment)
         uses: actions/upload-artifact@v4
         with:
-          name: source-drift-snapshot
+          name: source-drift-${{ github.run_id }}
           path: |
-            statistics/artifacts/audit.json
-            statistics/dist/
+            artifacts/
+            dist/

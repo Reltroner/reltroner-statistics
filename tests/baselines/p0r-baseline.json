@@ -1,0 +1,15 @@
+{
+  "production_sha": "f54f9471061b5a9ed40b621ed668119d884e6cc6",
+  "remodeling_sha": "1887e5da843e598f29335ad39d3e80dc7368fdbe",
+  "rules_version": "P0R-2.0.0",
+  "expected": {
+    "total_compared_paths": 448,
+    "identical": 393,
+    "changed": 41,
+    "production_only": 1,
+    "draft_only": 13
+  },
+  "json_field_findings": 422,
+  "semantic_digest": "8f3ddad3f264130aa35ccf1a7d8202f5deed13fcbf943a590d7c2702694ea7d5",
+  "recorded_on": "win32 10.0.26200 node v22.23.1"
+}

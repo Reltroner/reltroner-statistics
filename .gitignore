@@ -10,3 +10,14 @@ coverage/
 !.env.example
 *.log
 .DS_Store
+
+.cache/
+artifacts.staging/
+artifacts.previous/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+test-results/
+playwright-report/
+.astro/

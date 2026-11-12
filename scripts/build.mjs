@@ -12,7 +12,7 @@ fs.writeFileSync(path.join(dist,'index.html'),markup);
 let available=false;
 if (fs.existsSync(audit)) {
   const data=JSON.parse(fs.readFileSync(audit,'utf8'));
-  if (data.schema_version!=='reltroner-statistics-audit.v1') throw new Error('Unexpected audit schema');
+  if (data.schema_version!=='reltroner-statistics-audit.v2') throw new Error('Unexpected audit schema');
   fs.copyFileSync(audit,path.join(dist,'audit.json'));
   available=true;
 } else {

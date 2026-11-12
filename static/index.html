@@ -69,13 +69,13 @@ async function init(){
    const r=await fetch('./audit.json',{cache:'no-store'});
    if(!r.ok)throw Error('No audit file');
    const x=await r.json();
-   if(x.schema_version!=='reltroner-statistics-audit.v1')throw Error('Invalid schema');
+   if(x.schema_version!=='reltroner-statistics-audit.v2')throw Error('Invalid schema');
    audit=x;
    el('identical').textContent=x.summary.identical;
    el('changed').textContent=x.summary.changed;
    el('draft').textContent=x.summary.draft_only;
    el('fields').textContent=x.summary.json_field_findings;
-   const indicators=x.production_indicators;
+   const indicators=null;
    if(indicators){
      el('population').textContent=indicators.planet_population_billion==null?'—':Number(indicators.planet_population_billion).toLocaleString('en-US')+'B';
      el('sdi').textContent=indicators.planet_sdi==null?'—':Number(indicators.planet_sdi).toFixed(3);
@@ -84,7 +84,7 @@ async function init(){
      el('modelVersion').textContent='Source model: '+String(indicators.model??'UNAVAILABLE');
    }
    el('provenance').replaceChildren();
-   for(const [label,value] of [['Production main',x.sources.production_main_sha],['Remodeling main',x.sources.remodeling_sha],['Live deployment',x.sources.production_deployment_status],['Rules',x.rules_version]]){
+   for(const [label,value] of [['Production main',x.sources.production.commit_sha],['Remodeling main',x.sources.remodeling.commit_sha],['Live deployment',x.deployment.status],['Rules',x.rules_version]]){
      const p=document.createElement('p'),strong=document.createElement('strong');
      strong.textContent=label+': ';p.append(strong,document.createTextNode(String(value)));el('provenance').append(p);
    }
@@ -94,11 +94,11 @@ async function init(){
 function render(){
  if(!audit)return;
  const term=el('search').value.toLowerCase().trim(),status=el('filter').value;
- const items=audit.file_changes.filter(x=>(!status||x.classification===status)&&(!term||x.path.toLowerCase().includes(term)));
+ const items=audit.files.filter(x=>(!status||x.classification===status)&&(!term||x.path.toLowerCase().includes(term)));
  const body=el('rows');body.replaceChildren();
  for(const f of items.slice(0,500)){
    const tr=document.createElement('tr');
-   for(const text of [f.path,f.classification,String(f.field_diff_count??'—')]){
+   for(const text of [f.path,f.classification,String(f.finding_count??'—')]){
      const td=document.createElement('td');td.textContent=text;tr.append(td);
    }
    body.append(tr);

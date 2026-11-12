@@ -39,14 +39,16 @@ npm run build
 npm run preview
 ```
 
-To analyze two **already cloned** read-only snapshots:
+Source repositories are read **only through the GitHub API** at immutable commit SHAs (Git Trees API for identity, Git Blobs API for content). Nothing is cloned, so operating-system line-ending conversion cannot affect results. Each tree listing is verified by recomputing its root tree SHA, and every blob is verified against its Git blob SHA.
 
 ```powershell
-node scripts/analyze.mjs --production-dir C:\Path\To\ProductionSnapshot --remodeling-dir C:\Path\To\RemodelingSnapshot --production-sha <40-hex-sha> --remodeling-sha <40-hex-sha>
+$env:GITHUB_TOKEN = (gh auth token)   # process-local; never written to disk
+npm run verify:baseline                # P0R gate: pinned pair must reproduce the committed digest
+npm run pipeline                       # resolve main of both repositories, pin, analyze
 npm run build
 ```
 
-The comparator never writes into either source snapshot. `dist/` contains public-safe projections only. For a full local read-only analysis, run `./scripts/audit-local.ps1` from PowerShell, then `npm run preview` and open http://127.0.0.1:4173. See `docs/ARCHITECTURE.md` for source and publication boundaries.
+Or run `./scripts/audit-local.ps1`, which performs the same steps and restores the environment afterwards. See `docs/ARCHITECTURE.md` for source and publication boundaries.
 
 ## License
 

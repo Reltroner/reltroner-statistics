@@ -7,19 +7,30 @@ on:
   pull_request:
 permissions:
   contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  test-build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+  determinism:
+    name: P0R determinism (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm test
-      - run: npm run build
-      - name: Upload static baseline preview
-        uses: actions/upload-artifact@v4
-        with:
-          name: reltroner-statistics-static-preview
-          path: dist/
+          cache: npm
+      - run: npm ci
+      - name: Unit tests (deterministic fixtures)
+        run: npm test
+      - name: Pinned source pair baseline (GitHub API, read-only)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run verify:baseline
+      - name: Build static preview
+        run: npm run build

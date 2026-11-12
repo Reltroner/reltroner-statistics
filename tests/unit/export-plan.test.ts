@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {makeExportPlan, EXPORT_FORMATS} from '../src/export-plan.mjs';
+import {makeExportPlan, EXPORT_FORMATS} from '../../src/export/plan.ts';
 
 const p = 'a'.repeat(40), r = 'b'.repeat(40);
 const base = {scope:'single', audit_id:'AUDIT-001', production_sha:p, remodeling_sha:r, finding_ids:['CRD-SPATIAL-001']};
