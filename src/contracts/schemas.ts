@@ -20,12 +20,163 @@ import {
   REFACTOR_OPERATIONS,
   RELATIONSHIP_VERIFICATIONS,
 } from '../domain/creative.ts';
+import {
+  CONSEQUENCE_DIMENSIONS,
+  DECISION_CANON_STATUSES,
+  DECISION_NODE_TYPES,
+  DECISION_TREE_SCHEMA,
+  EVIDENCE_KINDS,
+  EVIDENCE_STATUSES,
+  LINK_KINDS,
+  OUTCOME_CLASSES,
+  PREDICATE_OPS,
+  REVIEW_ACTIONS,
+  TREE_TYPES,
+  TRUTH_VALUES,
+  UNCERTAINTY_LEVELS,
+  validateDecisionTree,
+  type DecisionTree,
+  type Predicate,
+} from '../domain/decision.ts';
+import type { ConditionTrace } from '../engine/decision-intelligence/evaluate.ts';
 
 const sha = z.string().regex(/^[0-9a-f]{40}$/);
 const sha256 = z.string().regex(/^[0-9a-f]{64}$/);
 const epistemic = z.enum(EPISTEMIC_STATUSES);
 const role = z.enum(['PRODUCTION_MAIN', 'REMODELING_MAIN']);
 const finite = z.number().refine(Number.isFinite, 'finite number required');
+
+// ------------------------------------------------------------------ Decision Intelligence
+const scalar = z.union([z.string(), finite, z.boolean(), z.null()]);
+const ids = z.array(z.string());
+export const PredicateSchema: z.ZodType<Predicate> = z.lazy(() => z.object({
+  op: z.enum(PREDICATE_OPS), fact: z.string().optional(), value: scalar.optional(), min: finite.optional(), max: finite.optional(), unit: z.string().optional(),
+  values: z.array(scalar).optional(), statuses: z.array(epistemic).optional(), evidence_ids: ids.optional(), a: z.string().optional(), b: z.string().optional(), of: z.array(PredicateSchema).optional(),
+}).strict());
+const DecisionFactSchema = z.object({
+  state: z.enum(['ASSIGNED', 'NULL', 'MISSING']), value: scalar, unit: z.string().nullable(), period: z.object({ start_bac: z.number().int(), end_bac: z.number().int() }).nullable(),
+  canon_status: epistemic.nullable(), source: z.string(), evidence_ids: ids,
+});
+const outcomeClass = z.enum(OUTCOME_CLASSES);
+const modelNode = z.object({ n_samples: z.number().int().nonnegative(), impurity: finite.nullable(), value: z.union([finite, z.string(), z.null()]), class_counts: z.record(z.string(), z.number().int().nonnegative()).nullable() });
+const ModelMetadataSchema = z.object({
+  model_version: z.string(), estimator: z.enum(['DecisionTreeClassifier', 'DecisionTreeRegressor']), task: z.enum(['classification', 'regression']), target: z.string(), features: z.array(z.string()),
+  data_origin: z.enum(['CANONICAL_OBSERVATIONS', 'SYNTHETIC_FIXTURE']), n_samples: z.number().int().nonnegative(), random_state: z.number().int(), max_depth: z.number().int().positive(), min_samples_leaf: z.number().int().positive(),
+  evaluation: z.object({ method: z.string(), n_train: z.number().int().nonnegative(), n_test: z.number().int().nonnegative(), metrics: z.record(z.string(), finite.nullable()) }),
+  feature_importance: z.array(z.object({ feature: z.string(), importance: finite })), limitations: z.array(z.string()),
+});
+export const DecisionTreeSchema = z.object({
+  schema_version: z.literal(DECISION_TREE_SCHEMA), tree_id: z.string().regex(/^DT-[0-9A-F]{12}$/), tree_type: z.enum(TREE_TYPES), purposes: z.array(z.enum(TREE_TYPES)), strict: z.literal(true),
+  title: z.string().min(1), description: z.string(), question: z.string(),
+  source_context: z.object({
+    production: z.object({ repository: z.string(), commit_sha: sha }), remodeling: z.object({ repository: z.string(), commit_sha: sha }),
+    deployment_status: z.enum(['DEPLOYMENT_VERIFIED', 'DEPLOYMENT_UNVERIFIED']), paths: z.array(z.string()),
+  }),
+  production_source_sha: sha, remodeling_source_sha: sha, rules_version: z.string().min(1), root_node_id: z.string(),
+  nodes: z.array(z.object({
+    id: z.string(), type: z.enum(DECISION_NODE_TYPES), label: z.string(), description: z.string(), evidence_ids: ids,
+    question: z.string().optional(), predicate: PredicateSchema.optional(), outcome_class: outcomeClass.optional(),
+    consequences: z.array(z.object({ text: z.string(), basis: outcomeClass, dimension: z.enum(CONSEQUENCE_DIMENSIONS).nullable(), evidence_ids: ids })).optional(),
+    consistency_risks: z.array(z.object({ text: z.string(), evidence_ids: ids })).optional(), open_questions: z.array(z.string()).optional(), affected_entities: ids.optional(),
+    recommended_action: z.enum(REVIEW_ACTIONS).optional(), missing: z.array(z.string()).optional(), model: modelNode.optional(),
+  }).strict()),
+  branches: z.array(z.object({
+    id: z.string(), from: z.string(), to: z.string(), label: z.string(), when: z.enum(TRUTH_VALUES).nullable(), guard: PredicateSchema.nullable(), rationale: z.string(), evidence_ids: ids,
+    assumptions: z.array(z.string()), uncertainty: z.enum(UNCERTAINTY_LEVELS), outcome_class: outcomeClass.nullable(), review_requirements: z.array(z.string()),
+  }).strict()),
+  constraints: z.array(z.object({ id: z.string(), statement: z.string(), binding: z.enum(['CANON_CONSTRAINT', 'REVIEW_RULE', 'METHOD_RULE']), evidence_ids: ids })),
+  assumptions: z.array(z.string()), outcomes: ids,
+  evidence: z.array(z.object({
+    id: z.string().regex(/^EV-[A-Z0-9][A-Z0-9-]{1,60}$/), kind: z.enum(EVIDENCE_KINDS), status: z.enum(EVIDENCE_STATUSES), side: z.enum(['production', 'remodeling']), repository: z.string(), commit_sha: sha,
+    path: z.string(), blob_sha: sha.nullable(), line: z.number().int().positive().nullable(), quote: z.string(), canon_status: epistemic, note: z.string().nullable(),
+  })),
+  links: z.array(z.object({
+    id: z.string(), node_id: z.string(), kind: z.enum(LINK_KINDS), target_id: z.string(), target_label: z.string(), edge_id: z.string().nullable(), edge_type: z.enum(EDGE_TYPES).nullable(),
+    edge_status: z.enum(['DECLARED', 'VERIFIED', 'CANDIDATE']).nullable(), detail: z.string(),
+  })),
+  facts: z.record(z.string(), DecisionFactSchema),
+  creator_review_status: z.enum(PROPOSAL_REVIEW_STATUSES), canon_status: z.enum(DECISION_CANON_STATUSES), model_metadata: ModelMetadataSchema.nullable(), created_at: z.string(), updated_at: z.string(),
+}).superRefine((tree, ctx) => {
+  // Structural and evidentiary validity is part of the contract: an invalid tree does not parse.
+  for (const issue of validateDecisionTree(tree as unknown as DecisionTree).issues.slice(0, 10)) ctx.addIssue({ code: 'custom', message: `${issue.code}: ${issue.message}` });
+});
+
+const ConditionTraceSchema: z.ZodType<ConditionTrace> = z.lazy(() => z.object({
+  op: z.enum(PREDICATE_OPS), statement: z.string(), observed: z.string(), result: z.enum(TRUTH_VALUES), reason: z.string(), terms: z.array(ConditionTraceSchema),
+}));
+const pathStatus = z.enum(['RESOLVED', 'AWAITING_CHOICE', 'BLOCKED_BY_CONSTRAINT', 'NOT_EVALUABLE', 'INSUFFICIENT_DATA']);
+export const DecisionPathResultSchema = z.object({
+  tree_id: z.string(), rules_version: z.string(), production_source_sha: sha, remodeling_source_sha: sha, status: pathStatus, start_node_id: z.string(), visited: ids, branches_taken: ids,
+  steps: z.array(z.object({
+    node_id: z.string(), node_type: z.enum(DECISION_NODE_TYPES), node_label: z.string(), action: z.enum(['CONTINUE', 'CONDITION', 'CREATOR_CHOICE', 'REVIEW_DECISION', 'LEAF']), question: z.string().nullable(),
+    branch_id: z.string().nullable(), branch_label: z.string().nullable(), condition: ConditionTraceSchema.nullable(), evidence_ids: ids,
+  })),
+  conditions: z.array(z.object({ node_id: z.string(), trace: ConditionTraceSchema })), unknown_conditions: z.array(z.object({ node_id: z.string(), reason: z.string() })), evidence_consulted: ids,
+  outcome_node_id: z.string().nullable(), outcome_class: outcomeClass.nullable(), recommended_action: z.enum(REVIEW_ACTIONS).nullable(),
+  recommendation_kind: z.enum(['SYSTEM_EVIDENCE_BASED', 'CREATOR_SELECTED', 'NONE']),
+  pending: z.object({
+    node_id: z.string(), question: z.string(), review_gate: z.boolean(),
+    options: z.array(z.object({ branch_id: z.string(), label: z.string(), to: z.string(), availability: z.enum(['AVAILABLE', 'BLOCKED', 'CONSTRAINT_UNKNOWN']), reason: z.string(), guard: ConditionTraceSchema.nullable() })),
+  }).nullable(),
+  explanation: z.array(z.string()),
+});
+const tallies = z.record(z.string(), z.number().int().nonnegative());
+export const DecisionArtifactSchema = z.object({
+  schema_version: z.literal('reltroner-statistics-decisions.v1'), rules_version: z.string(), generated_at: z.string(),
+  sources: z.object({ production_commit_sha: sha, remodeling_commit_sha: sha, deployment_status: z.enum(['DEPLOYMENT_VERIFIED', 'DEPLOYMENT_UNVERIFIED']) }),
+  summary: z.object({
+    trees_total: z.number().int().nonnegative(), trees_by_type: tallies, nodes_total: z.number().int().nonnegative(), evidence_total: z.number().int().nonnegative(), evidence_by_status: tallies,
+    links_by_kind: tallies, outcomes_by_class: tallies, paths_total: z.number().int().nonnegative(), evaluations_total: z.number().int().nonnegative(), evaluations_by_action: tallies,
+    model_trees_total: z.number().int().nonnegative(),
+  }),
+  trees: z.array(DecisionTreeSchema),
+  paths: z.array(z.object({
+    path_id: z.string().regex(/^DTP-[0-9A-F]{12}$/), tree_id: z.string(), choices: z.record(z.string(), z.string()), choice_labels: z.array(z.string()), status: pathStatus,
+    outcome_node_id: z.string().nullable(), outcome_label: z.string().nullable(), outcome_class: outcomeClass.nullable(),
+  })),
+  evaluations: z.array(z.object({
+    evaluation_id: z.string().regex(/^DTE-[0-9A-F]{12}$/), tree_id: z.string(),
+    subject: z.object({ kind: z.enum(['NARRATIVE_AUDIT_FINDING', 'CREATIVE_OPPORTUNITY']), id: z.string(), title: z.string() }),
+    facts: z.record(z.string(), DecisionFactSchema), result: DecisionPathResultSchema,
+  })),
+  model_trees: z.array(DecisionTreeSchema),
+  semantic_digest: sha256,
+}).refine((d) => d.summary.trees_total === d.trees.length && d.summary.paths_total === d.paths.length && d.summary.evaluations_total === d.evaluations.length && d.summary.model_trees_total === d.model_trees.length, 'decision summary counts must match records')
+  .refine((d) => { const known = new Set(d.trees.map((t) => t.tree_id)); return d.paths.every((p) => known.has(p.tree_id)) && d.evaluations.every((e) => known.has(e.tree_id)); }, 'paths and evaluations must reference a tree of this artifact');
+
+// ------------------------------------------------------------------ Supervised decision trees (Python analytics)
+const MlModelSchema = z.object({
+  estimator: z.enum(['DecisionTreeClassifier', 'DecisionTreeRegressor']), task: z.enum(['classification', 'regression']), target: z.string(), features: z.array(z.string()).min(1),
+  classes: z.array(z.string()).nullable(), data_origin: z.enum(['CANONICAL_OBSERVATIONS', 'SYNTHETIC_FIXTURE']), model_version: z.string(),
+  n_samples: z.number().int().positive(), n_train: z.number().int().positive(), n_test: z.number().int().positive(), random_state: z.number().int(), max_depth: z.number().int().positive(),
+  min_samples_leaf: z.number().int().positive(), depth: z.number().int().nonnegative(), n_leaves: z.number().int().positive(),
+  evaluation: z.object({ method: z.string(), metrics: z.record(z.string(), finite.nullable()) }),
+  feature_importance: z.array(z.object({ feature: z.string(), importance: finite })), importance_caveat: z.string(),
+  nodes: z.array(z.object({
+    id: z.number().int().nonnegative(), feature: z.string().nullable(), threshold: finite.nullable(), left: z.number().int().nullable(), right: z.number().int().nullable(),
+    n_samples: z.number().int().nonnegative(), impurity: finite.nullable(), value: z.union([finite, z.string(), z.null()]), class_counts: z.record(z.string(), z.number().int().nonnegative()).nullable(),
+  })).min(1),
+  rules: z.array(z.string()),
+  verification_rows: z.array(z.object({ features: z.record(z.string(), finite), prediction: z.union([finite, z.string()]) })),
+  leakage_checks: z.object({ target_in_features: z.literal(false), derived_features_removed: z.array(z.string()), train_test_overlap: z.literal(0), temporal_order_respected: z.boolean().nullable() }),
+  limitations: z.array(z.string()), digest: sha256,
+});
+const DecisionTreeAnalyticsSchema = z.object({
+  status: z.enum(['INSUFFICIENT_LABELED_DATA', 'COMPUTED']),
+  policy: z.object({
+    min_labeled_samples: z.number().int().positive(), min_samples_per_feature: z.number().int().positive(), min_class_samples: z.number().int().positive(), max_depth: z.number().int().positive(),
+    min_samples_leaf: z.number().int().positive(), test_fraction: finite, random_state: z.number().int(), missing_values: z.string(), rejected_label_sources: z.array(z.string()), rule: z.string(),
+  }),
+  tasks: z.array(z.object({
+    task_id: z.string(), kind: z.enum(['classification', 'regression']), target: z.string(), target_label: z.string(), features: z.array(z.string()), cohort: z.string(),
+    n_rows: z.number().int().nonnegative(), n_complete: z.number().int().nonnegative(), status: z.enum(['INSUFFICIENT_LABELED_DATA', 'REJECTED_TARGET', 'COMPUTED']), reasons: z.array(z.string()),
+    model: MlModelSchema.nullable(),
+  })),
+  historical: z.object({ status: z.enum(['INSUFFICIENT_LABELED_DATA', 'COMPUTED']), max_series_length: z.number().int().nonnegative(), min_series_length: z.number().int().positive(), reasons: z.array(z.string()) }),
+  method_check: z.object({ data_origin: z.literal('SYNTHETIC_FIXTURE'), notice: z.string(), models: z.array(MlModelSchema) }),
+}).refine((d) => (d.status === 'COMPUTED') === d.tasks.some((t) => t.status === 'COMPUTED'), 'status COMPUTED exactly when a real-data task was fitted')
+  .refine((d) => d.tasks.every((t) => (t.status === 'COMPUTED') === (t.model !== null) && (t.model === null || t.model.data_origin === 'CANONICAL_OBSERVATIONS')), 'a real-data task carries a model exactly when computed, and never a synthetic one')
+  .refine((d) => d.method_check.models.every((m) => m.data_origin === 'SYNTHETIC_FIXTURE'), 'method-check models must be synthetic');
 
 export const SourceIdentitySchema = z.object({
   side: z.enum(['production', 'remodeling']),
@@ -244,6 +395,7 @@ export const AnalyticsSchema = z.object({
       change_point: z.object({ status: z.enum(['COMPUTED', 'INSUFFICIENT_DATA']), reason: z.string() }),
     })),
   }),
+  decision_trees: DecisionTreeAnalyticsSchema,
   charts: z.array(z.object({ id: z.string(), title: z.string(), file: z.string().regex(/^charts\/[a-z0-9-]+\.svg$/), sha256, alt: z.string() })),
   digest: sha256,
 });
@@ -422,6 +574,9 @@ export const RemodelingScenarioSchema = z.object({
     source_path: z.string(),
     evidence_line: z.number().int().positive().nullable(),
     evidence_quote: z.string(),
+    constraint_line: z.number().int().positive().nullable(),
+    commit_sha: sha,
+    blob_sha: sha,
   })),
   hypothetical_parameters: z.array(z.object({
     id: z.string(),
@@ -530,6 +685,8 @@ export const CreativeArtifactSchema = z.object({
     refactoring_plans_total: z.number().int().nonnegative(),
     scenarios_total: z.number().int().nonnegative(),
     seed_proposals_total: z.number().int().nonnegative(),
+    citations_verified: z.number().int().nonnegative(),
+    references_verified: z.number().int().nonnegative(),
   }),
   entities: z.array(NarrativeEntitySchema),
   relationships: z.array(NarrativeRelationshipSchema),
@@ -559,4 +716,5 @@ export const JSON_SCHEMA_EXPORTS = Object.freeze({
   'analytics.schema.json': AnalyticsSchema,
   'manifest.schema.json': ArtifactManifestSchema,
   'creative.schema.json': CreativeArtifactSchema,
+  'decisions.schema.json': DecisionArtifactSchema,
 });

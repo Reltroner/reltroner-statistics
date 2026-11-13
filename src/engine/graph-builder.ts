@@ -9,6 +9,7 @@ import { codeUnitCompare } from './canonical.ts';
 import { sha256Hex } from './git-objects.ts';
 import { isComparedPath } from './scope.ts';
 import { parseFrontmatter } from './markdown.ts';
+import { relativeLinks } from './evidence.ts';
 import { NCCM_DATASET_PATH } from './observations.ts';
 import { extractNarrativeKnowledge } from './creative-intelligence/extractor.ts';
 
@@ -180,7 +181,7 @@ export async function buildKnowledgeGraph(input: GraphInputs): Promise<Knowledge
       while ((m = re.exec(text))) { if (first < 0) first = m.index; count++; }
       if (count) hits.push({ entity: e.id, count, line: text.slice(0, first).split('\n').length });
     }
-    return { hits, title: documentTitle(text) };
+    return { hits, title: documentTitle(text), links: relativeLinks(path, text.split('\n')) };
   };
   const relabel = (id: string | null, title: string | null | undefined, suffix = '') => {
     const n = id ? nodes.get(id) : undefined;
@@ -189,6 +190,7 @@ export async function buildKnowledgeGraph(input: GraphInputs): Promise<Knowledge
   const mdFiles = audit.files.filter((f) => f.kind === 'markdown' && isComparedPath(f.path));
   const tasks: Array<() => Promise<void>> = [];
   const mentionCount = new Map<string, number>();
+  const docLinks: Array<{ from: string | null; links: Array<{ target: string; line: number }>; draft: boolean }> = [];
   for (const f of mdFiles) {
     tasks.push(async () => {
       const ids = docIds.get(f.path)!;
@@ -207,10 +209,23 @@ export async function buildKnowledgeGraph(input: GraphInputs): Promise<Knowledge
         addEdge('MENTIONS', ids.draft!, `entity:${h.entity}`, 'remodeling', 'DECLARED', `${h.count} occurrence(s) in remodeling; first at line ${h.line}.`);
         mentionCount.set(ids.draft!, (mentionCount.get(ids.draft!) ?? 0) + h.count);
       }
+      docLinks.push({ from: ids.prod, links: ph?.links ?? [], draft: false }, { from: ids.draft !== ids.prod ? ids.draft : null, links: dh?.links ?? [], draft: true });
     });
   }
   let i = 0;
   await Promise.all(Array.from({ length: input.concurrency ?? 8 }, async () => { while (i < tasks.length) await tasks[i++]!(); }));
+
+  // Document REFERENCES document: a relative Markdown link whose target exists in the same
+  // snapshot. Verified by resolution, so a change to the target can break or outdate the source.
+  for (const { from, links, draft } of docLinks) {
+    if (!from) continue;
+    for (const l of links) {
+      const target = draft ? (docIds.get(l.target)?.draft ?? null) : (docIds.get(l.target)?.prod ?? null);
+      if (target && (draft ? remodeling : production).entries.has(l.target)) {
+        addEdge('REFERENCES', from, target, draft ? 'remodeling' : nodes.get(from)?.side === 'both' && nodes.get(target)?.side === 'both' ? 'both' : 'production', 'VERIFIED', `Markdown link at line ${l.line} resolves to ${l.target}.`);
+      }
+    }
+  }
 
   // Narrative Systems Layer: add source-grounded narrative entities and typed narrative relationships.
   const mapNarrativeKindToNodeType = (k: NarrativeEntityKind): NodeType => {

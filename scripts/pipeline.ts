@@ -14,9 +14,11 @@ import path from 'node:path';
 import type { z } from 'zod';
 import { verifyDeployment } from '../src/adapters/deployment.ts';
 import { loadGitHubSnapshot } from '../src/adapters/snapshot.ts';
-import { AnalyticsSchema, ArtifactManifestSchema, AuditSchema, CreativeArtifactSchema, GraphSchema, QaReportSchema, StatisticsDatasetSchema } from '../src/contracts/schemas.ts';
+import { AnalyticsSchema, ArtifactManifestSchema, AuditSchema, CreativeArtifactSchema, DecisionArtifactSchema, GraphSchema, QaReportSchema, StatisticsDatasetSchema } from '../src/contracts/schemas.ts';
 import { compareSources } from '../src/engine/comparator.ts';
 import { buildCreativeIntelligenceArtifact } from '../src/engine/creative-intelligence/index.ts';
+import { buildDecisionArtifact } from '../src/engine/decision-intelligence/index.ts';
+import type { MlModel } from '../src/engine/decision-intelligence/ml.ts';
 import { sha256Hex } from '../src/engine/git-objects.ts';
 import { buildKnowledgeGraph } from '../src/engine/graph-builder.ts';
 import { extractStatistics, NCCM_DATASET_PATH } from '../src/engine/observations.ts';
@@ -113,10 +115,42 @@ if (args['--skip-python']) {
   log(steps.at(-1)!.detail);
 }
 
+const analyticsPath = path.join(staging, 'analytics.json');
+const analytics = fs.existsSync(analyticsPath)
+  ? AnalyticsSchema.parse(JSON.parse(fs.readFileSync(analyticsPath, 'utf8')))
+  : null;
+const mlModels: Array<{ slug: string; model: MlModel }> = analytics
+  ? analytics.decision_trees.tasks
+      .filter((t): t is typeof t & { model: NonNullable<typeof t.model> } => t.status === 'COMPUTED' && t.model !== null)
+      .map((t) => ({ slug: t.task_id, model: t.model as unknown as MlModel }))
+  : [];
+
+const decisions = await buildDecisionArtifact({
+  production,
+  remodeling,
+  graph,
+  deployment_status: deployment.status,
+  source_timestamp: production.identity.committed_at ?? audit.generated_at,
+  stats,
+  audit,
+  qaProduction: qa.production,
+  qaRemodeling: qa.remodeling,
+  creative,
+  generated_at: audit.generated_at,
+  models: mlModels,
+});
+write('decisions.json', decisions);
+steps.push({
+  id: 'decisions',
+  status: 'COMPLETED',
+  detail: `${decisions.summary.trees_total} trees, ${decisions.summary.paths_total} paths, ${decisions.summary.evaluations_total} evaluations, ${decisions.summary.model_trees_total} fitted model trees, digest ${decisions.semantic_digest.slice(0, 16)}`,
+});
+log(steps.at(-1)!.detail);
+
 // Contract gates: every artifact must validate before anything is published.
 const gates: Array<[string, z.ZodType]> = [
-  ['audit.json', AuditSchema], ['observations.json', StatisticsDatasetSchema], ['qa.json', QaReportSchema], ['graph.json', GraphSchema], ['creative.json', CreativeArtifactSchema],
-  ...(fs.existsSync(path.join(staging, 'analytics.json')) ? [['analytics.json', AnalyticsSchema] as [string, z.ZodType]] : []),
+  ['audit.json', AuditSchema], ['observations.json', StatisticsDatasetSchema], ['qa.json', QaReportSchema], ['graph.json', GraphSchema], ['creative.json', CreativeArtifactSchema], ['decisions.json', DecisionArtifactSchema],
+  ...(fs.existsSync(analyticsPath) ? [['analytics.json', AnalyticsSchema] as [string, z.ZodType]] : []),
 ];
 for (const [name, schema] of gates) {
   const parsed = schema.safeParse(JSON.parse(fs.readFileSync(path.join(staging, name), 'utf8')));

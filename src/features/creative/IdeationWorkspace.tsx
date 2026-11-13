@@ -123,6 +123,18 @@ export default function IdeationWorkspace({
     if (!newTitle.trim() || !newHypothesis.trim()) return;
     const id = `PRP-PRIV${Math.random().toString(16).slice(2, 10).toUpperCase().padEnd(8, '0')}`;
     const now = new Date().toISOString();
+    const refs = entities
+      .filter((e) => (focusIds.length ? focusIds.includes(e.id) : false))
+      .slice(0, 3)
+      .map((e) => ({
+        repository: e.source_side === 'remodeling' ? 'Reltroner/reltroner-studio-remodeling' : 'Reltroner/reltroner-studio',
+        side: (e.source_side === 'remodeling' ? 'remodeling' : 'production') as 'production' | 'remodeling',
+        commit_sha: e.commit_sha,
+        path: e.source_path,
+        blob_sha: e.blob_sha,
+        line: e.evidence_line,
+        quote: e.evidence_quote,
+      }));
     const draft: CreativeProposal = {
       proposal_id: id,
       schema_version: 'reltroner-creative-proposal.v1',
@@ -131,17 +143,7 @@ export default function IdeationWorkspace({
       proposal_type: 'NARRATIVE_IDEATION',
       visibility: 'PRIVATE_LOCAL_SESSION',
       originating_entities: focusIds.length ? focusIds : ['nar:world:asthortera'],
-      source_references: [
-        {
-          repository: 'Reltroner/reltroner-studio',
-          side: 'production',
-          commit_sha: reportContext.production.commit_sha,
-          path: 'content/factions/reltronland-vs-depcutland.md',
-          blob_sha: null,
-          line: 1,
-          quote: 'Grounded in pinned production snapshot.',
-        },
-      ],
+      source_references: refs,
       production_source_sha: reportContext.production.commit_sha,
       remodeling_source_sha: reportContext.remodeling.commit_sha,
       historical_context: 'Private creator exploration session (stored only in browser memory/sessionStorage; never published to static artifacts).',
@@ -178,10 +180,25 @@ export default function IdeationWorkspace({
     setNewNotes('');
     try {
       const privOnly = next.filter((p) => p.visibility === 'PRIVATE_LOCAL_SESSION');
-      sessionStorage.setItem(PRIVATE_SESSION_KEY, JSON.stringify(privOnly));
+      if (privOnly.length) sessionStorage.setItem(PRIVATE_SESSION_KEY, JSON.stringify(privOnly));
+      else sessionStorage.removeItem(PRIVATE_SESSION_KEY);
     } catch {
       /* ignore */
     }
+  };
+
+  const handleDiscardPrivateDraft = (id: string) => {
+    const next = proposals.filter((p) => p.proposal_id !== id);
+    setProposals(next);
+    if (selectedProposalId === id) setSelectedProposalId(next[0]?.proposal_id ?? '');
+    try {
+      const privOnly = next.filter((p) => p.visibility === 'PRIVATE_LOCAL_SESSION');
+      if (privOnly.length) sessionStorage.setItem(PRIVATE_SESSION_KEY, JSON.stringify(privOnly));
+      else sessionStorage.removeItem(PRIVATE_SESSION_KEY);
+    } catch {
+      /* ignore */
+    }
+    setGuardrailMessage(`Discarded private session draft ${id} from local session memory.`);
   };
 
   const exportProposalPackageJson = (p: CreativeProposal) => {
@@ -524,8 +541,17 @@ export default function IdeationWorkspace({
               </div>
 
               {activeProposal.visibility === 'PRIVATE_LOCAL_SESSION' && (
-                <div className="rs-notice" data-tone="warning">
-                  <strong>Private Workspace Isolation Active:</strong> This proposal exists only in your local browser session (`PRIVATE_LOCAL_SESSION`). It is never written to static build artifacts, public search indexes, or external servers. Exporting it saves a local file to your machine—handle exported private ideas carefully.
+                <div className="rs-notice flex flex-wrap items-center justify-between gap-3" data-tone="warning">
+                  <div>
+                    <strong>Private Workspace Isolation Active:</strong> This proposal exists only in your local browser sessionStorage (`PRIVATE_LOCAL_SESSION`) until the browser session ends or you discard it. It is never written to static build artifacts, public search indexes, or external servers. Exporting it saves a local file to your machine—handle exported private ideas carefully.
+                  </div>
+                  <button
+                    type="button"
+                    className="rs-button rs-button-ghost !min-h-8 shrink-0 !px-3 !text-xs"
+                    onClick={() => handleDiscardPrivateDraft(activeProposal.proposal_id)}
+                  >
+                    Discard private draft
+                  </button>
                 </div>
               )}
 

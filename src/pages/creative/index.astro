@@ -121,6 +121,7 @@ const relDepScenario = creative.scenarios.find((scn) => scn.title.includes('Relt
             <p class="mt-3 text-sm leading-relaxed text-ink-2">{relDepScenario.production_baseline.summary}</p>
             <div class="mt-5 flex flex-wrap gap-2">
               <a href="/creative/ideas#case-study-h" class="rs-button rs-button-primary !min-h-9 !px-3.5 !text-xs no-underline">Explore Full Case Study →</a>
+              <a href="/creative/decisions" class="rs-button rs-button-ghost !min-h-9 !px-3.5 !text-xs no-underline">Interactive Decision Trees →</a>
               <a href={`/creative/remodel#${relDepScenario.id}`} class="rs-button rs-button-ghost !min-h-9 !px-3.5 !text-xs no-underline">Simulate Scenario Parameters →</a>
               <a href={`/reports?id=${encodeURIComponent(relDepScenario.id)}`} class="rs-button rs-button-ghost !min-h-9 !px-3.5 !text-xs no-underline">Export in 8 Formats →</a>
             </div>

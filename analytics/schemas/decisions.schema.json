@@ -1,0 +1,2869 @@
+{
+  "$id": "https://reltroner-statistics.invalid/schemas/decisions.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "reltroner-statistics-decisions.v1"
+    },
+    "rules_version": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "sources": {
+      "type": "object",
+      "properties": {
+        "production_commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "remodeling_commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "deployment_status": {
+          "type": "string",
+          "enum": [
+            "DEPLOYMENT_VERIFIED",
+            "DEPLOYMENT_UNVERIFIED"
+          ]
+        }
+      },
+      "required": [
+        "production_commit_sha",
+        "remodeling_commit_sha",
+        "deployment_status"
+      ],
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "trees_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "trees_by_type": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "nodes_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "evidence_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "evidence_by_status": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "links_by_kind": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "outcomes_by_class": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "paths_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "evaluations_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "evaluations_by_action": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "model_trees_total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "trees_total",
+        "trees_by_type",
+        "nodes_total",
+        "evidence_total",
+        "evidence_by_status",
+        "links_by_kind",
+        "outcomes_by_class",
+        "paths_total",
+        "evaluations_total",
+        "evaluations_by_action",
+        "model_trees_total"
+      ],
+      "additionalProperties": false
+    },
+    "trees": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "reltroner-decision-tree.v1"
+          },
+          "tree_id": {
+            "type": "string",
+            "pattern": "^DT-[0-9A-F]{12}$"
+          },
+          "tree_type": {
+            "type": "string",
+            "enum": [
+              "NARRATIVE_IDEATION",
+              "CHARACTER_DECISION",
+              "HISTORICAL_SCENARIO",
+              "INSTITUTIONAL_CONFLICT",
+              "STORY_REFACTORING",
+              "WORLDBUILDING_REMODELING",
+              "CONSISTENCY_REVIEW",
+              "DEVELOPMENT_PRIORITIZATION",
+              "STATISTICAL_MODEL"
+            ]
+          },
+          "purposes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "NARRATIVE_IDEATION",
+                "CHARACTER_DECISION",
+                "HISTORICAL_SCENARIO",
+                "INSTITUTIONAL_CONFLICT",
+                "STORY_REFACTORING",
+                "WORLDBUILDING_REMODELING",
+                "CONSISTENCY_REVIEW",
+                "DEVELOPMENT_PRIORITIZATION",
+                "STATISTICAL_MODEL"
+              ]
+            }
+          },
+          "strict": {
+            "type": "boolean",
+            "const": true
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "source_context": {
+            "type": "object",
+            "properties": {
+              "production": {
+                "type": "object",
+                "properties": {
+                  "repository": {
+                    "type": "string"
+                  },
+                  "commit_sha": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{40}$"
+                  }
+                },
+                "required": [
+                  "repository",
+                  "commit_sha"
+                ],
+                "additionalProperties": false
+              },
+              "remodeling": {
+                "type": "object",
+                "properties": {
+                  "repository": {
+                    "type": "string"
+                  },
+                  "commit_sha": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{40}$"
+                  }
+                },
+                "required": [
+                  "repository",
+                  "commit_sha"
+                ],
+                "additionalProperties": false
+              },
+              "deployment_status": {
+                "type": "string",
+                "enum": [
+                  "DEPLOYMENT_VERIFIED",
+                  "DEPLOYMENT_UNVERIFIED"
+                ]
+              },
+              "paths": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "production",
+              "remodeling",
+              "deployment_status",
+              "paths"
+            ],
+            "additionalProperties": false
+          },
+          "production_source_sha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "remodeling_source_sha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "rules_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "root_node_id": {
+            "type": "string"
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "ROOT",
+                    "DECISION",
+                    "CONDITION",
+                    "EVIDENCE",
+                    "OUTCOME",
+                    "REVIEW_GATE",
+                    "INSUFFICIENT_DATA"
+                  ]
+                },
+                "label": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "evidence_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "question": {
+                  "type": "string"
+                },
+                "predicate": {
+                  "$ref": "#/$defs/__schema0"
+                },
+                "outcome_class": {
+                  "type": "string",
+                  "enum": [
+                    "VERIFIED_SOURCE_GROUNDED",
+                    "DEPENDENCY_SUPPORTED",
+                    "NARRATIVE_HYPOTHESIS",
+                    "PURE_SPECULATION",
+                    "REVIEW_RECOMMENDATION",
+                    "MODEL_ESTIMATE"
+                  ]
+                },
+                "consequences": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      },
+                      "basis": {
+                        "type": "string",
+                        "enum": [
+                          "VERIFIED_SOURCE_GROUNDED",
+                          "DEPENDENCY_SUPPORTED",
+                          "NARRATIVE_HYPOTHESIS",
+                          "PURE_SPECULATION",
+                          "REVIEW_RECOMMENDATION",
+                          "MODEL_ESTIMATE"
+                        ]
+                      },
+                      "dimension": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "SOVEREIGNTY",
+                              "INSTITUTIONAL_TRUST",
+                              "HISTORICAL_MEMORY",
+                              "EXTERNAL_PERCEPTION",
+                              "CIVILIAN_LIFE",
+                              "NARRATIVE_STRUCTURE",
+                              "STATISTICS",
+                              "LONG_TERM"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "evidence_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "text",
+                      "basis",
+                      "dimension",
+                      "evidence_ids"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "consistency_risks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      },
+                      "evidence_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "text",
+                      "evidence_ids"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "open_questions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "affected_entities": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "recommended_action": {
+                  "type": "string",
+                  "enum": [
+                    "ESCALATE_TO_CREATOR",
+                    "INVESTIGATE",
+                    "DEFER",
+                    "PRESERVE",
+                    "NO_ACTION"
+                  ]
+                },
+                "missing": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "model": {
+                  "type": "object",
+                  "properties": {
+                    "n_samples": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "impurity": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "value": {
+                      "type": [
+                        "number",
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "class_counts": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "n_samples",
+                    "impurity",
+                    "value",
+                    "class_counts"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "id",
+                "type",
+                "label",
+                "description",
+                "evidence_ids"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "branches": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "from": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "when": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "TRUE",
+                        "FALSE",
+                        "UNKNOWN"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "guard": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/__schema0"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rationale": {
+                  "type": "string"
+                },
+                "evidence_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "assumptions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "uncertainty": {
+                  "type": "string",
+                  "enum": [
+                    "DETERMINISTIC",
+                    "SOURCE_STATED",
+                    "INFERRED",
+                    "SPECULATIVE"
+                  ]
+                },
+                "outcome_class": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "VERIFIED_SOURCE_GROUNDED",
+                        "DEPENDENCY_SUPPORTED",
+                        "NARRATIVE_HYPOTHESIS",
+                        "PURE_SPECULATION",
+                        "REVIEW_RECOMMENDATION",
+                        "MODEL_ESTIMATE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "review_requirements": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "from",
+                "to",
+                "label",
+                "when",
+                "guard",
+                "rationale",
+                "evidence_ids",
+                "assumptions",
+                "uncertainty",
+                "outcome_class",
+                "review_requirements"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "constraints": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "statement": {
+                  "type": "string"
+                },
+                "binding": {
+                  "type": "string",
+                  "enum": [
+                    "CANON_CONSTRAINT",
+                    "REVIEW_RULE",
+                    "METHOD_RULE"
+                  ]
+                },
+                "evidence_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "statement",
+                "binding",
+                "evidence_ids"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "assumptions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "outcomes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^EV-[A-Z0-9][A-Z0-9-]{1,60}$"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "SOURCE_PASSAGE",
+                    "DATASET_VALUE",
+                    "QA_IDENTITY",
+                    "AUDIT_FINDING",
+                    "GRAPH_MEASURE",
+                    "MODEL_OUTPUT"
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "VERIFIED",
+                    "NOT_FOUND",
+                    "SOURCE_MISSING"
+                  ]
+                },
+                "side": {
+                  "type": "string",
+                  "enum": [
+                    "production",
+                    "remodeling"
+                  ]
+                },
+                "repository": {
+                  "type": "string"
+                },
+                "commit_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "blob_sha": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{40}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "line": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "quote": {
+                  "type": "string"
+                },
+                "canon_status": {
+                  "type": "string",
+                  "enum": [
+                    "CANON_OBSERVED",
+                    "CANON_DERIVED",
+                    "MODEL_ESTIMATE",
+                    "SCENARIO",
+                    "PROPOSED",
+                    "ARCHIVED",
+                    "INSUFFICIENT_DATA"
+                  ]
+                },
+                "note": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "status",
+                "side",
+                "repository",
+                "commit_sha",
+                "path",
+                "blob_sha",
+                "line",
+                "quote",
+                "canon_status",
+                "note"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "node_id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "VERIFIED_DEPENDENCY",
+                    "CANDIDATE_IMPACT",
+                    "SPECULATIVE_OUTCOME",
+                    "EVIDENCE_REFERENCE"
+                  ]
+                },
+                "target_id": {
+                  "type": "string"
+                },
+                "target_label": {
+                  "type": "string"
+                },
+                "edge_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "edge_type": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "DEFINES",
+                        "DEPENDS_ON",
+                        "DERIVED_FROM",
+                        "REFERENCES",
+                        "MENTIONS",
+                        "SUPERSEDES",
+                        "PROPOSES_CHANGE_TO",
+                        "APPEARS_IN",
+                        "PARTICIPATES_IN",
+                        "LOCATED_IN",
+                        "PRECEDES",
+                        "FOLLOWS",
+                        "MOTIVATED_BY",
+                        "CONSTRAINED_BY",
+                        "CONFLICTS_WITH",
+                        "CAUSES",
+                        "CAUSES_CANDIDATE",
+                        "THEMATICALLY_RELATED"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "edge_status": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "DECLARED",
+                        "VERIFIED",
+                        "CANDIDATE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "detail": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "node_id",
+                "kind",
+                "target_id",
+                "target_label",
+                "edge_id",
+                "edge_type",
+                "edge_status",
+                "detail"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "facts": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "ASSIGNED",
+                    "NULL",
+                    "MISSING"
+                  ]
+                },
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "period": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "start_bac": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "end_bac": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "start_bac",
+                        "end_bac"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "canon_status": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "CANON_OBSERVED",
+                        "CANON_DERIVED",
+                        "MODEL_ESTIMATE",
+                        "SCENARIO",
+                        "PROPOSED",
+                        "ARCHIVED",
+                        "INSUFFICIENT_DATA"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "source": {
+                  "type": "string"
+                },
+                "evidence_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "state",
+                "value",
+                "unit",
+                "period",
+                "canon_status",
+                "source",
+                "evidence_ids"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "creator_review_status": {
+            "type": "string",
+            "enum": [
+              "IDEA",
+              "EXPLORING",
+              "PROPOSED",
+              "UNDER_REVIEW",
+              "NEEDS_REVISION",
+              "REJECTED",
+              "APPROVED_FOR_AUTHORING",
+              "RATIFIED_EXTERNALLY"
+            ]
+          },
+          "canon_status": {
+            "type": "string",
+            "enum": [
+              "SCENARIO",
+              "PROPOSED",
+              "MODEL_ESTIMATE",
+              "REVIEW_AID"
+            ]
+          },
+          "model_metadata": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "model_version": {
+                    "type": "string"
+                  },
+                  "estimator": {
+                    "type": "string",
+                    "enum": [
+                      "DecisionTreeClassifier",
+                      "DecisionTreeRegressor"
+                    ]
+                  },
+                  "task": {
+                    "type": "string",
+                    "enum": [
+                      "classification",
+                      "regression"
+                    ]
+                  },
+                  "target": {
+                    "type": "string"
+                  },
+                  "features": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "data_origin": {
+                    "type": "string",
+                    "enum": [
+                      "CANONICAL_OBSERVATIONS",
+                      "SYNTHETIC_FIXTURE"
+                    ]
+                  },
+                  "n_samples": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "random_state": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "max_depth": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "min_samples_leaf": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "evaluation": {
+                    "type": "object",
+                    "properties": {
+                      "method": {
+                        "type": "string"
+                      },
+                      "n_train": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "n_test": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "metrics": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "method",
+                      "n_train",
+                      "n_test",
+                      "metrics"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "feature_importance": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "feature": {
+                          "type": "string"
+                        },
+                        "importance": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "feature",
+                        "importance"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "limitations": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "model_version",
+                  "estimator",
+                  "task",
+                  "target",
+                  "features",
+                  "data_origin",
+                  "n_samples",
+                  "random_state",
+                  "max_depth",
+                  "min_samples_leaf",
+                  "evaluation",
+                  "feature_importance",
+                  "limitations"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "tree_id",
+          "tree_type",
+          "purposes",
+          "strict",
+          "title",
+          "description",
+          "question",
+          "source_context",
+          "production_source_sha",
+          "remodeling_source_sha",
+          "rules_version",
+          "root_node_id",
+          "nodes",
+          "branches",
+          "constraints",
+          "assumptions",
+          "outcomes",
+          "evidence",
+          "links",
+          "facts",
+          "creator_review_status",
+          "canon_status",
+          "model_metadata",
+          "created_at",
+          "updated_at"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "paths": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path_id": {
+            "type": "string",
+            "pattern": "^DTP-[0-9A-F]{12}$"
+          },
+          "tree_id": {
+            "type": "string"
+          },
+          "choices": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "choice_labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "RESOLVED",
+              "AWAITING_CHOICE",
+              "BLOCKED_BY_CONSTRAINT",
+              "NOT_EVALUABLE",
+              "INSUFFICIENT_DATA"
+            ]
+          },
+          "outcome_node_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "outcome_label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "outcome_class": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "VERIFIED_SOURCE_GROUNDED",
+                  "DEPENDENCY_SUPPORTED",
+                  "NARRATIVE_HYPOTHESIS",
+                  "PURE_SPECULATION",
+                  "REVIEW_RECOMMENDATION",
+                  "MODEL_ESTIMATE"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "path_id",
+          "tree_id",
+          "choices",
+          "choice_labels",
+          "status",
+          "outcome_node_id",
+          "outcome_label",
+          "outcome_class"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "evaluations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "evaluation_id": {
+            "type": "string",
+            "pattern": "^DTE-[0-9A-F]{12}$"
+          },
+          "tree_id": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "NARRATIVE_AUDIT_FINDING",
+                  "CREATIVE_OPPORTUNITY"
+                ]
+              },
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "id",
+              "title"
+            ],
+            "additionalProperties": false
+          },
+          "facts": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "ASSIGNED",
+                    "NULL",
+                    "MISSING"
+                  ]
+                },
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "period": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "start_bac": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "end_bac": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "start_bac",
+                        "end_bac"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "canon_status": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "CANON_OBSERVED",
+                        "CANON_DERIVED",
+                        "MODEL_ESTIMATE",
+                        "SCENARIO",
+                        "PROPOSED",
+                        "ARCHIVED",
+                        "INSUFFICIENT_DATA"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "source": {
+                  "type": "string"
+                },
+                "evidence_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "state",
+                "value",
+                "unit",
+                "period",
+                "canon_status",
+                "source",
+                "evidence_ids"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "tree_id": {
+                "type": "string"
+              },
+              "rules_version": {
+                "type": "string"
+              },
+              "production_source_sha": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "remodeling_source_sha": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "RESOLVED",
+                  "AWAITING_CHOICE",
+                  "BLOCKED_BY_CONSTRAINT",
+                  "NOT_EVALUABLE",
+                  "INSUFFICIENT_DATA"
+                ]
+              },
+              "start_node_id": {
+                "type": "string"
+              },
+              "visited": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "branches_taken": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "steps": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "node_id": {
+                      "type": "string"
+                    },
+                    "node_type": {
+                      "type": "string",
+                      "enum": [
+                        "ROOT",
+                        "DECISION",
+                        "CONDITION",
+                        "EVIDENCE",
+                        "OUTCOME",
+                        "REVIEW_GATE",
+                        "INSUFFICIENT_DATA"
+                      ]
+                    },
+                    "node_label": {
+                      "type": "string"
+                    },
+                    "action": {
+                      "type": "string",
+                      "enum": [
+                        "CONTINUE",
+                        "CONDITION",
+                        "CREATOR_CHOICE",
+                        "REVIEW_DECISION",
+                        "LEAF"
+                      ]
+                    },
+                    "question": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "branch_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "branch_label": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "condition": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/__schema1"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "evidence_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "node_id",
+                    "node_type",
+                    "node_label",
+                    "action",
+                    "question",
+                    "branch_id",
+                    "branch_label",
+                    "condition",
+                    "evidence_ids"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "conditions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "node_id": {
+                      "type": "string"
+                    },
+                    "trace": {
+                      "$ref": "#/$defs/__schema1"
+                    }
+                  },
+                  "required": [
+                    "node_id",
+                    "trace"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "unknown_conditions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "node_id": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "node_id",
+                    "reason"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "evidence_consulted": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "outcome_node_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "outcome_class": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "VERIFIED_SOURCE_GROUNDED",
+                      "DEPENDENCY_SUPPORTED",
+                      "NARRATIVE_HYPOTHESIS",
+                      "PURE_SPECULATION",
+                      "REVIEW_RECOMMENDATION",
+                      "MODEL_ESTIMATE"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "recommended_action": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "ESCALATE_TO_CREATOR",
+                      "INVESTIGATE",
+                      "DEFER",
+                      "PRESERVE",
+                      "NO_ACTION"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "recommendation_kind": {
+                "type": "string",
+                "enum": [
+                  "SYSTEM_EVIDENCE_BASED",
+                  "CREATOR_SELECTED",
+                  "NONE"
+                ]
+              },
+              "pending": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "node_id": {
+                        "type": "string"
+                      },
+                      "question": {
+                        "type": "string"
+                      },
+                      "review_gate": {
+                        "type": "boolean"
+                      },
+                      "options": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "branch_id": {
+                              "type": "string"
+                            },
+                            "label": {
+                              "type": "string"
+                            },
+                            "to": {
+                              "type": "string"
+                            },
+                            "availability": {
+                              "type": "string",
+                              "enum": [
+                                "AVAILABLE",
+                                "BLOCKED",
+                                "CONSTRAINT_UNKNOWN"
+                              ]
+                            },
+                            "reason": {
+                              "type": "string"
+                            },
+                            "guard": {
+                              "anyOf": [
+                                {
+                                  "$ref": "#/$defs/__schema1"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "branch_id",
+                            "label",
+                            "to",
+                            "availability",
+                            "reason",
+                            "guard"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "node_id",
+                      "question",
+                      "review_gate",
+                      "options"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "explanation": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "tree_id",
+              "rules_version",
+              "production_source_sha",
+              "remodeling_source_sha",
+              "status",
+              "start_node_id",
+              "visited",
+              "branches_taken",
+              "steps",
+              "conditions",
+              "unknown_conditions",
+              "evidence_consulted",
+              "outcome_node_id",
+              "outcome_class",
+              "recommended_action",
+              "recommendation_kind",
+              "pending",
+              "explanation"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "evaluation_id",
+          "tree_id",
+          "subject",
+          "facts",
+          "result"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "model_trees": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "reltroner-decision-tree.v1"
+          },
+          "tree_id": {
+            "type": "string",
+            "pattern": "^DT-[0-9A-F]{12}$"
+          },
+          "tree_type": {
+            "type": "string",
+            "enum": [
+              "NARRATIVE_IDEATION",
+              "CHARACTER_DECISION",
+              "HISTORICAL_SCENARIO",
+              "INSTITUTIONAL_CONFLICT",
+              "STORY_REFACTORING",
+              "WORLDBUILDING_REMODELING",
+              "CONSISTENCY_REVIEW",
+              "DEVELOPMENT_PRIORITIZATION",
+              "STATISTICAL_MODEL"
+            ]
+          },
+          "purposes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "NARRATIVE_IDEATION",
+                "CHARACTER_DECISION",
+                "HISTORICAL_SCENARIO",
+                "INSTITUTIONAL_CONFLICT",
+                "STORY_REFACTORING",
+                "WORLDBUILDING_REMODELING",
+                "CONSISTENCY_REVIEW",
+                "DEVELOPMENT_PRIORITIZATION",
+                "STATISTICAL_MODEL"
+              ]
+            }
+          },
+          "strict": {
+            "type": "boolean",
+            "const": true
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "source_context": {
+            "type": "object",
+            "properties": {
+              "production": {
+                "type": "object",
+                "properties": {
+                  "repository": {
+                    "type": "string"
+                  },
+                  "commit_sha": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{40}$"
+                  }
+                },
+                "required": [
+                  "repository",
+                  "commit_sha"
+                ],
+                "additionalProperties": false
+              },
+              "remodeling": {
+                "type": "object",
+                "properties": {
+                  "repository": {
+                    "type": "string"
+                  },
+                  "commit_sha": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{40}$"
+                  }
+                },
+                "required": [
+                  "repository",
+                  "commit_sha"
+                ],
+                "additionalProperties": false
+              },
+              "deployment_status": {
+                "type": "string",
+                "enum": [
+                  "DEPLOYMENT_VERIFIED",
+                  "DEPLOYMENT_UNVERIFIED"
+                ]
+              },
+              "paths": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "production",
+              "remodeling",
+              "deployment_status",
+              "paths"
+            ],
+            "additionalProperties": false
+          },
+          "production_source_sha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "remodeling_source_sha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "rules_version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "root_node_id": {
+            "type": "string"
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "ROOT",
+                    "DECISION",
+                    "CONDITION",
+                    "EVIDENCE",
+                    "OUTCOME",
+                    "REVIEW_GATE",
+                    "INSUFFICIENT_DATA"
+                  ]
+                },
+                "label": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "evidence_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "question": {
+                  "type": "string"
+                },
+                "predicate": {
+                  "$ref": "#/$defs/__schema0"
+                },
+                "outcome_class": {
+                  "type": "string",
+                  "enum": [
+                    "VERIFIED_SOURCE_GROUNDED",
+                    "DEPENDENCY_SUPPORTED",
+                    "NARRATIVE_HYPOTHESIS",
+                    "PURE_SPECULATION",
+                    "REVIEW_RECOMMENDATION",
+                    "MODEL_ESTIMATE"
+                  ]
+                },
+                "consequences": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      },
+                      "basis": {
+                        "type": "string",
+                        "enum": [
+                          "VERIFIED_SOURCE_GROUNDED",
+                          "DEPENDENCY_SUPPORTED",
+                          "NARRATIVE_HYPOTHESIS",
+                          "PURE_SPECULATION",
+                          "REVIEW_RECOMMENDATION",
+                          "MODEL_ESTIMATE"
+                        ]
+                      },
+                      "dimension": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "SOVEREIGNTY",
+                              "INSTITUTIONAL_TRUST",
+                              "HISTORICAL_MEMORY",
+                              "EXTERNAL_PERCEPTION",
+                              "CIVILIAN_LIFE",
+                              "NARRATIVE_STRUCTURE",
+                              "STATISTICS",
+                              "LONG_TERM"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "evidence_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "text",
+                      "basis",
+                      "dimension",
+                      "evidence_ids"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "consistency_risks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      },
+                      "evidence_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "text",
+                      "evidence_ids"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "open_questions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "affected_entities": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "recommended_action": {
+                  "type": "string",
+                  "enum": [
+                    "ESCALATE_TO_CREATOR",
+                    "INVESTIGATE",
+                    "DEFER",
+                    "PRESERVE",
+                    "NO_ACTION"
+                  ]
+                },
+                "missing": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "model": {
+                  "type": "object",
+                  "properties": {
+                    "n_samples": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "impurity": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "value": {
+                      "type": [
+                        "number",
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "class_counts": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "n_samples",
+                    "impurity",
+                    "value",
+                    "class_counts"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "id",
+                "type",
+                "label",
+                "description",
+                "evidence_ids"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "branches": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "from": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "when": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "TRUE",
+                        "FALSE",
+                        "UNKNOWN"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "guard": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/__schema0"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rationale": {
+                  "type": "string"
+                },
+                "evidence_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "assumptions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "uncertainty": {
+                  "type": "string",
+                  "enum": [
+                    "DETERMINISTIC",
+                    "SOURCE_STATED",
+                    "INFERRED",
+                    "SPECULATIVE"
+                  ]
+                },
+                "outcome_class": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "VERIFIED_SOURCE_GROUNDED",
+                        "DEPENDENCY_SUPPORTED",
+                        "NARRATIVE_HYPOTHESIS",
+                        "PURE_SPECULATION",
+                        "REVIEW_RECOMMENDATION",
+                        "MODEL_ESTIMATE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "review_requirements": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "from",
+                "to",
+                "label",
+                "when",
+                "guard",
+                "rationale",
+                "evidence_ids",
+                "assumptions",
+                "uncertainty",
+                "outcome_class",
+                "review_requirements"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "constraints": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "statement": {
+                  "type": "string"
+                },
+                "binding": {
+                  "type": "string",
+                  "enum": [
+                    "CANON_CONSTRAINT",
+                    "REVIEW_RULE",
+                    "METHOD_RULE"
+                  ]
+                },
+                "evidence_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "statement",
+                "binding",
+                "evidence_ids"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "assumptions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "outcomes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^EV-[A-Z0-9][A-Z0-9-]{1,60}$"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "SOURCE_PASSAGE",
+                    "DATASET_VALUE",
+                    "QA_IDENTITY",
+                    "AUDIT_FINDING",
+                    "GRAPH_MEASURE",
+                    "MODEL_OUTPUT"
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "VERIFIED",
+                    "NOT_FOUND",
+                    "SOURCE_MISSING"
+                  ]
+                },
+                "side": {
+                  "type": "string",
+                  "enum": [
+                    "production",
+                    "remodeling"
+                  ]
+                },
+                "repository": {
+                  "type": "string"
+                },
+                "commit_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "blob_sha": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{40}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "line": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "quote": {
+                  "type": "string"
+                },
+                "canon_status": {
+                  "type": "string",
+                  "enum": [
+                    "CANON_OBSERVED",
+                    "CANON_DERIVED",
+                    "MODEL_ESTIMATE",
+                    "SCENARIO",
+                    "PROPOSED",
+                    "ARCHIVED",
+                    "INSUFFICIENT_DATA"
+                  ]
+                },
+                "note": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "status",
+                "side",
+                "repository",
+                "commit_sha",
+                "path",
+                "blob_sha",
+                "line",
+                "quote",
+                "canon_status",
+                "note"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "node_id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "VERIFIED_DEPENDENCY",
+                    "CANDIDATE_IMPACT",
+                    "SPECULATIVE_OUTCOME",
+                    "EVIDENCE_REFERENCE"
+                  ]
+                },
+                "target_id": {
+                  "type": "string"
+                },
+                "target_label": {
+                  "type": "string"
+                },
+                "edge_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "edge_type": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "DEFINES",
+                        "DEPENDS_ON",
+                        "DERIVED_FROM",
+                        "REFERENCES",
+                        "MENTIONS",
+                        "SUPERSEDES",
+                        "PROPOSES_CHANGE_TO",
+                        "APPEARS_IN",
+                        "PARTICIPATES_IN",
+                        "LOCATED_IN",
+                        "PRECEDES",
+                        "FOLLOWS",
+                        "MOTIVATED_BY",
+                        "CONSTRAINED_BY",
+                        "CONFLICTS_WITH",
+                        "CAUSES",
+                        "CAUSES_CANDIDATE",
+                        "THEMATICALLY_RELATED"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "edge_status": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "DECLARED",
+                        "VERIFIED",
+                        "CANDIDATE"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "detail": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "node_id",
+                "kind",
+                "target_id",
+                "target_label",
+                "edge_id",
+                "edge_type",
+                "edge_status",
+                "detail"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "facts": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "ASSIGNED",
+                    "NULL",
+                    "MISSING"
+                  ]
+                },
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "period": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "start_bac": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "end_bac": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "start_bac",
+                        "end_bac"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "canon_status": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "CANON_OBSERVED",
+                        "CANON_DERIVED",
+                        "MODEL_ESTIMATE",
+                        "SCENARIO",
+                        "PROPOSED",
+                        "ARCHIVED",
+                        "INSUFFICIENT_DATA"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "source": {
+                  "type": "string"
+                },
+                "evidence_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "state",
+                "value",
+                "unit",
+                "period",
+                "canon_status",
+                "source",
+                "evidence_ids"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "creator_review_status": {
+            "type": "string",
+            "enum": [
+              "IDEA",
+              "EXPLORING",
+              "PROPOSED",
+              "UNDER_REVIEW",
+              "NEEDS_REVISION",
+              "REJECTED",
+              "APPROVED_FOR_AUTHORING",
+              "RATIFIED_EXTERNALLY"
+            ]
+          },
+          "canon_status": {
+            "type": "string",
+            "enum": [
+              "SCENARIO",
+              "PROPOSED",
+              "MODEL_ESTIMATE",
+              "REVIEW_AID"
+            ]
+          },
+          "model_metadata": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "model_version": {
+                    "type": "string"
+                  },
+                  "estimator": {
+                    "type": "string",
+                    "enum": [
+                      "DecisionTreeClassifier",
+                      "DecisionTreeRegressor"
+                    ]
+                  },
+                  "task": {
+                    "type": "string",
+                    "enum": [
+                      "classification",
+                      "regression"
+                    ]
+                  },
+                  "target": {
+                    "type": "string"
+                  },
+                  "features": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "data_origin": {
+                    "type": "string",
+                    "enum": [
+                      "CANONICAL_OBSERVATIONS",
+                      "SYNTHETIC_FIXTURE"
+                    ]
+                  },
+                  "n_samples": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "random_state": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "max_depth": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "min_samples_leaf": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "evaluation": {
+                    "type": "object",
+                    "properties": {
+                      "method": {
+                        "type": "string"
+                      },
+                      "n_train": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "n_test": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "metrics": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "method",
+                      "n_train",
+                      "n_test",
+                      "metrics"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "feature_importance": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "feature": {
+                          "type": "string"
+                        },
+                        "importance": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "feature",
+                        "importance"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "limitations": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "model_version",
+                  "estimator",
+                  "task",
+                  "target",
+                  "features",
+                  "data_origin",
+                  "n_samples",
+                  "random_state",
+                  "max_depth",
+                  "min_samples_leaf",
+                  "evaluation",
+                  "feature_importance",
+                  "limitations"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema_version",
+          "tree_id",
+          "tree_type",
+          "purposes",
+          "strict",
+          "title",
+          "description",
+          "question",
+          "source_context",
+          "production_source_sha",
+          "remodeling_source_sha",
+          "rules_version",
+          "root_node_id",
+          "nodes",
+          "branches",
+          "constraints",
+          "assumptions",
+          "outcomes",
+          "evidence",
+          "links",
+          "facts",
+          "creator_review_status",
+          "canon_status",
+          "model_metadata",
+          "created_at",
+          "updated_at"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "semantic_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "required": [
+    "schema_version",
+    "rules_version",
+    "generated_at",
+    "sources",
+    "summary",
+    "trees",
+    "paths",
+    "evaluations",
+    "model_trees",
+    "semantic_digest"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "enum": [
+            "EQUALS",
+            "NOT_EQUALS",
+            "GREATER_THAN",
+            "LESS_THAN",
+            "WITHIN_RANGE",
+            "PRESENT",
+            "MISSING",
+            "MEMBER_OF",
+            "EVIDENCE_VERIFIED",
+            "CANON_STATUS_IS",
+            "COMPATIBLE_PERIOD",
+            "COMPATIBLE_UNIT",
+            "ALL",
+            "ANY",
+            "NOT"
+          ]
+        },
+        "fact": {
+          "type": "string"
+        },
+        "value": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          }
+        },
+        "statuses": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "CANON_OBSERVED",
+              "CANON_DERIVED",
+              "MODEL_ESTIMATE",
+              "SCENARIO",
+              "PROPOSED",
+              "ARCHIVED",
+              "INSUFFICIENT_DATA"
+            ]
+          }
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "a": {
+          "type": "string"
+        },
+        "b": {
+          "type": "string"
+        },
+        "of": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        }
+      },
+      "required": [
+        "op"
+      ],
+      "additionalProperties": false
+    },
+    "__schema1": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "type": "string",
+          "enum": [
+            "EQUALS",
+            "NOT_EQUALS",
+            "GREATER_THAN",
+            "LESS_THAN",
+            "WITHIN_RANGE",
+            "PRESENT",
+            "MISSING",
+            "MEMBER_OF",
+            "EVIDENCE_VERIFIED",
+            "CANON_STATUS_IS",
+            "COMPATIBLE_PERIOD",
+            "COMPATIBLE_UNIT",
+            "ALL",
+            "ANY",
+            "NOT"
+          ]
+        },
+        "statement": {
+          "type": "string"
+        },
+        "observed": {
+          "type": "string"
+        },
+        "result": {
+          "type": "string",
+          "enum": [
+            "TRUE",
+            "FALSE",
+            "UNKNOWN"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "terms": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema1"
+          }
+        }
+      },
+      "required": [
+        "op",
+        "statement",
+        "observed",
+        "result",
+        "reason",
+        "terms"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

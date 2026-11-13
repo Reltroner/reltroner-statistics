@@ -44,8 +44,8 @@ def load(path: Path) -> Dataset:
         rows.append({
             "id": o["id"], "entity_id": o["entity_id"], "entity_name": o["entity_name"], "entity_kind": o["entity_kind"],
             "cohort": o["cohort"], "indicator_id": o["indicator_id"], "value": o["value"], "value_state": o["value_state"],
-            "status": o["status"], "year_bac": p["year_bac"], "interval": "interval" in p, "model_version": o["model_version"],
-            "evidence": o["evidence"] is not None,
+            "unit": o.get("unit"), "status": o["status"], "year_bac": p["year_bac"], "interval": "interval" in p,
+            "model_version": o["model_version"], "evidence": o["evidence"] is not None,
         })
     obs = pd.DataFrame(rows)
     obs["value"] = pd.to_numeric(obs["value"], errors="coerce").astype("float64")
@@ -64,3 +64,18 @@ def cross_section(ds: Dataset, cohort: str) -> pd.DataFrame:
     matrix = canon.pivot_table(index="entity_id", columns="indicator_id", values="value", aggfunc="first")
     indicators = sorted(current["indicator_id"].unique().tolist())
     return matrix.reindex(index=members, columns=indicators).astype("float64")
+
+
+def indicator_units(ds: Dataset) -> dict[str, set[str]]:
+    """Distinct units per indicator among current canon Year 0 country observations."""
+    o = ds.observations
+    if o.empty:
+        return {}
+    mask = (o["cohort"].isin(COHORTS["ALL_19"])) & (o["entity_kind"] == "country") & (o["year_bac"] == 0) & (~o["interval"]) & (~o["evidence"])
+    canon = o[mask & (o["status"].isin(CANON))]
+    units: dict[str, set[str]] = {}
+    for ind, grp in canon.groupby("indicator_id"):
+        vals = {str(u).strip() for u in grp["unit"].dropna() if str(u).strip()}
+        if vals:
+            units[str(ind)] = vals
+    return units

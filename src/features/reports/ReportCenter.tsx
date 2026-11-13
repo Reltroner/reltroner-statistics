@@ -16,12 +16,37 @@ const FORMAT_INFO: Record<ExportFormat, { label: string; detail: string }> = {
   xml: { label: 'XML', detail: 'Valid against the bundled report.xsd schema.' },
 };
 
-type ReportDomainFilter = 'ALL_UNIFIED' | 'DRIFT' | 'CREATIVE_ALL' | 'NAF' | 'REF' | 'SCN' | 'IMP' | 'OPP' | 'PRP' | 'STA';
+type ReportDomainFilter =
+  | 'ALL_UNIFIED'
+  | 'DRIFT'
+  | 'CREATIVE_ALL'
+  | 'DECISION_ALL'
+  | 'NAF'
+  | 'REF'
+  | 'SCN'
+  | 'IMP'
+  | 'OPP'
+  | 'PRP'
+  | 'STA'
+  | 'DT'
+  | 'DTE'
+  | 'DTS';
+
+const CREATIVE_PREFIXES = ['NAF-', 'REF-', 'SCN-', 'IMP-', 'OPP-', 'PRP-', 'STA-'];
+const DECISION_PREFIXES = ['DT-', 'DTP-', 'DTE-', 'DTS-'];
+const matchesDomainFilter = (id: string, filter: ReportDomainFilter): boolean => {
+  if (filter === 'ALL_UNIFIED') return true;
+  if (filter === 'DRIFT') return id.startsWith('CRD-');
+  if (filter === 'CREATIVE_ALL') return CREATIVE_PREFIXES.some((p) => id.startsWith(p));
+  if (filter === 'DECISION_ALL') return DECISION_PREFIXES.some((p) => id.startsWith(p));
+  return id.startsWith(`${filter}-`);
+};
 
 interface Loaded {
   context: ReportContext;
   findings: Finding[];
   creativeFindings: Finding[];
+  decisionFindings: Finding[];
   allFindings: Finding[];
   pdf: Set<string>;
   xsd: string | null;
@@ -45,18 +70,19 @@ export default function ReportCenter() {
       fetch('/data/findings.json').then((r) => (r.ok ? r.json() : Promise.reject(new Error('findings')))),
       fetch('/reports/pdf/index.json').then((r) => (r.ok ? r.json() : { files: {} })).catch(() => ({ files: {} })),
       fetch('/reports/report.xsd').then((r) => (r.ok ? r.text() : null)).catch(() => null),
-    ]).then(([f, p, xsd]: [{ context: ReportContext; findings: Finding[]; creative_findings?: Finding[] }, { files: Record<string, unknown> }, string | null]) => {
+    ]).then(([f, p, xsd]: [{ context: ReportContext; findings: Finding[]; creative_findings?: Finding[]; decision_findings?: Finding[] }, { files: Record<string, unknown> }, string | null]) => {
       const creativeFindings = f.creative_findings ?? [];
-      const allFindings = [...f.findings, ...creativeFindings];
-      setData({ context: f.context, findings: f.findings, creativeFindings, allFindings, pdf: new Set(Object.keys(p.files)), xsd });
+      const decisionFindings = f.decision_findings ?? [];
+      const allFindings = [...f.findings, ...creativeFindings, ...decisionFindings];
+      setData({ context: f.context, findings: f.findings, creativeFindings, decisionFindings, allFindings, pdf: new Set(Object.keys(p.files)), xsd });
       const params = new URLSearchParams(window.location.search);
       const id = params.get('id');
       if (id && allFindings.some((x) => x.id === id)) { setScope('single'); setPicked([id]); return; }
       const family = params.get('family') as ReportDomainFilter | null;
-      if (family && ['CREATIVE_ALL', 'NAF', 'REF', 'SCN', 'IMP', 'OPP', 'PRP', 'STA'].includes(family)) {
+      if (family && ['CREATIVE_ALL', 'DECISION_ALL', 'NAF', 'REF', 'SCN', 'IMP', 'OPP', 'PRP', 'STA', 'DT', 'DTE', 'DTS'].includes(family)) {
         setDomainFilter(family);
         setScope('selected');
-        const famIds = allFindings.filter((x) => family === 'CREATIVE_ALL' ? !x.id.startsWith('CRD-') : x.id.startsWith(`${family}-`)).map((x) => x.id);
+        const famIds = allFindings.filter((x) => matchesDomainFilter(x.id, family)).map((x) => x.id);
         setPicked(famIds);
         return;
       }
@@ -86,9 +112,7 @@ export default function ReportCenter() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return (data?.allFindings ?? []).filter((f) => {
-      if (domainFilter === 'DRIFT' && !f.id.startsWith('CRD-')) return false;
-      if (domainFilter === 'CREATIVE_ALL' && f.id.startsWith('CRD-')) return false;
-      if (['NAF', 'REF', 'SCN', 'IMP', 'OPP', 'PRP', 'STA'].includes(domainFilter) && !f.id.startsWith(`${domainFilter}-`)) return false;
+      if (!matchesDomainFilter(f.id, domainFilter)) return false;
       return !q || `${f.id} ${f.title} ${f.file_path} ${f.rule}`.toLowerCase().includes(q);
     });
   }, [data, query, domainFilter]);
@@ -128,6 +152,10 @@ export default function ReportCenter() {
             <span className="font-semibold text-ink-2">Quick report family presets:</span>
             {([
               ['CREATIVE_ALL', `Creative & Narrative (${data.creativeFindings.length})`],
+              ['DECISION_ALL', `Decision Intelligence (${data.decisionFindings.length})`],
+              ['DT', 'Decision Trees (DT)'],
+              ['DTE', 'Case Evaluations (DTE)'],
+              ['DTS', 'Statistical Trees (DTS)'],
               ['NAF', 'Consistency Audit (NAF)'],
               ['REF', 'Story Refactor (REF)'],
               ['SCN', 'Remodel Scenarios (SCN)'],
@@ -143,7 +171,7 @@ export default function ReportCenter() {
                 onClick={() => {
                   setDomainFilter(fam);
                   const matching = data.allFindings
-                    .filter((f) => (fam === 'CREATIVE_ALL' ? !f.id.startsWith('CRD-') : f.id.startsWith(`${fam}-`)))
+                    .filter((f) => matchesDomainFilter(f.id, fam))
                     .map((f) => f.id);
                   if (matching.length === 1) {
                     setScope('single');
@@ -161,13 +189,17 @@ export default function ReportCenter() {
           {scope !== 'all' && (
             <div className="mt-4">
               <div className="flex flex-wrap items-end gap-3">
-                <label className="min-w-[14rem] flex-1"><span className="rs-label">Find findings</span><input className="rs-input w-full" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ID (CRD, NAF, REF, SCN, IMP, OPP, PRP, STA), title or path" /></label>
+                <label className="min-w-[14rem] flex-1"><span className="rs-label">Find findings</span><input className="rs-input w-full" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ID (CRD, DT, DTE, DTS, NAF, REF, SCN, IMP, OPP, PRP, STA), title or path" /></label>
                 <label className="min-w-[11rem]">
                   <span className="rs-label">Report family</span>
                   <select className="rs-input w-full" value={domainFilter} onChange={(e) => setDomainFilter(e.target.value as ReportDomainFilter)}>
                     <option value="ALL_UNIFIED">All families ({data.allFindings.length})</option>
                     <option value="DRIFT">Source Drift CRD ({data.findings.length})</option>
                     <option value="CREATIVE_ALL">All Creative & Narrative ({data.creativeFindings.length})</option>
+                    <option value="DECISION_ALL">All Decision Intelligence ({data.decisionFindings.length})</option>
+                    <option value="DT">Decision Trees (DT)</option>
+                    <option value="DTE">Decision Case Evaluations (DTE)</option>
+                    <option value="DTS">Statistical Decision Trees (DTS)</option>
                     <option value="NAF">Narrative Audit (NAF)</option>
                     <option value="REF">Story Refactoring (REF)</option>
                     <option value="SCN">Scenario Comparison (SCN)</option>

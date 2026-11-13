@@ -1,11 +1,12 @@
 import type { APIRoute } from 'astro';
-import { getAudit, getCreative, getStats } from '../../lib/data.ts';
+import { getAudit, getCreative, getDecisions, getStats } from '../../lib/data.ts';
 import { ROUTES } from '../../lib/site.ts';
 import { INDICATORS } from '../../domain/indicators.ts';
 
 export const GET: APIRoute = () => {
   const stats = getStats();
   const creative = getCreative();
+  const decisions = getDecisions();
   const present = new Set(stats.observations.map((o) => o.indicator_id));
   const entries = [
     ...ROUTES.map((r) => ({ title: r.title, href: r.path, kind: 'Page', summary: r.summary })),
@@ -13,6 +14,7 @@ export const GET: APIRoute = () => {
     ...stats.entities.filter((e) => e.kind === 'country').map((e) => ({ title: e.name, href: `/countries#${e.id.replace(':', '-')}`, kind: 'Country', summary: e.cohort === 'PROFILED_14' ? 'Profiled nation' : 'Development nation' })),
     ...creative.entities.slice(0, 60).map((e) => ({ title: `${e.name} (${e.kind})`, href: `/creative/explore?entity=${encodeURIComponent(e.id)}`, kind: 'Narrative', summary: `${e.canon_status} · ${e.source_path}` })),
     ...creative.scenarios.map((s) => ({ title: s.title, href: `/creative/remodel#${s.id}`, kind: 'Scenario', summary: `${s.canon_status} · ${s.question}` })),
+    ...decisions.trees.map((t) => ({ title: t.title, href: `/creative/decisions?tree=${encodeURIComponent(t.tree_id)}`, kind: 'Decision tree', summary: `${t.tree_type} · ${t.canon_status}` })),
     ...getAudit().findings.filter((f) => f.priority !== 'P3').map((f) => ({ title: f.title, href: `/drift/${f.id}`, kind: 'Finding', summary: `${f.id} · ${f.classification} · ${f.file_path}` })),
     ...[
       ['Epistemic statuses', 'statuses'], ['Drift classification', 'classification'], ['Source authority', 'authority'],

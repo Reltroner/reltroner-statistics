@@ -11,6 +11,9 @@
  *
  * Never treats intentional storytelling ambiguity, unreliable narration, competing viewpoints,
  * or remodeling proposals as objective canon defects.
+ *
+ * A finding that cites prose exists only when its pinned pattern matches the pinned blob; the
+ * quote is the matched sentence. There is no fallback line.
  */
 
 import type { Audit } from '../../domain/finding.ts';
@@ -26,29 +29,17 @@ import type {
 import type { QaCheck } from '../qa.ts';
 import type { SourceSnapshot } from '../comparator.ts';
 import { codeUnitCompare } from '../canonical.ts';
+import { findPassage } from '../evidence.ts';
 import { sha256Hex } from '../git-objects.ts';
-
-const decoder = new TextDecoder();
 
 function findingId(category: NarrativeAuditCategory, classification: NarrativeFindingClassification, key: string): string {
   return `NAF-${sha256Hex(`${category}|${classification}|${key}`).slice(0, 12).toUpperCase()}`;
 }
 
+/** Matched sentence in a pinned blob, or null. Patterns are written against the reading text (no Markdown markers). */
 async function findLineInBlob(snapshot: SourceSnapshot, path: string, pattern: RegExp): Promise<{ line: number; quote: string; blob_sha: string } | null> {
-  const entry = snapshot.entries.get(path);
-  if (!entry || entry.type !== 'blob') return null;
-  const text = decoder.decode(await snapshot.readBlob(entry.sha)).replace(/\r\n?/g, '\n');
-  const lines = text.split('\n');
-  for (let i = 0; i < lines.length; i++) {
-    if (pattern.test(lines[i]!)) {
-      return {
-        line: i + 1,
-        quote: lines[i]!.replace(/[*_`>#~]/g, '').trim().slice(0, 280),
-        blob_sha: entry.sha,
-      };
-    }
-  }
-  return { line: 1, quote: lines[0]?.slice(0, 200) ?? path, blob_sha: entry.sha };
+  const p = await findPassage(snapshot, path, pattern);
+  return p ? { line: p.line, quote: p.quote, blob_sha: p.blob_sha } : null;
 }
 
 export interface NarrativeAuditInput {
@@ -151,7 +142,7 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
   const rvdMatch = await findLineInBlob(
     production,
     'content/factions/reltronland-vs-depcutland.md',
-    /Reltronland \(1125 BAC.*Depcutland \(1121 BAC.*1057 BAC Depeisit Economic Crisis/i,
+    /Reltronland \(\d{4} BAC; [^)]+\) and Depcutland \(\d{4} BAC; [^)]+\) were independent before the \d{4} BAC Depeisit Economic Crisis\./,
   );
   if (relFnd && depFnd && rvdMatch) {
     push({
@@ -159,8 +150,8 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
       category: 'IMPOSSIBLE_EVENT_ORDERING',
       classification: 'CREATIVE_REVIEW_CANDIDATE',
       severity: 'INFORMATIONAL',
-      title: 'Verified BAC causal chronology: Foundations (1125/1121 BAC) → Depeisit Crisis (1057 BAC) → War of Conscience (1048–1030 BAC) → Troncut Treaty (1010 BAC)',
-      affected_entities: ['nar:nation:reltronland', 'nar:nation:depcutland', 'nar:world:depeisit'],
+      title: `Prose and dataset agree on the foundation years: Reltronland ${relFnd.year_bac} BAC, Depcutland ${depFnd.year_bac} BAC`,
+      affected_entities: ['nar:nation:reltronland', 'nar:nation:depcutland'].filter((id) => entities.some((e) => e.id === id)),
       passages: [
         {
           side: 'production',
@@ -169,7 +160,7 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
           path: 'content/factions/reltronland-vs-depcutland.md',
           blob_sha: rvdMatch.blob_sha,
           line: rvdMatch.line,
-          locator: 'Section 2.3',
+          locator: `content/factions/reltronland-vs-depcutland.md#L${rvdMatch.line}`,
           quote: rvdMatch.quote,
         },
         {
@@ -183,9 +174,11 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
           quote: `Reltronland=${relFnd.year_bac} BAC, Depcutland=${depFnd.year_bac} BAC`,
         },
       ],
-      conflict_hypothesis: 'Cross-checked prose chronology in reltronland-vs-depcutland.md against structured BAC anchors in nccm-v6-active-cross-domain.json: all dates align without contradiction.',
-      storytelling_context: 'Establishes the verified chronological spine for any prequel or reconstruction storyline set between 1125 BAC and 995 BAC.',
-      review_guidance: 'No correction required; preserve this ordering as a hard constraint when authoring inter-war or reconstruction scenes.',
+      conflict_hypothesis: rvdMatch.quote.includes(`(${relFnd.year_bac} BAC`) && rvdMatch.quote.includes(`(${depFnd.year_bac} BAC`)
+        ? 'The foundation years stated in the dossier sentence equal the foundation years recorded in the dataset. No contradiction.'
+        : 'The dossier sentence and the dataset record different foundation years. Compare the quoted sentence with the dataset values.',
+      storytelling_context: 'A consistency cross-check between a prose statement and the structured dataset, reported so the agreement is visible.',
+      review_guidance: 'No correction is suggested when the years agree; keep both statements synchronized when either is edited.',
       is_defect: false,
     });
   }
@@ -196,7 +189,7 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
     ['remodeling', qaRemodeling, remodeling],
   ] as const) {
     for (const q of checks) {
-      if (q.result !== 'FAIL') continue;
+      if (q.result !== 'FAIL' || !snap.entries.has(stats.dataset_path)) continue;
       const isGeo = q.id.includes('LAND-AREA');
       push({
         key: `qa-fail:${sideLabel}:${q.id}`,
@@ -204,13 +197,13 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
         classification: sideLabel === 'production' ? 'VERIFIED_CONTRADICTION' : 'POTENTIAL_INCONSISTENCY',
         severity: sideLabel === 'production' ? 'HIGH' : 'MEDIUM',
         title: `${q.title} failed in ${sideLabel} (${q.id})`,
-        affected_entities: q.failures.map((f) => `nar:nation:${f.subject.toLowerCase()}`),
+        affected_entities: [...new Set(q.failures.map((f) => `nar:nation:${f.subject.toLowerCase()}`).filter((id) => entities.some((e) => e.id === id)))],
         passages: [{
           side: sideLabel,
           repository: snap.identity.repository,
           commit_sha: snap.identity.commit_sha,
           path: stats.dataset_path,
-          blob_sha: (sideLabel === 'production' ? stats.production?.blob_sha : stats.remodeling?.blob_sha) ?? snap.identity.tree_sha,
+          blob_sha: snap.entries.get(stats.dataset_path)!.sha,
           line: null,
           locator: q.pointers[0] ?? q.id,
           quote: `${q.detail} (observed=${q.observed}, expected=${q.expected})`,
@@ -234,7 +227,7 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
         classification: 'POTENTIAL_INCONSISTENCY',
         severity: 'MEDIUM',
         title: `Declared source document "${ent.source_document}" for ${ent.name} is absent from production tree`,
-        affected_entities: [`nar:nation:${ent.id.replace(/^country:/, '')}`],
+        affected_entities: [`nar:nation:${ent.id.replace(/^country:/, '')}`].filter((id) => entities.some((e) => e.id === id)),
         passages: [{
           side: 'production',
           repository: production.identity.repository,
@@ -292,7 +285,7 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
   const warNarration = await findLineInBlob(
     production,
     'content/factions/reltronland-vs-depcutland.md',
-    /## 9\. How the Same War Is Narrated|Institutional capture → Reltronland invades → Depcutland reacts/i,
+    /Different institutions describe the same history at different levels of abstraction\. These are perspectives, not automatically facts or propaganda\./,
   );
   if (warNarration) {
     push({
@@ -300,8 +293,8 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
       category: 'RELATIONSHIP_INCONSISTENCY',
       classification: 'UNRELIABLE_NARRATOR_POSSIBILITY',
       severity: 'LOW',
-      title: 'Competing national narratives of the 1048 BAC War of Conscience outbreak (Reltronland vs Depcutland)',
-      affected_entities: ['nar:nation:reltronland', 'nar:nation:depcutland', 'nar:conflict:reltronland-vs-depcutland'],
+      title: 'The same war is narrated differently by different institutions (documented as perspectives)',
+      affected_entities: ['nar:nation:reltronland', 'nar:nation:depcutland', 'nar:conflict:reltronland-vs-depcutland'].filter((id) => entities.some((e) => e.id === id)),
       passages: [{
         side: 'production',
         repository: production.identity.repository,
@@ -309,12 +302,12 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
         path: 'content/factions/reltronland-vs-depcutland.md',
         blob_sha: warNarration.blob_sha,
         line: warNarration.line,
-        locator: 'Section 4.5 & Section 9',
+        locator: `content/factions/reltronland-vs-depcutland.md#L${warNarration.line}`,
         quote: warNarration.quote,
       }],
-      conflict_hypothesis: 'Reltronland partisan accounts emphasize pre-war Depeisit debt contagion and aristocratic capture, whereas Depcutland partisan accounts emphasize the 1049 BAC blockade and sovereignty defense.',
-      storytelling_context: 'Explicitly established in canon as competing partisan simplifications vs the integrated multi-causal historical chain. This is realistic geopolitical perspective divergence, NOT a canon contradiction.',
-      review_guidance: 'Do not flatten into a single viewpoint; keep in-universe partisan speech distinct from the narrator’s multi-causal historical synthesis.',
+      conflict_hypothesis: 'Accounts of the war given by Reltronland and Depcutland institutions differ in vocabulary and emphasis. A reader could mistake two such accounts for a contradiction.',
+      storytelling_context: 'The dossier states that these differing accounts are perspectives. Differing in-world accounts are therefore not a canon contradiction.',
+      review_guidance: 'Keep in-world perspectives attributed to their speakers; do not merge them into one account.',
       is_defect: false,
     });
   }
@@ -322,7 +315,7 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
   const henMisread = await findLineInBlob(
     production,
     'content/series/the-abyss-of-comfort.md',
-    /Henchoway's killing of Garren is a genuine operational victory, but its interpretation of that victory can be strategically wrong/i,
+    /Henchoway's killing of Garren is a genuine operational victory, but its interpretation of that victory can be strategically wrong\./,
   );
   if (henMisread) {
     push({
@@ -330,8 +323,8 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
       category: 'CONFLICTING_EXPLICIT_FACTS',
       classification: 'UNRELIABLE_NARRATOR_POSSIBILITY',
       severity: 'LOW',
-      title: 'Henchoway’s internal assessment of Garren Harper’s assassination vs wider narrative reality',
-      affected_entities: ['nar:faction:henchoway', 'nar:character:delwyn-harper', 'nar:character:redley-ris', 'nar:narrative_arc:the-abyss-of-comfort'],
+      title: 'Henchoway’s own reading of its victory over Garren is stated to be possibly wrong',
+      affected_entities: ['nar:faction:henchoway', 'nar:narrative_arc:the-abyss-of-comfort'].filter((id) => entities.some((e) => e.id === id)),
       passages: [{
         side: 'production',
         repository: production.identity.repository,
@@ -339,12 +332,12 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
         path: 'content/series/the-abyss-of-comfort.md',
         blob_sha: henMisread.blob_sha,
         line: henMisread.line,
-        locator: 'Section 1 & Section 4',
+        locator: `content/series/the-abyss-of-comfort.md#L${henMisread.line}`,
         quote: henMisread.quote,
       }],
-      conflict_hypothesis: 'Henchoway internal records classify Garren Harper’s death as the removal of an obstacle and weakening of Reltronland, whereas Pencilfania intelligence networks and Redley Ris keep the investigation alive.',
-      storytelling_context: 'Intentional dramatic irony and strategic blindness ("comfort as strategic error"). An antagonist’s false belief is a core story engine, not a continuity error.',
-      review_guidance: 'No correction needed; preserve the distinction between Henchoway’s internal intelligence assumptions and actual protagonist network state.',
+      conflict_hypothesis: 'What Henchoway believes about the effect of its action can differ from what the narrative establishes. A reader could mistake the antagonist’s belief for a statement of fact.',
+      storytelling_context: 'The series dossier itself says the interpretation can be strategically wrong. A mistaken belief held by a faction is not a continuity error.',
+      review_guidance: 'Keep statements of what Henchoway believes distinct from statements of what happened.',
       is_defect: false,
     });
   }
@@ -353,7 +346,7 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
   const henContinuity = await findLineInBlob(
     production,
     'content/factions/henchoway.md',
-    /The precise legal, personnel and institutional continuity between Kamila's ancient movement, Vexor's Scuba Division, and Vitor's modern network \*\*is not fully established\*\*/i,
+    /The precise legal, personnel and institutional continuity between Kamila's ancient movement, Vexor's Scuba Division, and Vitor's modern network is not fully established\./,
   );
   if (henContinuity) {
     push({
@@ -361,8 +354,8 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
       category: 'ENTITY_IDENTITY_MISMATCH',
       classification: 'INTENTIONAL_AMBIGUITY',
       severity: 'INFORMATIONAL',
-      title: 'Unestablished institutional continuity between 2560 BAC Throne Pact, Vexor Scuba Division, and Vitor Baythorne’s modern Henchoway',
-      affected_entities: ['nar:faction:henchoway', 'nar:character:kamila-alena', 'nar:philosophy:nytherion-abyss'],
+      title: 'Continuity between the ancient movement, the Scuba Division and the modern Henchoway network is stated as not fully established',
+      affected_entities: ['nar:faction:henchoway', 'nar:character:kamila-alena'].filter((id) => entities.some((e) => e.id === id)),
       passages: [{
         side: 'production',
         repository: production.identity.repository,
@@ -370,12 +363,12 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
         path: 'content/factions/henchoway.md',
         blob_sha: henContinuity.blob_sha,
         line: henContinuity.line,
-        locator: 'Section 2',
+        locator: `content/factions/henchoway.md#L${henContinuity.line}`,
         quote: henContinuity.quote,
       }],
-      conflict_hypothesis: 'Three historical layers (2560 BAC Eterna Collapse/Kamila Alena, Vexor Scuba Division, and Vitor Baythorne/Van Den Scuba) share symbolism without a documented unbroken legal charter.',
-      storytelling_context: 'Explicitly marked in canon as intentional mystery and ideological recurrence rather than a single corporate registry.',
-      review_guidance: 'Preserve ambiguity unless a future creator-ratified arc explicitly reveals a specific archival link.',
+      conflict_hypothesis: 'The source leaves the institutional continuity between three historical layers open. A reader could report the gap as a missing or inconsistent lineage.',
+      storytelling_context: 'The faction dossier states the gap deliberately. An open question that the source declares open is not a defect.',
+      review_guidance: 'Preserve the ambiguity; do not fill the lineage unless the creator publishes it.',
       is_defect: false,
     });
   }
@@ -383,7 +376,7 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
   const valethraBranches = await findLineInBlob(
     remodeling,
     'content/series/house-of-valethra.md',
-    /Undisclosed biological sibling branches remain deliberately mysterious/i,
+    /Undisclosed biological sibling branches remain deliberately mysterious\./,
   );
   if (valethraBranches) {
     push({
@@ -391,8 +384,8 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
       category: 'ENTITY_IDENTITY_MISMATCH',
       classification: 'INTENTIONAL_AMBIGUITY',
       severity: 'INFORMATIONAL',
-      title: 'Deliberately undisclosed sibling branches in House of Valethra genealogy',
-      affected_entities: ['nar:character:queen-valethra', 'nar:narrative_arc:house-of-valethra'],
+      title: 'House of Valethra: undisclosed sibling branches are stated as deliberately mysterious (remodeling)',
+      affected_entities: ['nar:character:queen-valethra', 'nar:narrative_arc:house-of-valethra'].filter((id) => entities.some((e) => e.id === id)),
       passages: [{
         side: 'remodeling',
         repository: remodeling.identity.repository,
@@ -400,12 +393,12 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
         path: 'content/series/house-of-valethra.md',
         blob_sha: valethraBranches.blob_sha,
         line: valethraBranches.line,
-        locator: 'Frontmatter & Section 1',
+        locator: `content/series/house-of-valethra.md#L${valethraBranches.line}`,
         quote: valethraBranches.quote,
       }],
-      conflict_hypothesis: 'Genealogical table omits full biological sibling branches of Queen Valethra Seraphine Lunara.',
-      storytelling_context: 'Governed by the "Quality and Depth Over Quantity" rule: characters are disclosed only when they serve a necessary narrative function.',
-      review_guidance: 'Do not auto-populate placeholder royal family members.',
+      conflict_hypothesis: 'The remodeling document does not disclose every family branch. A reader could report the omission as an incomplete genealogy.',
+      storytelling_context: 'The description of the document says the omission is deliberate. It is a remodeling proposal, not production canon.',
+      review_guidance: 'Do not generate placeholder family members.',
       is_defect: false,
     });
   }
@@ -414,7 +407,7 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
   const custodyBoundary = await findLineInBlob(
     production,
     'content/factions/reltronland-vs-depcutland.md',
-    /Financial custody, transfer pricing, intellectual-property ownership, taxation, archive custody and territorial jurisdiction are different relationships/i,
+    /Financial custody, transfer pricing, intellectual-property ownership, taxation, archive custody and territorial jurisdiction are different relationships\./,
   );
   if (custodyBoundary) {
     push({
@@ -422,8 +415,8 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
       category: 'INSTITUTIONAL_RULE_CONTRADICTION',
       classification: 'CREATIVE_REVIEW_CANDIDATE',
       severity: 'LOW',
-      title: 'Institutional boundary: Reltronland financial custody vs Depcutland archival custody and IP jurisdiction',
-      affected_entities: ['nar:nation:reltronland', 'nar:nation:depcutland', 'nar:institution:endless-library-of-depcutland'],
+      title: 'Institutional boundary: custody, pricing, ownership, taxation, archives and jurisdiction are stated as different relationships',
+      affected_entities: ['nar:nation:reltronland', 'nar:nation:depcutland', 'nar:institution:endless-library-of-depcutland'].filter((id) => entities.some((e) => e.id === id)),
       passages: [{
         side: 'production',
         repository: production.identity.repository,
@@ -431,12 +424,12 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
         path: 'content/factions/reltronland-vs-depcutland.md',
         blob_sha: custodyBoundary.blob_sha,
         line: custodyBoundary.line,
-        locator: 'Section 8.6',
+        locator: `content/factions/reltronland-vs-depcutland.md#L${custodyBoundary.line}`,
         quote: custodyBoundary.quote,
       }],
-      conflict_hypothesis: 'Story drafts touching Season 30 AICR archival deposits or cross-border corporate treasury risk conflating asset custody with territorial ownership or automatic tax transfer.',
-      storytelling_context: 'Canonical institutional guardrail separating financial settlement (Reltronland) from provenance custody (Depcutland Endless Library).',
-      review_guidance: 'Verify that any Season 30+ plot involving AICR records in Depcutland preserves independent custody without merging sovereignty.',
+      conflict_hypothesis: 'A draft that treats custody of an asset or record as ownership, or as a transfer of jurisdiction, would contradict the quoted boundary.',
+      storytelling_context: 'The dossier states the boundary as a rule. It is listed as a review aid for new material, not as a defect in existing canon.',
+      review_guidance: 'Check new material that involves custody or archives against the quoted sentence.',
       is_defect: false,
     });
   }
@@ -444,7 +437,7 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
   const techBoundary = await findLineInBlob(
     production,
     'content/factions/henchoway.md',
-    /Henchoway does not own Asthortera's internet or every recommendation algorithm/i,
+    /Henchoway does not own Asthortera's internet or every recommendation algorithm, and it is not the author of every rejection, quiet career, community preference, or restorative act\./,
   );
   if (techBoundary) {
     push({
@@ -452,8 +445,8 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
       category: 'TECHNOLOGY_CAPABILITY_CONTRADICTION',
       classification: 'CREATIVE_REVIEW_CANDIDATE',
       severity: 'LOW',
-      title: 'Technological capability boundary: Henchoway Adaptive Stillness vs planetary communications infrastructure',
-      affected_entities: ['nar:faction:henchoway', 'nar:decision:adaptive-stillness-doctrine'],
+      title: 'Attribution boundary: what may and may not be attributed to Henchoway',
+      affected_entities: ['nar:faction:henchoway', 'nar:decision:adaptive-stillness-doctrine'].filter((id) => entities.some((e) => e.id === id)),
       passages: [{
         side: 'production',
         repository: production.identity.repository,
@@ -461,12 +454,12 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
         path: 'content/factions/henchoway.md',
         blob_sha: techBoundary.blob_sha,
         line: techBoundary.line,
-        locator: 'Section 5 (Recognition Scarcity)',
+        locator: `content/factions/henchoway.md#L${techBoundary.line}`,
         quote: techBoundary.quote,
       }],
-      conflict_hypothesis: 'Over-attributing every algorithmic rejection or attention-scarcity phenomenon to Henchoway would contradict the established capability boundary.',
-      storytelling_context: 'Henchoway exploits recognition scarcity in a 4,412-billion sentient post-scarcity civilization, but does not omnipotently control Asthortera’s digital networks.',
-      review_guidance: 'Ensure plotlines distinguish structural attention scarcity from targeted Henchoway operations.',
+      conflict_hypothesis: 'A draft that attributes every rejection or recommendation to Henchoway would contradict the quoted boundary.',
+      storytelling_context: 'The faction dossier states the boundary of attribution. It is listed as a review aid for new material, not as a defect in existing canon.',
+      review_guidance: 'A direct Henchoway operation needs evidence in the story; do not attribute by default.',
       is_defect: false,
     });
   }
@@ -478,8 +471,8 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
       category: 'STATISTICAL_STORY_MISMATCH',
       classification: 'INSUFFICIENT_EVIDENCE',
       severity: 'INFORMATIONAL',
-      title: `${stats.unknowns.length} explicitly preserved canonical unknowns in NCCM V6.5 (${stats.dataset_path})`,
-      affected_entities: ['nar:world:asthortera'],
+      title: `${stats.unknowns.length} declared unknowns are preserved in ${stats.dataset_path}`,
+      affected_entities: ['nar:world:asthortera'].filter((id) => entities.some((e) => e.id === id)),
       passages: [{
         side: 'production',
         repository: production.identity.repository,
@@ -490,7 +483,7 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
         locator: 'canon_ratification.unknowns_remain_unknown',
         quote: stats.unknowns.slice(0, 3).join(' | '),
       }],
-      conflict_hypothesis: 'Several historical and sub-national series (including individual profiles for the 18 deferred states and exact years of short-lived Reltronland post-war growth surges) remain unassigned.',
+      conflict_hypothesis: `The dataset declares ${stats.unknowns.length} unknowns that remain unassigned: ${stats.unknowns.join('; ')}.`,
       storytelling_context: 'Explicit epistemic discipline: unknowns remain unknown until creator ratification rather than being filled by interpolation.',
       review_guidance: 'Treat as open worldbuilding space; do not interpolate numerical values without ratified source anchors.',
       is_defect: false,
@@ -507,33 +500,33 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
       category: 'GEOGRAPHICAL_INCONSISTENCY',
       classification: 'CREATIVE_REVIEW_CANDIDATE',
       severity: 'MEDIUM',
-      title: `Beluftner land area and population density remodeling proposal (${beluftnerDrift.production.value} vs ${beluftnerDrift.remodeling.value} thousand sq km)`,
-      affected_entities: ['nar:nation:beluftner'],
+      title: `Beluftner land area: production ${String(beluftnerDrift.production.value)}, remodeling ${String(beluftnerDrift.remodeling.value)} ${beluftnerDrift.unit ?? ''}`.trim(),
+      affected_entities: ['nar:nation:beluftner'].filter((id) => entities.some((e) => e.id === id)),
       passages: [
         {
           side: 'production',
           repository: beluftnerDrift.provenance.production.repository,
           commit_sha: beluftnerDrift.provenance.production.commit_sha,
           path: beluftnerDrift.file_path,
-          blob_sha: beluftnerDrift.provenance.production.blob_sha ?? stats.production?.blob_sha ?? production.identity.tree_sha,
+          blob_sha: production.entries.get(beluftnerDrift.file_path)!.sha,
           line: beluftnerDrift.provenance.production.line ?? null,
           locator: beluftnerDrift.locator,
-          quote: `Production land_area=${String(beluftnerDrift.production.value)} (${beluftnerDrift.unit ?? 'thousand sq km'})`,
+          quote: `${beluftnerDrift.locator} = ${String(beluftnerDrift.production.value)}`,
         },
         {
           side: 'remodeling',
           repository: beluftnerDrift.provenance.remodeling.repository,
           commit_sha: beluftnerDrift.provenance.remodeling.commit_sha,
           path: beluftnerDrift.file_path,
-          blob_sha: beluftnerDrift.provenance.remodeling.blob_sha ?? stats.remodeling?.blob_sha ?? remodeling.identity.tree_sha,
+          blob_sha: remodeling.entries.get(beluftnerDrift.file_path)!.sha,
           line: beluftnerDrift.provenance.remodeling.line ?? null,
           locator: beluftnerDrift.locator,
-          quote: `Remodeling land_area=${String(beluftnerDrift.remodeling.value)} (${beluftnerDrift.unit ?? 'thousand sq km'})`,
+          quote: `${beluftnerDrift.locator} = ${String(beluftnerDrift.remodeling.value)}`,
         },
       ],
-      conflict_hypothesis: `Remodeling workspace proposes expanding Beluftner land area from ${String(beluftnerDrift.production.value)} to ${String(beluftnerDrift.remodeling.value)} thousand sq km, altering derived population density and residual planetary land allocation.`,
-      storytelling_context: 'Remodeling proposal under review; production canon remains 88 thousand sq km until ratified.',
-      review_guidance: 'Inspect downstream impact on Beluftner–Cosmeilia border lore and planetary land-area sum before ratifying.',
+      conflict_hypothesis: `The remodeling dataset proposes ${String(beluftnerDrift.remodeling.value)} ${beluftnerDrift.unit ?? ''} where production main records ${String(beluftnerDrift.production.value)} ${beluftnerDrift.unit ?? ''}. Any figure derived from land area changes with it.`,
+      storytelling_context: `A remodeling proposal under review. Production main records ${String(beluftnerDrift.production.value)} ${beluftnerDrift.unit ?? ''} (drift finding ${beluftnerDrift.id}).`,
+      review_guidance: 'Check prose that describes the territory of Beluftner and the planetary land-area identity before any adoption.',
       is_defect: false,
     });
   }
@@ -550,8 +543,8 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
       repository: f.classification === 'DRAFT_ONLY' ? remodeling.identity.repository : production.identity.repository,
       commit_sha: f.classification === 'DRAFT_ONLY' ? remodeling.identity.commit_sha : production.identity.commit_sha,
       path: f.path,
-      blob_sha: (f.classification === 'DRAFT_ONLY' ? f.remodeling_blob_sha : f.production_blob_sha) ?? production.identity.tree_sha,
-      line: 1,
+      blob_sha: (f.classification === 'DRAFT_ONLY' ? f.remodeling_blob_sha : f.production_blob_sha)!,
+      line: null,
       locator: f.path,
       quote: `${f.title ?? f.path} (${f.classification}, ${f.finding_count} finding(s))`,
     }));
@@ -561,11 +554,11 @@ export async function runNarrativeAudit(input: NarrativeAuditInput): Promise<Nar
       classification: 'CREATIVE_REVIEW_CANDIDATE',
       severity: 'MEDIUM',
       title: `${narrativeChangedFiles.length} faction and series documents carry remodeling additions or revisions`,
-      affected_entities: ['nar:narrative_arc:the-abyss-of-comfort', 'nar:nation:reltronland', 'nar:nation:depcutland', 'nar:faction:henchoway'],
+      affected_entities: [...new Set(narrativeChangedFiles.map((f) => entities.find((e) => e.source_path === f.path)?.id).filter((id): id is string => !!id))],
       passages,
-      conflict_hypothesis: 'Remodeling workspace introduces new series lore documents (e.g., House of Valethra, Five Voices of Aurora Covenant) and updated prose sections in faction profiles.',
-      storytelling_context: 'Remodeling proposals represent forward narrative architecture (such as Seasons 41–44) and refined prose; they are not production defects.',
-      review_guidance: 'Compare section diffs in the Remodeling Laboratory and Refactoring Workspace before promoting to production.',
+      conflict_hypothesis: `Series or faction documents that exist only in remodeling or differ in content: ${narrativeChangedFiles.map((f) => f.path).join(', ')}.`,
+      storytelling_context: 'Remodeling content is a proposal. A difference from production is not a production defect.',
+      review_guidance: 'Compare the file-level drift findings before any promotion to production.',
       is_defect: false,
     });
   }

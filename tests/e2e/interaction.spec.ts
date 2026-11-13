@@ -66,7 +66,7 @@ test('reduced motion disables reveals and chart animation', async ({ browser }) 
   await context.close();
 });
 
-for (const path of ['/', '/statistics', '/drift', '/reports', '/methodology', '/history', '/qa', '/creative', '/creative/ideas', '/creative/audit']) {
+for (const path of ['/', '/statistics', '/statistics/decision-trees', '/drift', '/reports', '/methodology', '/history', '/qa', '/creative', '/creative/ideas', '/creative/audit', '/creative/decisions']) {
   for (const theme of ['dark', 'light'] as const) {
     test(`accessibility: no serious or critical axe violations on ${path} (${theme})`, async ({ page }) => {
       await setTheme(page, theme);

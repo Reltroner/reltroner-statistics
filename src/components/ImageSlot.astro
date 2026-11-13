@@ -140,6 +140,20 @@ const ring = (cx: number, cy: number, r: number, n: number, phase = 0) =>
             <circle cx="300" cy="200" r="10" fill={C} />
           </g>
         )}
+        {slot.motif === 'branching' && (
+          <g>
+            <path d="M90 200 L215 200 M215 200 L355 115 M215 200 L355 200 M215 200 L355 285 M355 115 L505 85 M355 115 L505 145 M355 285 L505 260 M355 285 L505 315" stroke={W} stroke-width="1.4" opacity="0.55" />
+            <path d="M90 200 L215 200 L355 115 L505 145" stroke={C} stroke-width="2.4" opacity="0.9" />
+            <circle cx="90" cy="200" r="12" fill="#0b2a5c" stroke={C} stroke-width="2.2" />
+            <circle cx="215" cy="200" r="11" fill="#0b2a5c" stroke={C} stroke-width="2.2" />
+            <polygon points="355,99 371,115 355,131 339,115" fill="#0b2a5c" stroke={C} stroke-width="2" />
+            <polygon points="355,184 371,200 355,216 339,200" fill="#0b2a5c" stroke={B} stroke-width="1.8" />
+            <polygon points="355,269 371,285 355,301 339,285" fill="#0b2a5c" stroke={O} stroke-width="1.8" />
+            {[[505, 85, B], [505, 145, C], [505, 260, W], [505, 315, O]].map(([cx, cy, col]) => (
+              <circle cx={cx as number} cy={cy as number} r="8" fill="#0b2a5c" stroke={col as string} stroke-width="2" />
+            ))}
+          </g>
+        )}
       </svg>
       <span class="rs-slot-tag">Illustration pending <span class="rs-slot-id">{slot.id}</span></span>
     </div>

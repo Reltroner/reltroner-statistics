@@ -1,0 +1,56 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import CreativeSubnav from '../../components/CreativeSubnav.astro';
+import ImageSlot from '../../components/ImageSlot.astro';
+import StatTile from '../../components/StatTile.astro';
+import DecisionTreeWorkspace from '../../features/decision/DecisionTreeWorkspace.tsx';
+import { getDecisions } from '../../lib/data.ts';
+import { reportContext } from '../../lib/report-context.ts';
+
+const decisions = getDecisions();
+const s = decisions.summary;
+---
+<BaseLayout
+  title="Decision trees"
+  description="Interactive source-grounded decision trees for creative ideation, outbreak planning, story refactoring, canon remodeling, consistency triage and development readiness."
+>
+  <CreativeSubnav />
+  <PageIntro
+    eyebrow="Decision Intelligence · Interactive Trees"
+    title="Creative & editorial decision trees"
+    lede="Explore explicit conditions, verified source citations, canon constraints, unknown inputs and separated epistemic consequences before choosing a creative or refactoring direction."
+    crumbs={[{ label: 'Creative', href: '/creative' }, { label: 'Decisions' }]}
+    sources={['production', 'remodeling', 'rules']}
+    limits={[
+      'Condition nodes use deterministic three-valued logic (TRUE, FALSE, UNKNOWN); unknown inputs stop in INSUFFICIENT_DATA rather than coercing to FALSE.',
+      'Consequences strictly separate VERIFIED_SOURCE_GROUNDED and DEPENDENCY_SUPPORTED paths from NARRATIVE_HYPOTHESIS and PURE_SPECULATION.',
+      'Creator review status changes and notes remain PRIVATE_LOCAL_SESSION / UNRATIFIED and never modify Reltroner/reltroner-studio.',
+    ]}
+  >
+    <ImageSlot slotId="CREATIVE_DECISION_TREE" slot="aside" />
+  </PageIntro>
+
+  <section class="pb-8" aria-label="Decision intelligence summary">
+    <div class="rs-container grid grid-cols-2 gap-3 md:grid-cols-4">
+      <StatTile label="Decision trees" value={String(s.trees_total)} note="source-grounded" />
+      <StatTile label="Reachable paths" value={String(s.paths_total)} note="deterministic IDs" />
+      <StatTile label="Evaluated cases" value={String(s.evaluations_total)} note="audit & readiness" />
+      <StatTile label="Verified evidence" value={String(s.evidence_by_status.VERIFIED ?? 0)} note={`of ${s.evidence_total} cited`} />
+    </div>
+  </section>
+
+  <section class="pb-12">
+    <div class="rs-container">
+      <DecisionTreeWorkspace
+        client:load
+        trees={decisions.trees}
+        modelTrees={decisions.model_trees}
+        paths={decisions.paths}
+        evaluations={decisions.evaluations}
+        reportContext={reportContext()}
+      />
+    </div>
+  </section>
+</BaseLayout>
+

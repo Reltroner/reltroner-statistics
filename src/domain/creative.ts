@@ -13,7 +13,7 @@
  */
 
 import type { EpistemicStatus } from './status.ts';
-import { NARRATIVE_IMPACT_TYPES, traverseImpact, type EdgeType, type GraphSide, type KnowledgeGraph } from './graph.ts';
+import { DEPENDENCY_STATUSES, NARRATIVE_IMPACT_TYPES, traverseImpact, type EdgeType, type GraphSide, type KnowledgeGraph } from './graph.ts';
 import { SHA_RE } from './source.ts';
 
 export const NARRATIVE_ENTITY_KINDS = Object.freeze([
@@ -347,6 +347,10 @@ export interface RemodelingScenario {
     source_path: string;
     evidence_line: number | null;
     evidence_quote: string;
+    /** Line of the passage quoted in fear_or_constraint, and the pinned identity of the cited blob. */
+    constraint_line: number | null;
+    commit_sha: string;
+    blob_sha: string;
   }>;
   hypothetical_parameters: Array<{
     id: string;
@@ -456,6 +460,9 @@ export interface CreativeArtifact {
     refactoring_plans_total: number;
     scenarios_total: number;
     seed_proposals_total: number;
+    /** Citations and entity references re-verified against the pinned snapshots before publication. */
+    citations_verified: number;
+    references_verified: number;
   };
   entities: NarrativeEntity[];
   relationships: NarrativeRelationship[];
@@ -575,6 +582,7 @@ export function simulateNarrativeImpact(
     types: NARRATIVE_IMPACT_TYPES,
     maxDepth,
     sides: ['production', 'remodeling', 'both'],
+    statuses: DEPENDENCY_STATUSES,
   });
 
   const verified_direct: SimulatedImpactReport['verified_direct'] = [];
@@ -619,14 +627,18 @@ export function simulateNarrativeImpact(
 
   const candidate_narrative: SimulatedImpactReport['candidate_narrative'] = [];
   for (const edge of graph.edges) {
-    if (edge.type !== 'MENTIONS' && edge.type !== 'CAUSES_CANDIDATE' && edge.type !== 'THEMATICALLY_RELATED') continue;
+    const coOccurrence = edge.type === 'MENTIONS' || edge.type === 'CAUSES_CANDIDATE' || edge.type === 'THEMATICALLY_RELATED';
+    if (!coOccurrence && edge.status !== 'CANDIDATE') continue;
     if (edge.source !== originId && edge.target !== originId) continue;
     const otherId = edge.source === originId ? edge.target : edge.source;
+    if (candidate_narrative.some((c) => c.id === otherId && c.edge_type === edge.type)) continue;
     candidate_narrative.push({
       id: otherId,
       label: labelFor(otherId),
       edge_type: edge.type,
-      rationale: `Co-occurrence / candidate link (${edge.type}); never treated as causal dependency.`,
+      rationale: coOccurrence
+        ? `Co-occurrence / candidate link (${edge.type}); never treated as causal dependency.`
+        : `Candidate ${edge.type} inferred from a name occurrence; a review lead, not a verified dependency.`,
       tier: 'CANDIDATE_NARRATIVE_IMPACT',
     });
   }

@@ -15,8 +15,8 @@ import pandas
 import scipy
 import sklearn
 
-from . import __version__, charts, clustering, history, stats
-from .dataset import cross_section, load
+from . import __version__, charts, clustering, decision_tree, history, stats
+from .dataset import cross_section, indicator_units, load
 from .util import canonical_json, sha256_bytes, sha256_text
 
 INDICATOR_SHORT = {
@@ -63,7 +63,8 @@ def main(argv: list[str] | None = None) -> int:
         "correlation": stats.correlation(m14, "PROFILED_14"),
         "clustering": clustering.run(m14, "PROFILED_14"),
         "outliers": stats.robust_outliers(m14, "PROFILED_14") + stats.robust_outliers(m19, "ALL_19"),
-        "history": history.assess(ds),
+        "history": (hist := history.assess(ds)),
+        "decision_trees": decision_tree.run(m14, m19, hist, units=indicator_units(ds)),
         "charts": [],
     }
 

@@ -145,6 +145,9 @@ export const NARRATIVE_IMPACT_TYPES: readonly EdgeType[] = Object.freeze([
   'CAUSES',
 ]);
 
+/** Edge statuses that can carry a dependency claim. A CANDIDATE edge is a review lead, not a dependency. */
+export const DEPENDENCY_STATUSES: readonly EdgeStatus[] = Object.freeze(['VERIFIED', 'DECLARED']);
+
 export interface ImpactHit {
   node: string;
   depth: number;
@@ -180,18 +183,20 @@ export function buildAdjacency(edges: readonly GraphEdge[]): Map<string, Array<{
 
 /**
  * Breadth-first impact traversal with cycle protection and hard bounds. Each impacted node is
- * reported once at its shortest depth together with the path that reached it.
+ * reported once at its shortest depth together with the path that reached it. Pass `statuses`
+ * to restrict the walk to declared or verified edges; candidate edges are then never followed.
  */
 export function traverseImpact(
   edges: readonly GraphEdge[],
   origin: string,
-  opts: { types?: readonly EdgeType[]; maxDepth?: number; maxNodes?: number; sides?: readonly GraphSide[] } = {},
+  opts: { types?: readonly EdgeType[]; maxDepth?: number; maxNodes?: number; sides?: readonly GraphSide[]; statuses?: readonly EdgeStatus[] } = {},
 ): ImpactResult {
   const types = new Set(opts.types ?? DEFAULT_IMPACT_TYPES);
   const sides = new Set(opts.sides ?? ['production', 'both']);
   const maxDepth = Math.max(1, Math.min(opts.maxDepth ?? 4, 8));
   const maxNodes = Math.max(1, Math.min(opts.maxNodes ?? 500, 5000));
-  const adj = buildAdjacency(edges.filter((e) => types.has(e.type) && sides.has(e.side)));
+  const statuses = opts.statuses ? new Set(opts.statuses) : null;
+  const adj = buildAdjacency(edges.filter((e) => types.has(e.type) && sides.has(e.side) && (!statuses || statuses.has(e.status))));
   const seen = new Map<string, ImpactHit>();
   let frontier: Array<{ node: string; path: string[] }> = [{ node: origin, path: [origin] }];
   let truncated = false;

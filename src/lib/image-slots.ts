@@ -16,7 +16,8 @@ export type SlotMotif =
   | 'prism'
   | 'scales'
   | 'blueprint'
-  | 'ripples';
+  | 'ripples'
+  | 'branching';
 
 export interface ImageSlot {
   id: string;
@@ -45,6 +46,8 @@ export const IMAGE_SLOTS = Object.freeze({
   CREATIVE_CANON_REMODEL: { id: 'CREATIVE_CANON_REMODEL', aspect: '3 / 2', motif: 'twin-orbits', purpose: 'Canon remodeling and scenarios', approved: false, src: null, alt: '' },
   CREATIVE_IMPACT_EXPLORER: { id: 'CREATIVE_IMPACT_EXPLORER', aspect: '3 / 2', motif: 'ripples', purpose: 'Consequence and impact explorer', approved: false, src: null, alt: '' },
   CREATIVE_DEVELOPMENT_ROADMAP: { id: 'CREATIVE_DEVELOPMENT_ROADMAP', aspect: '16 / 9', motif: 'chronology', purpose: 'Creative roadmap and opportunities', approved: false, src: null, alt: '' },
+  CREATIVE_DECISION_TREE: { id: 'CREATIVE_DECISION_TREE', aspect: '3 / 2', motif: 'branching', purpose: 'Interactive creative and editorial decision trees', approved: false, src: null, alt: '' },
+  STATISTICAL_DECISION_TREE: { id: 'STATISTICAL_DECISION_TREE', aspect: '3 / 2', motif: 'branching', purpose: 'Guarded supervised decision trees', approved: false, src: null, alt: '' },
 } satisfies Record<string, ImageSlot>);
 
 export type ImageSlotId = keyof typeof IMAGE_SLOTS;

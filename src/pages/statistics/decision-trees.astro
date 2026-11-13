@@ -1,0 +1,134 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import ImageSlot from '../../components/ImageSlot.astro';
+import Notice from '../../components/Notice.astro';
+import StatusBadge from '../../components/StatusBadge.astro';
+import DecisionTreeAnalyticsView from '../../features/statistics/DecisionTreeAnalyticsView.tsx';
+import { getAnalytics, getStats } from '../../lib/data.ts';
+
+const stats = getStats();
+const analytics = getAnalytics();
+const dt = analytics?.decision_trees ?? null;
+---
+<BaseLayout
+  title="Supervised decision trees"
+  description="Guarded scikit-learn classification and regression decision trees with sample-size sufficiency gates, leakage checks and synthetic method verification."
+>
+  <PageIntro
+    eyebrow="Exploratory machine learning"
+    title="Supervised decision trees"
+    lede="Bounded scikit-learn decision trees guarded by strict sample-size, unit-consistency, non-imputation and anti-leakage rules. When canonical data is insufficient, the gate refuses to fit rather than inventing weak predictions."
+    crumbs={[{ href: '/statistics', label: 'Statistics' }, { label: 'Decision trees' }]}
+    sources={['production', 'statistics']}
+    model={stats.model_version}
+    limits={[
+      'A canonical model is fitted only with >= 30 complete observed rows, >= 10 rows per feature, >= 10 rows per class, and single-unit indicators.',
+      'K-Means clusters, DBSCAN clusters and modeling cohorts are rejected as supervised target labels.',
+      'The synthetic method check exercises the implementation on generated rows that describe nothing in Asthortera.',
+    ]}
+  >
+    <ImageSlot slotId="STATISTICAL_DECISION_TREE" slot="aside" />
+  </PageIntro>
+
+  <section class="pb-10" aria-labelledby="policy-h">
+    <div class="rs-container">
+      {dt ? (
+        <div class="grid gap-6">
+          <Notice
+            title={`Canonical Supervised Gate Status: ${dt.status}`}
+            tone={dt.status === 'COMPUTED' ? 'info' : 'caution'}
+          >
+            {dt.status === 'INSUFFICIENT_LABELED_DATA'
+              ? 'Canonical cross-sectional cohorts (14 profiled nations, 19 modeled nations) and historical series fall below the sufficiency thresholds. No canonical predictions are fabricated; every rejected or insufficient task is documented below.'
+              : 'At least one canonical supervised task met the sufficiency gate and produced a bounded MODEL_ESTIMATE decision tree.'}
+          </Notice>
+
+          <div class="rs-card p-5">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <h2 id="policy-h" class="rs-h3">Sufficiency & Evaluation Policy</h2>
+              <a href="/reports?family=DTS" class="rs-button rs-button-ghost !min-h-9 !px-3 !text-xs no-underline">
+                Export Statistical Tree Reports →
+              </a>
+            </div>
+            <p class="mt-2 text-sm text-ink-2">{dt.policy.rule}</p>
+            <dl class="mt-4 grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-4">
+              <div class="rounded-lg border border-line bg-surface-2 p-3"><dt class="text-ink-3">Min labeled rows</dt><dd class="m-0 font-mono text-sm font-bold">{dt.policy.min_labeled_samples}</dd></div>
+              <div class="rounded-lg border border-line bg-surface-2 p-3"><dt class="text-ink-3">Min rows / feature</dt><dd class="m-0 font-mono text-sm font-bold">{dt.policy.min_samples_per_feature}</dd></div>
+              <div class="rounded-lg border border-line bg-surface-2 p-3"><dt class="text-ink-3">Max depth / min leaf</dt><dd class="m-0 font-mono text-sm font-bold">{dt.policy.max_depth} / {dt.policy.min_samples_leaf}</dd></div>
+              <div class="rounded-lg border border-line bg-surface-2 p-3"><dt class="text-ink-3">Hold-out / seed</dt><dd class="m-0 font-mono text-sm font-bold">{(dt.policy.test_fraction * 100).toFixed(0)}% / {dt.policy.random_state}</dd></div>
+            </dl>
+            <p class="mt-3 text-xs text-ink-3">{dt.policy.missing_values}</p>
+          </div>
+        </div>
+      ) : (
+        <Notice title="Analytics unavailable in this build" tone="unavailable">
+          The Python analytics step did not run; supervised decision tree assessments are unavailable.
+        </Notice>
+      )}
+    </div>
+  </section>
+
+  {dt && (
+    <>
+      <section class="pb-10" aria-labelledby="tasks-h">
+        <div class="rs-container">
+          <h2 id="tasks-h" class="rs-h2">Canonical Supervised Task Verdicts</h2>
+          <div class="rs-table-wrap mt-4" tabindex="0">
+            <table class="rs-table text-xs">
+              <thead>
+                <tr>
+                  <th>Task ID</th>
+                  <th>Kind</th>
+                  <th>Target</th>
+                  <th>Cohort</th>
+                  <th>Complete / Rows</th>
+                  <th>Status</th>
+                  <th>Reasons</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dt.tasks.map((t) => (
+                  <tr>
+                    <td class="font-mono text-cyan">{t.task_id}</td>
+                    <td>{t.kind}</td>
+                    <td>{t.target_label} (<code>{t.target}</code>)</td>
+                    <td class="font-mono">{t.cohort}</td>
+                    <td class="font-mono">{t.n_complete} / {t.n_rows}</td>
+                    <td><StatusBadge status={t.status} /></td>
+                    <td>{t.reasons.join(' ')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="rs-card mt-6 p-5 text-xs">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h3 class="rs-h3">Historical Temporal Hold-Out Gate</h3>
+              <StatusBadge status={dt.historical.status} />
+            </div>
+            <p class="mt-2 text-ink-2">
+              Longest canonical series: <strong>{dt.historical.max_series_length}</strong> dated observations (minimum required: <strong>{dt.historical.min_series_length}</strong>).
+            </p>
+            <ul class="mt-2 list-disc pl-4 text-ink-2">
+              {dt.historical.reasons.map((r) => <li>{r}</li>)}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="pb-12" aria-labelledby="method-h">
+        <div class="rs-container">
+          <h2 id="method-h" class="rs-h2">Method Verification & Interactive Model Inspector</h2>
+          <p class="rs-soft mt-2 max-w-3xl">
+            Inspect fitted tree rules, feature importance caveats and held-out threshold parity. Canonical models appear automatically if a cohort meets all sufficiency gates; otherwise only the <code>SYNTHETIC_FIXTURE</code> verification models are shown.
+          </p>
+          <div class="mt-5">
+            <DecisionTreeAnalyticsView client:load decisionTrees={dt} />
+          </div>
+        </div>
+      </section>
+    </>
+  )}
+</BaseLayout>

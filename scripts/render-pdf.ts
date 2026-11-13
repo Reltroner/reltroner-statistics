@@ -8,12 +8,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { AuditSchema, CreativeArtifactSchema, GraphSchema, StatisticsDatasetSchema } from '../src/contracts/schemas.ts';
+import { AnalyticsSchema, AuditSchema, CreativeArtifactSchema, DecisionArtifactSchema, GraphSchema, StatisticsDatasetSchema } from '../src/contracts/schemas.ts';
+import type { Analytics } from '../src/lib/data.ts';
 import type { CreativeArtifact } from '../src/domain/creative.ts';
 import type { Audit } from '../src/domain/finding.ts';
 import type { KnowledgeGraph } from '../src/domain/graph.ts';
 import type { StatisticsDataset } from '../src/domain/observation.ts';
+import type { DecisionArtifact } from '../src/engine/decision-intelligence/index.ts';
 import { buildCreativeReportFindings } from '../src/export/creative-reports.ts';
+import { buildDecisionReportFindings } from '../src/export/decision-reports.ts';
 import { buildReportDocument, type ReportContext } from '../src/export/model.ts';
 import { renderHtml, htmlEscape } from '../src/export/render-html.ts';
 import { launchChromium } from './lib/browser.ts';
@@ -32,6 +35,14 @@ const graphPath = path.join(ROOT, 'artifacts', 'graph.json');
 const graph = fs.existsSync(graphPath)
   ? (GraphSchema.parse(JSON.parse(fs.readFileSync(graphPath, 'utf8'))) as unknown as KnowledgeGraph)
   : undefined;
+const decisionsPath = path.join(ROOT, 'artifacts', 'decisions.json');
+const decisions = fs.existsSync(decisionsPath)
+  ? (DecisionArtifactSchema.parse(JSON.parse(fs.readFileSync(decisionsPath, 'utf8'))) as unknown as DecisionArtifact)
+  : null;
+const analyticsPath = path.join(ROOT, 'artifacts', 'analytics.json');
+const analytics = fs.existsSync(analyticsPath)
+  ? (AnalyticsSchema.parse(JSON.parse(fs.readFileSync(analyticsPath, 'utf8'))) as unknown as Analytics)
+  : null;
 
 const outDir = path.join(ROOT, 'dist', 'reports', 'pdf');
 const cacheDir = path.join(ROOT, '.cache', 'pdf');
@@ -52,7 +63,8 @@ const footer = (label: string) => `<div style="width:100%;font:7.5px Segoe UI,Ar
 <span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span></div>`;
 
 const creativeFindings = creative ? buildCreativeReportFindings({ creative, stats, graph }) : [];
-const allIndividualFindings = [...audit.findings.slice(0, only), ...(only === Infinity ? creativeFindings : [])];
+const decisionFindings = decisions ? buildDecisionReportFindings({ decisions, analytics }) : [];
+const allIndividualFindings = [...audit.findings.slice(0, only), ...(only === Infinity ? [...creativeFindings, ...decisionFindings] : [])];
 
 const jobs: Array<{ key: string; file: string; html: string; label: string }> = allIndividualFindings.map((f) => ({
   key: f.id, file: `${f.id}.pdf`, label: f.id, html: renderHtml(buildReportDocument(context, [f], 'single')),

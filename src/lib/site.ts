@@ -23,6 +23,7 @@ export const ROUTES: readonly RouteDef[] = [
   { path: '/', title: 'Observatory overview', section: 'overview', summary: 'Source authority, headline canon indicators and entry points.' },
   { path: '/statistics', title: 'Statistical dashboard', section: 'statistics', summary: 'Production canon indicators, distributions and correlations.' },
   { path: '/statistics/scatter', title: 'Scatter explorer', section: 'statistics', summary: 'Compare any two indicators across nations.' },
+  { path: '/statistics/decision-trees', title: 'Supervised decision trees', section: 'statistics', summary: 'Guarded scikit-learn classifier and regressor evaluation with canonical sufficiency gates.' },
   { path: '/countries', title: 'Countries', section: 'statistics', summary: 'Catalog and side-by-side comparison of modeled nations.' },
   { path: '/history', title: 'Historical dynamics', section: 'statistics', summary: 'Sparse canonical anchors from 1010 BAC to Year 0, never interpolated.' },
   { path: '/clustering', title: 'Clustering laboratory', section: 'analysis', summary: 'Seeded K-Means and DBSCAN with sufficiency gates.' },
@@ -40,6 +41,7 @@ export const ROUTES: readonly RouteDef[] = [
   { path: '/creative/remodel', title: 'Canon remodeling laboratory', section: 'creative', summary: 'Isolated scenario comparison between production canon, remodeling candidates and hypotheses.' },
   { path: '/creative/impact', title: 'Narrative impact simulator', section: 'creative', summary: 'Verified direct, verified transitive, candidate narrative and speculative consequence analysis.' },
   { path: '/creative/roadmap', title: 'Creative development roadmap', section: 'creative', summary: 'Prioritized worldbuilding opportunities ranked by structural reach, tension density and coverage gap.' },
+  { path: '/creative/decisions', title: 'Decision trees', section: 'creative', summary: 'Interactive source-grounded decision trees for creative, editorial and remodeling choices.' },
   { path: '/creative/methodology', title: 'Creative methodology', section: 'creative', summary: 'Source authority, ratification boundaries, privacy rules and inference separation.' },
   { path: '/reports', title: 'Report center', section: 'reports', summary: 'Eight equally selectable export formats with ZIP integrity.' },
   { path: '/releases', title: 'Analysis releases', section: 'reports', summary: 'Versioned, checksummed analysis outputs.' },
@@ -51,6 +53,7 @@ export const SECTION_PAGES: Readonly<Record<SectionId, ReadonlyArray<{ href: str
   statistics: [
     { href: '/statistics', label: 'Dashboard' },
     { href: '/statistics/scatter', label: 'Scatter' },
+    { href: '/statistics/decision-trees', label: 'Decision trees' },
     { href: '/countries', label: 'Countries' },
     { href: '/history', label: 'History' },
   ],
@@ -76,6 +79,7 @@ export const SECTION_PAGES: Readonly<Record<SectionId, ReadonlyArray<{ href: str
     { href: '/creative/remodel', label: 'Remodel' },
     { href: '/creative/impact', label: 'Impact' },
     { href: '/creative/roadmap', label: 'Roadmap' },
+    { href: '/creative/decisions', label: 'Decisions' },
     { href: '/creative/methodology', label: 'Methodology' },
   ],
   reports: [

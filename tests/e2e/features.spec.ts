@@ -127,7 +127,7 @@ test('creative intelligence: worldbuilding explorer, ideation case study, ratifi
 
   // Ideation Studio: Reltronland/Depcutland Case Study + Ratification Guardrail + Private Draft Isolation
   await page.goto('/creative/ideas');
-  await expect(page.getByRole('heading', { name: /Reltronland & Depcutland: Rival Custodial Sovereigns/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Reltronland & Depcutland: cooperating against a shared threat without an alliance/ })).toBeVisible();
   await hydrated(page.getByRole('button', { name: 'RATIFIED_EXTERNALLY' }));
   await page.getByRole('button', { name: 'RATIFIED_EXTERNALLY' }).click();
   await expect(page.getByRole('status')).toContainText(/Cannot mark proposal as RATIFIED_EXTERNALLY without verified creator publication evidence/);
