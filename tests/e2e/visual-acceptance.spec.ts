@@ -27,6 +27,10 @@ for (const route of routes) {
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
       await expect(page.locator('main#main')).toBeVisible();
       await expect(page.locator('h1')).toHaveCount(1);
+      if (route.path.startsWith('/creative/')) {
+        await expect(page.locator('nav[aria-label="Creative Intelligence sections"]')).toHaveCount(1);
+        await expect(page.locator('nav[aria-label="Section"]')).toHaveCount(0);
+      }
       await page.waitForLoadState('networkidle');
       await page.evaluate(() => document.fonts.ready);
       await expectNoHorizontalOverflow(page);
