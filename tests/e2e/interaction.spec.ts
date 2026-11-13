@@ -79,7 +79,7 @@ for (const path of ['/', '/statistics', '/statistics/decision-trees', '/drift', 
   }
 }
 
-test('responsive viewports (360, 390, 768, 1024, 1280, 1440px) and Linux fallback font simulation at 1024px have zero horizontal overflow', async ({ page }) => {
+test('responsive viewports (360, 390, 768, 1024, 1280, 1440px) and Linux fallback font simulation at 360px/1024px have zero horizontal overflow', async ({ page }) => {
   for (const width of [360, 390, 768, 1024, 1280, 1440]) {
     await page.setViewportSize({ width, height: 800 });
     await page.goto('/creative');
@@ -94,5 +94,17 @@ test('responsive viewports (360, 390, 768, 1024, 1280, 1440px) and Linux fallbac
       client: document.documentElement.clientWidth,
     }));
     expect(metrics.scroll, `viewport width ${width}px`).toBeLessThanOrEqual(metrics.client + 1);
+  }
+  for (const route of ['/creative/refactor', '/creative/decisions', '/statistics/decision-trees']) {
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.goto(route);
+    await page.addStyleTag({
+      content: 'body, h1, h2, h3, p, span, a, button, code { font-family: "Liberation Sans", "DejaVu Sans", Arial, sans-serif !important; letter-spacing: 0.03em; }',
+    });
+    const metrics = await page.evaluate(() => ({
+      scroll: document.documentElement.scrollWidth,
+      client: document.documentElement.clientWidth,
+    }));
+    expect(metrics.scroll, `mobile Linux fallback font on ${route}`).toBeLessThanOrEqual(metrics.client + 1);
   }
 });
