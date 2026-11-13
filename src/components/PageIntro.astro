@@ -2,6 +2,7 @@
 import Breadcrumbs from './Breadcrumbs.astro';
 import SectionNav from './SectionNav.astro';
 import SourceStrip, { type SourceKey } from './SourceStrip.astro';
+import { sectionFor } from '../lib/site.ts';
 
 interface Props {
   eyebrow?: string;
@@ -13,7 +14,9 @@ interface Props {
   limits?: string[];
   sectionNav?: boolean;
 }
-const { eyebrow, title, lede, crumbs = [], sources, model = null, limits = [], sectionNav = true } = Astro.props;
+// All Creative pages already render CreativeSubnav. Avoid a second duplicate SectionNav.
+const defaultSectionNav = sectionFor(Astro.url.pathname) !== 'creative';
+const { eyebrow, title, lede, crumbs = [], sources, model = null, limits = [], sectionNav = defaultSectionNav } = Astro.props;
 const hasAside = Astro.slots.has('aside');
 ---
 <section class="pt-6 pb-8 sm:pt-8 lg:pb-12">
