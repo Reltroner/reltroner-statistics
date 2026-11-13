@@ -8,6 +8,11 @@ on:
       remodeling_sha:
         description: 'Pinned reltroner-studio-remodeling commit (blank = resolve main)'
         required: false
+      publish_statistics:
+        description: 'Explicit release to the isolated reltroner-statistics.pages.dev project (default: build only)'
+        type: boolean
+        required: true
+        default: false
   repository_dispatch:
     types: [reltroner-source-changed]
   schedule:
@@ -78,6 +83,13 @@ jobs:
             node -e "const m=require('./artifacts/manifest.json');console.log('- production: '+m.sources.production.commit_sha+'\n- remodeling: '+m.sources.remodeling.commit_sha+'\n- rules: '+m.rules_version+'\n- digest: '+m.semantic_digest+'\n- Studio deployment: '+m.deployment.status)"
             echo "- All gates passed. This artifact is a build, not a deployment."
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: RC-DEPLOY-01 — preserve visual acceptance screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: statistics-visual-acceptance-${{ github.run_id }}
+          path: artifacts/visual-acceptance/
+          retention-days: 14
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
           name: analysis-release-${{ github.run_id }}
@@ -89,7 +101,7 @@ jobs:
   publish:
     name: Publish to Cloudflare Pages
     needs: build
-    if: github.ref == 'refs/heads/main' && vars.CLOUDFLARE_PAGES_PROJECT != '' && vars.SITE_URL != ''
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_statistics == true && github.ref == 'refs/heads/main' && vars.CLOUDFLARE_PAGES_PROJECT == 'reltroner-statistics' && vars.SITE_URL == 'https://reltroner-statistics.pages.dev'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: production
@@ -108,6 +120,13 @@ jobs:
         run: |
           test -n "$CLOUDFLARE_API_TOKEN" || { echo "CLOUDFLARE_API_TOKEN secret missing"; exit 1; }
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "CLOUDFLARE_ACCOUNT_ID secret missing"; exit 1; }
+      - name: RC-DEPLOY-01 — GET-only project identity and custom domain isolation
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: node scripts/guard-pages-target.ts
       - name: Deploy static build (Statistics only; Studio is never deployed from here)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -117,15 +136,15 @@ jobs:
         run: node scripts/verify-deployment.ts "${{ vars.SITE_URL }}"
 
   not-configured:
-    name: Publication not configured
+    name: Publication held — explicit authorization required
     needs: build
-    if: vars.CLOUDFLARE_PAGES_PROJECT == '' || vars.SITE_URL == ''
+    if: github.event_name != 'workflow_dispatch' || inputs.publish_statistics != true || vars.CLOUDFLARE_PAGES_PROJECT != 'reltroner-statistics' || vars.SITE_URL != 'https://reltroner-statistics.pages.dev'
     runs-on: ubuntu-latest
     steps:
       - run: |
           {
-            echo "### DEPLOYMENT_NOT_CONFIGURED"
-            echo "The release candidate passed every gate and is available as a workflow artifact."
-            echo "Publishing requires repository variables CLOUDFLARE_PAGES_PROJECT and SITE_URL,"
-            echo "secrets CLOUDFLARE_API_TOKEN (Pages: Edit) and CLOUDFLARE_ACCOUNT_ID, and an environment named production."
+            echo "### RC-DEPLOY-01 PUBLICATION_HELD"
+            echo "The release candidate passed all build gates; no Pages publish or DNS change was attempted."
+            echo "Publishing requires an explicit workflow_dispatch with publish_statistics=true and exact Statistics-only variables,"
+            echo "Cloudflare Pages credentials plus production environment approval. A read-only Pages project/domain preflight must pass."
           } >> "$GITHUB_STEP_SUMMARY"
