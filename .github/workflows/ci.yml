@@ -99,6 +99,14 @@ jobs:
         run: npm run build
       - name: Browser tests (routes, 4 viewports, themes, a11y, keyboard, exports)
         run: npm run test:e2e
+      - name: RC-DEPLOY-01 — upload responsive visual acceptance screenshots
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: statistics-visual-acceptance-${{ github.sha }}
+          path: artifacts/visual-acceptance/
+          retention-days: 14
+          if-no-files-found: error
       - name: Upload deploy-ready build (CI artifact, not a public deployment)
         if: success()
         uses: actions/upload-artifact@v4
