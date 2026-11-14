@@ -32,6 +32,10 @@ jobs:
           $parseErrors = $null
           [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD.Path 'scripts/sync-main-ff-only.ps1'), [ref]$tokens, [ref]$parseErrors) | Out-Null
           if ($parseErrors.Count -gt 0) { $parseErrors | ForEach-Object { Write-Error $_.Message }; exit 1 }
+      - name: Regression — PowerShell 5.1 git fetch stderr handling
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: .\\tests\\windows\\git-native-stderr.ps1
       - name: Unit tests (deterministic fixtures)
         run: npm test
       - name: Contract drift check (Zod → JSON Schema)

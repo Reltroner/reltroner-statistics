@@ -21,9 +21,13 @@ $Site = 'https://statistics.reltroner.com'
 
 function Invoke-GitChecked {
     param([Parameter(Mandatory=$true)][string[]]$Arguments)
-    $result = @( & git @Arguments 2>&1 )
-    if ($LASTEXITCODE -ne 0) {
-        throw ("git " + ($Arguments -join ' ') + " failed: " + ($result -join '\n'))
+    # Windows PowerShell 5.1 treats redirected native stderr as an ErrorRecord.
+    # With ErrorActionPreference=Stop, Git's successful fetch progress would throw.
+    # Capture stdout only; keep stderr on the console and trust the actual exit code.
+    $result = @( & git @Arguments )
+    $gitExitCode = $LASTEXITCODE
+    if ($gitExitCode -ne 0) {
+        throw ("git " + ($Arguments -join ' ') + " failed with exit code " + $gitExitCode)
     }
     return $result
 }
