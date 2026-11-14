@@ -15,7 +15,7 @@ test('Species & ancestry: planet chart, national coverage and per-country percen
   await expect(page.getByRole('heading', { name: 'Beluftner · primary ancestry' })).toBeVisible();
   await expect(page.getByText('90.30%').first()).toBeVisible();
   await expect(page.getByText('82.17').first()).toBeVisible();
-  await expect(page.getByText(/NOT_ASSIGNED/).first()).toBeVisible();
+  await expect(page.locator('option[value="country:scenrepolia"]')).toContainText('ancestry unassigned');
   await expectNoHorizontalOverflow(page);
   watch.expectClean();
 });
