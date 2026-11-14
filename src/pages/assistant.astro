@@ -12,10 +12,11 @@ const composition = getComposition();
     title="Statistics Intelligence Assistant"
     lede="Ask about canon indicators, species/primary ancestry, national population, Spatial 3D composition, and source-grounded worldbuilding. The default assistant computes and retrieves from the pinned public evidence index instead of inventing a number."
     crumbs={[{ href: '/statistics', label: 'Statistics' }, { label: 'Ask AI' }]}
-    sources={['production','statistics','rules']} model={composition.model_version}
+    sources={['production','remodeling','statistics','rules']} model={composition.model_version}
     limits={[
       'Public deterministic Q&A is active without an external AI model. Answers are restricted to indexed canonical statistics and narrative evidence.',
       'The optional LLM synthesis endpoint is fail-closed: until owner-approved service configuration, a model key and rate limiter are provided, external synthesis is unavailable.',
+      'Ancestry/Spatial 3D composition examples use a pinned Remodeling model and are labeled as such; production numerical indicators retain separate production provenance.',
       'Natural-language answers are explanations rather than new canon. Source match does not prove causal truth; missing observations remain missing.',
       'Do not submit confidential unpublished ideas to a public AI service. No private creator drafts are published in the static evidence index.',
     ]}
