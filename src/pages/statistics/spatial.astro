@@ -35,6 +35,8 @@ const habitats = data.countries.filter((c) => c.habitat_status === 'ASSIGNED').l
     <div class="rs-container">
       <CompositionExplorer client:load mode="spatial" data={data} />
       <div class="mt-6 flex flex-wrap gap-3">
+        <a href="/data/spatial.csv" class="rs-button rs-button-ghost no-underline">Download Spatial 3D CSV →</a>
+        <a href="/data/composition.json" class="rs-button rs-button-ghost no-underline">View source-anchored JSON →</a>
         <a href="/statistics/species" class="rs-button rs-button-ghost no-underline">Explore Species & Ancestry →</a>
         <a href="/statistics" class="rs-button rs-button-ghost no-underline">Return to Statistical Dashboard →</a>
       </div>
