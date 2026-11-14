@@ -119,6 +119,18 @@ if (args['--skip-python']) {
   }
   steps.push({ id: 'analytics', status: 'COMPLETED', detail: (res.stdout ?? '').trim().split('\n').pop() ?? 'ok' });
   log(steps.at(-1)!.detail);
+  const figures = spawnSync(process.execPath, [
+    path.join(ROOT, 'scripts', 'run-python.mjs'), '-m', 'reltroner_analytics.composition_figures',
+    '--input', path.join(staging, 'composition.json'),
+    '--charts-dir', path.join(staging, 'charts'),
+  ], { cwd: ROOT, encoding: 'utf8' });
+  if (figures.status !== 0) {
+    process.stderr.write(figures.stdout ?? '');
+    process.stderr.write(figures.stderr ?? '');
+    throw new Error('Composition Matplotlib chart generation failed; previous artifacts preserved.');
+  }
+  steps.push({ id: 'composition-matplotlib', status: 'COMPLETED', detail: (figures.stdout ?? '').trim().split('\n').pop() ?? 'ok' });
+  log(steps.at(-1)!.detail);
 }
 
 const analyticsPath = path.join(staging, 'analytics.json');
