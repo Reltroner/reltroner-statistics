@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { hydrated, setTheme, watchConsole } from './helpers.ts';
+import { expectNoHorizontalOverflow, hydrated, setTheme, watchConsole } from './helpers.ts';
 
 test('skip link moves focus to main content', async ({ page }) => {
   await page.goto('/statistics');
