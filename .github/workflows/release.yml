@@ -9,7 +9,7 @@ on:
         description: 'Pinned reltroner-studio-remodeling commit (blank = resolve main)'
         required: false
       publish_statistics:
-        description: 'Explicit release to the isolated reltroner-statistics.pages.dev project (default: build only)'
+        description: 'Explicit release to the isolated Statistics Pages project (pages.dev bootstrap or statistics.reltroner.com; default: build only)'
         type: boolean
         required: true
         default: false
@@ -26,6 +26,8 @@ jobs:
   build:
     name: Build and verify release candidate
     runs-on: ubuntu-latest
+    env:
+      SITE_URL: ${{ vars.SITE_URL }}
     timeout-minutes: 45
     outputs:
       digest: ${{ steps.summary.outputs.digest }}
@@ -101,7 +103,7 @@ jobs:
   publish:
     name: Publish to Cloudflare Pages
     needs: build
-    if: github.event_name == 'workflow_dispatch' && inputs.publish_statistics == true && github.ref == 'refs/heads/main' && vars.CLOUDFLARE_PAGES_PROJECT == 'reltroner-statistics' && vars.SITE_URL == 'https://reltroner-statistics.pages.dev'
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_statistics == true && github.ref == 'refs/heads/main' && vars.CLOUDFLARE_PAGES_PROJECT == 'reltroner-statistics' && (vars.SITE_URL == 'https://reltroner-statistics.pages.dev' || vars.SITE_URL == 'https://statistics.reltroner.com')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: production
@@ -127,6 +129,14 @@ jobs:
           CLOUDFLARE_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
           SITE_URL: ${{ vars.SITE_URL }}
         run: node scripts/guard-pages-target.ts
+      - name: Refuse publishing an obsolete GitHub commit
+        shell: bash
+        run: |
+          git fetch --depth=1 origin main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/main)" || {
+            echo "STALE_RELEASE_BLOCKED: main advanced during the release candidate build"
+            exit 1
+          }
       - name: Deploy static build (Statistics only; Studio is never deployed from here)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -138,7 +148,7 @@ jobs:
   not-configured:
     name: Publication held — explicit authorization required
     needs: build
-    if: github.event_name != 'workflow_dispatch' || inputs.publish_statistics != true || vars.CLOUDFLARE_PAGES_PROJECT != 'reltroner-statistics' || vars.SITE_URL != 'https://reltroner-statistics.pages.dev'
+    if: github.event_name != 'workflow_dispatch' || inputs.publish_statistics != true || vars.CLOUDFLARE_PAGES_PROJECT != 'reltroner-statistics' || (vars.SITE_URL != 'https://reltroner-statistics.pages.dev' && vars.SITE_URL != 'https://statistics.reltroner.com')
     runs-on: ubuntu-latest
     steps:
       - run: |
@@ -146,5 +156,5 @@ jobs:
             echo "### RC-DEPLOY-01 PUBLICATION_HELD"
             echo "The release candidate passed all build gates; no Pages publish or DNS change was attempted."
             echo "Publishing requires an explicit workflow_dispatch with publish_statistics=true and exact Statistics-only variables,"
-            echo "Cloudflare Pages credentials plus production environment approval. A read-only Pages project/domain preflight must pass."
+            echo "Cloudflare credentials plus production environment approval. Only Statistics pages.dev bootstrap or the sole active statistics.reltroner.com custom domain is allowed."
           } >> "$GITHUB_STEP_SUMMARY"
