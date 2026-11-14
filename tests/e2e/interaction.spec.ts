@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { hydrated, setTheme, watchConsole } from './helpers.ts';
+import { expectNoHorizontalOverflow, hydrated, setTheme, watchConsole } from './helpers.ts';
 
 test('skip link moves focus to main content', async ({ page }) => {
   await page.goto('/statistics');
@@ -40,6 +40,39 @@ test('mobile menu is a keyboard-operable disclosure @mobile', async ({ page }, i
   await page.keyboard.press('Escape');
   await expect(page.locator('#mobile-nav')).toBeHidden();
   await expect(toggle).toBeFocused();
+});
+
+test('Studio Contact is directly accessible from the responsive navbar @responsive', async ({ page }) => {
+  await page.goto('/');
+  const target = 'https://www.reltroner.com/contact';
+  const width = page.viewportSize()?.width ?? 1440;
+  const desktopLink = page.locator('nav[aria-label="Primary"] a[data-studio-contact-link]');
+  const mobileLink = page.locator('nav[aria-label="Mobile"] a[data-studio-contact-link]');
+
+  await expect(desktopLink).toHaveAttribute('href', target);
+  await expect(mobileLink).toHaveAttribute('href', target);
+  for (const link of [desktopLink, mobileLink]) {
+    await expect(link).toHaveAttribute('target', '_blank');
+    await expect(link).toHaveAttribute('rel', /noopener noreferrer/);
+    await expect(link).toContainText('Contact');
+  }
+
+  if (width >= 1280) {
+    await expect(desktopLink).toBeVisible();
+    await expect(mobileLink).toBeHidden();
+    await expect(page.locator('[data-menu-toggle]')).toBeHidden();
+  } else {
+    await expect(desktopLink).toBeHidden();
+    const toggle = page.locator('[data-menu-toggle]');
+    await expect(toggle).toBeVisible();
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(mobileLink).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(mobileLink).toBeHidden();
+    await expect(toggle).toBeFocused();
+  }
+  await expectNoHorizontalOverflow(page);
 });
 
 test('theme toggle switches, persists across navigation and re-themes charts', async ({ page }) => {
