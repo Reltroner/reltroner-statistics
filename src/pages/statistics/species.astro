@@ -8,12 +8,13 @@ import { getComposition } from '../../lib/data.ts';
 const data = getComposition();
 const scoped = data.countries.filter((c) => c.ancestry_status === 'ASSIGNED');
 ---
-<BaseLayout title="Species & ancestry demographics" description="Source-verified NCCM V6.5 primary ancestry across planet Asthortera and the 14 countries with complete national breakdowns.">
+<BaseLayout title="Species & ancestry demographics" description="Pinned Remodeling NCCM V6.5 primary ancestry across planet Asthortera and the 14 countries with complete national breakdowns.">
   <PageIntro eyebrow="Domain · Sentient demographics" title="Species & ancestry demographics"
     lede="Explore the six-category primary ancestry model for Asthortera, compare national percentage shares and absolute population, and inspect exactly what the current census does not yet assign."
     crumbs={[{ href: '/statistics', label: 'Statistics' }, { label: 'Species & ancestry' }]}
-    sources={['production','model','statistics']} model={data.model_version}
+    sources={['production','remodeling','model','statistics']} model={data.model_version}
     limits={[
+      'These NCCM values are from a pinned Remodeling source snapshot; they are not automatically published Studio production canon.',
       'The six primary ancestry categories are not a biological species taxonomy; biological species identification remains a separate proposed data domain.',
       'Asthortera’s six-share planetary model is a creator-ratified representative 14-country benchmark, not a complete 37-country independently observed census.',
       'Five development nations lack ancestry percentages and eighteen states form one aggregate. Missing shares are not zero.',
@@ -21,7 +22,7 @@ const scoped = data.countries.filter((c) => c.ancestry_status === 'ASSIGNED');
   />
   <section class="pb-9" aria-label="Ancestry demographic headline metrics">
     <div class="rs-container grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <StatTile label="Asthortera population" value={data.planet.population_billion.toLocaleString('en-US') + ' billion'} status="CANON_OBSERVED" />
+      <StatTile label="Asthortera population" value={data.planet.population_billion.toLocaleString('en-US') + ' billion'} note="Creator-ratified in Remodeling; not production-published" />
       <StatTile label="Countries with ancestry shares" value={String(scoped.length)} note="Six categories sum to 100% per nation" />
       <StatTile label="Nation-specific ancestry unassigned" value={String(data.coverage.national_ancestry_unassigned)} note="Five development nations" />
       <StatTile label="Additional unprofiled nations" value={String(data.coverage.residual_states)} note="One combined residual, never invented country records" />
