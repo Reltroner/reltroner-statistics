@@ -2,6 +2,7 @@
  * Evidence-anchored NCCM V6.5 demographics and spatial composition.
  * Primary ancestry is not a biological species taxonomy. Percent denominators:
  * ancestry = unique residents; surface = terrestrial land; habitat = unique residents.
+ * The 3D records are sourced from REMODELING, not automatically promoted to Studio production.
  * Never infer geometric volume, invented country values, or current-year census from
  * the historical 14-country planetary representativity benchmark.
  */
@@ -37,7 +38,8 @@ const surfaceRow = z.object({ key: z.string(), label: z.string(), pct: share, ar
 export const CompositionSchema = z.object({
   schema_version: z.literal('reltroner-composition.v1'),
   model_version: z.string().min(1),
-  source: z.object({ repository: z.literal('Reltroner/reltroner-studio'), commit_sha: z.string().regex(/^[a-f0-9]{40}$/), blob_sha: z.string().regex(/^[a-f0-9]{40}$/), path: z.literal(NCCM_DATASET_PATH) }),
+  source: z.object({ repository: z.literal('Reltroner/reltroner-studio-remodeling'), commit_sha: z.string().regex(/^[a-f0-9]{40}$/), blob_sha: z.string().regex(/^[a-f0-9]{40}$/), path: z.literal(NCCM_DATASET_PATH) }),
+  authority: z.literal('REMODELING_MAIN_CREATOR_RATIFIED_MODEL_NOT_PRODUCTION'),
   planet: z.object({
     name: z.literal('Asthortera'), population_billion: finite.positive(), sovereign_states: z.number().int().positive(),
     land_area_million_km2: finite.positive(),
@@ -90,7 +92,7 @@ function vector<const T extends ReadonlyArray<{ key: string; label: string }>>(
   return result;
 }
 
-/** One pinned GitHub blob is the entire authoritative source for both domains. */
+/** One pinned Remodeling GitHub blob supplies the explicitly non-production modeling view. */
 export async function buildComposition(snapshot: SourceSnapshot): Promise<Composition> {
   const entry = snapshot.entries.get(NCCM_DATASET_PATH);
   if (!entry || entry.type !== 'blob') throw new Error('COMPOSITION_SOURCE_MISSING: ' + NCCM_DATASET_PATH);
@@ -141,7 +143,8 @@ export async function buildComposition(snapshot: SourceSnapshot): Promise<Compos
   return CompositionSchema.parse({
     schema_version: 'reltroner-composition.v1',
     model_version: String(doc.schema_version),
-    source: { repository: 'Reltroner/reltroner-studio', commit_sha: snapshot.identity.commit_sha, blob_sha: entry.sha, path: NCCM_DATASET_PATH },
+    authority: 'REMODELING_MAIN_CREATOR_RATIFIED_MODEL_NOT_PRODUCTION',
+    source: { repository: 'Reltroner/reltroner-studio-remodeling', commit_sha: snapshot.identity.commit_sha, blob_sha: entry.sha, path: NCCM_DATASET_PATH },
     planet: {
       name: 'Asthortera', population_billion: population, sovereign_states: states,
       land_area_million_km2: numeric(planet.land_area_million_km2, 'planet.land_area_million_km2'),
@@ -158,6 +161,7 @@ export async function buildComposition(snapshot: SourceSnapshot): Promise<Compos
     unknowns: [
       'The planetary ancestry model is a creator-ratified 14-country representative benchmark, not a measured 37-country census.',
       'Primary ancestry is not an independently documented biological species classification.',
+      'All values on this dedicated composition surface originate from the pinned Remodeling model, not from Studio production main; creator ratification inside Remodeling does not constitute a production publication.',
       'The five additional nations have unassigned national ancestry compositions; the other 18 states are a combined residual.',
       'Surface percent uses terrestrial land area, not built volume; principal habitat percent uses unique residents, not land area or urbanization.',
       'Country polygon geometry, constructed/occupied/habitable km³ and marine residence by depth remain unassigned, not zero.',
