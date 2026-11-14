@@ -143,11 +143,11 @@ export default function CompositionExplorer({ mode, data }: { mode: Mode; data: 
     </>}
     <section className="rs-card p-5">
       <h2 className="rs-h3">Source, denominators & limitations</h2>
-      <p className="mt-2 text-sm text-ink-2">Source: <a href={sourceLink(data)} target="_blank" rel="noopener noreferrer">Pinned production GitHub NCCM ledger (opens in a new tab)</a> at <code>{data.source.commit_sha.slice(0, 12)}</code>.</p>
+      <p className="mt-2 text-sm text-ink-2">Source: <a href={sourceLink(data)} target="_blank" rel="noopener noreferrer">Pinned Remodeling GitHub NCCM ledger (opens in a new tab)</a> at <code>{data.source.commit_sha.slice(0, 12)}</code>.</p>
       <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-ink-2">
         {data.unknowns.map((u, i) => <li key={i}>{u}</li>)}
       </ul>
-      <p className="mt-3 text-xs text-ink-3">All percentages, population counts and land areas are sourced or computed from a named pinned ledger. Derived values are reproducible; they are not newly observed canon.</p>
+      <p className="mt-3 text-xs text-ink-3">This surface presents creator-ratified modeling values from REMODELING_MAIN, not automatically published Studio production canon. Derived values are reproducible, not independently observed censuses.</p>
     </section>
   </div>;
 }
