@@ -36,7 +36,7 @@ function fixture() {
 function mockSnapshot(doc: unknown): SourceSnapshot {
   const blobSha = 'a'.repeat(40);
   return {
-    identity: { side: 'production', role: 'PRODUCTION_MAIN', repository: 'Reltroner/reltroner-studio', requested_ref: 'main', commit_sha: 'b'.repeat(40), tree_sha: 'c'.repeat(40), committed_at: null, headline: 'test fixture' },
+    identity: { side: 'remodeling', role: 'REMODELING_MAIN', repository: 'Reltroner/reltroner-studio-remodeling', requested_ref: 'main', commit_sha: 'b'.repeat(40), tree_sha: 'c'.repeat(40), committed_at: null, headline: 'test fixture' },
     entries: new Map([[NCCM_DATASET_PATH, { sha: blobSha, size: 10, mode: '100644', type: 'blob' }]]),
     readBlob: async () => new TextEncoder().encode(JSON.stringify(doc)),
   } as SourceSnapshot;
@@ -85,7 +85,7 @@ test('Deterministic assistant cites pinned source and never equates share with a
     facts: [{ entity: 'Reltronland', indicator: 'sdi', label: 'Sentient Development Index', value: 0.984, unit: 'index', status: 'CANON_OBSERVED', source: { repository: composition.source.repository, commit_sha: composition.source.commit_sha, path: composition.source.path, pointer: 'countries_14[0].sdi' } }],
   };
   const a = answerQuestion(index, 'Berapa Phantomkind di Reltronland?');
-  assert.equal(a.status, 'DERIVED_FROM_CANON');
+  assert.equal(a.status, 'REMODELING_MODEL');
   assert.match(a.paragraphs.join(' '), /2% = 17.1 billion/);
   assert.equal(a.citations[0]?.url.includes(composition.source.commit_sha), true);
   const b = answerQuestion(index, 'Spatial 3D composition Reltronland');
