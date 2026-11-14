@@ -9,13 +9,14 @@ const data = getComposition();
 const surface = data.countries.filter((c) => c.surface_status === 'ASSIGNED').length;
 const habitats = data.countries.filter((c) => c.habitat_status === 'ASSIGNED').length;
 ---
-<BaseLayout title="Spatial 3D composition" description="Canon C NCCM V6.5 national land-footprint and unique-resident habitat composition with distinct denominators and missing 3D geometry explicitly identified.">
-  <PageIntro eyebrow="Domain · Spatial 3D · NCCM V6.5 Canon C"
+<BaseLayout title="Spatial 3D composition" description="Remodeling creator-ratified NCCM V6.5 national land-footprint and unique-resident habitat composition with distinct denominators and missing 3D geometry explicitly identified.">
+  <PageIntro eyebrow="Domain · Spatial 3D · NCCM V6.5 · Remodeling Canon C"
     title="Spatial 3D composition · Year 0"
     lede="Measure where terrestrial land is classified and where sentient residents principally live. Compare footprints and habitats across nations without confusing two-dimensional land, unique residents, urbanization or unknown volumetric geometry."
     crumbs={[{ href: '/statistics', label: 'Statistics' }, { label: 'Spatial 3D' }]}
-    sources={['production','model','statistics']} model={data.model_version}
+    sources={['production','remodeling','model','statistics']} model={data.model_version}
     limits={[
+      'The screenshot measurements live in the pinned Remodeling model, NOT the current Studio production JSON. Publication status remains explicitly separate.',
       'Terrestrial surface footprint is percentage of national land area—not built, constructed or habitable km³.',
       'Principal home habitat is percentage of unique residents—not surface area, density or the urbanization rate.',
       'National polygons, constructed volume, habitable volume, underwater residence by depth and marine carrying capacity remain UNASSIGNED (not zero).',
