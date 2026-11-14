@@ -20,7 +20,7 @@ export interface AgentIndex {
 export interface AgentCitation { title: string; url: string; detail: string }
 export interface AgentAnswer {
   mode: 'DETERMINISTIC_EVIDENCE';
-  status: 'CANON_SOURCE' | 'DERIVED_FROM_CANON' | 'SOURCE_MATCH' | 'INSUFFICIENT_DATA';
+  status: 'CANON_SOURCE' | 'REMODELING_MODEL' | 'SOURCE_MATCH' | 'INSUFFICIENT_DATA';
   question: string; heading: string; paragraphs: string[];
   citations: AgentCitation[]; limitations: string[];
   suggested_routes: string[];
@@ -33,7 +33,7 @@ const has = (s: string, ...terms: string[]) => terms.some((term) => nl(s).includ
 const words = (text: string) => (nl(text).match(/[\p{L}\p{N}]+/gu) ?? [])
   .filter((w) => w.length > 2 && !new Set(['yang', 'dengan', 'untuk', 'berapa', 'what', 'about', 'tell', 'dari', 'the', 'and', 'adalah', 'dalam', 'compare', 'bandingkan', 'population', 'populasi']).has(w));
 const citation = (index: AgentIndex, pointer: string): AgentCitation => ({
-  title: 'NCCM V6.5 · pinned production source',
+  title: 'NCCM V6.5 · pinned Remodeling source',
   url: url(index.composition.source),
   detail: pointer + ' · ' + index.production_sha.slice(0, 12),
 });
@@ -60,7 +60,7 @@ export function answerQuestion(index: AgentIndex, rawQuestion: string): AgentAns
     has(lower, r.key, r.label, ...(r.key === 'native' ? ['asthorteran'] : [])));
   const asksAncestry = !!explicitAncestry || has(lower, 'species', 'spesies', 'ancestry', 'keturunan', 'komposisi penduduk', 'asal-usul', 'ras', 'phantomkind');
   if (asksSpatial && (countries.length > 0 || has(lower, 'spatial 3d', 'spatial', 'habitat'))) {
-    ans.status = 'DERIVED_FROM_CANON';
+    ans.status = 'REMODELING_MODEL';
     ans.heading = 'Spatial composition · Year 0';
     const inspected = countries.length ? countries : [data.countries.find((c) => c.name === 'Reltronland')!];
     for (const c of inspected) {
@@ -73,12 +73,12 @@ export function answerQuestion(index: AgentIndex, rawQuestion: string): AgentAns
       }
       ans.citations.push(citation(index, c.source_pointer + '.spatial_3d_canon'));
     }
-    ans.limitations.push('Land footprint, usual home habitat and urbanization use different denominators. Country polygons, constructed/habitable km³ and marine residence by depth remain UNASSIGNED—not zero.');
+    ans.limitations.push('Spatial source is creator-ratified within Remodeling, NOT published Studio production. Land footprint, usual home habitat and urbanization use different denominators. Country polygons, constructed/habitable km³ and marine residence by depth remain UNASSIGNED—not zero.');
     ans.suggested_routes = ['/statistics/spatial', '/countries'];
     return ans;
   }
   if (asksAncestry) {
-    ans.status = 'DERIVED_FROM_CANON';
+    ans.status = 'REMODELING_MODEL';
     ans.heading = 'Primary ancestry · NCCM V6.5 Year 0';
     if (!countries.length) {
       ans.paragraphs.push('Planet Asthortera: ' + fmt(data.planet.population_billion) + ' billion unique residents. Six-category creator-ratified planetary representative model: ' + data.planet.ancestry.map((r) => r.label + ' ' + fmt(r.pct) + '%').join('; ') + '.');
