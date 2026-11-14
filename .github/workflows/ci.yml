@@ -1,9 +1,7 @@
 name: Reltroner Statistics — CI
 on:
   push:
-    paths-ignore:
-      - '**/*.png'
-      - '**/*.pdf'
+    branches: [main]
   pull_request:
 permissions:
   contents: read
@@ -66,6 +64,8 @@ jobs:
     name: Pipeline, static build and browser tests
     needs: [determinism, analytics]
     runs-on: ubuntu-latest
+    env:
+      SITE_URL: ${{ vars.SITE_URL }}
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
@@ -125,3 +125,54 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+
+  publish_statistics:
+    name: Publish verified main SHA to Statistics custom domain
+    needs: [site]
+    # A repo variable alone cannot redirect an unrelated Pages project; both values must match.
+    # The Cloudflare GET-only preflight additionally checks project identity and its sole active custom domain.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.CLOUDFLARE_PAGES_PROJECT == 'reltroner-statistics' && vars.SITE_URL == 'https://statistics.reltroner.com'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: statistics-production
+      cancel-in-progress: false
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-${{ github.sha }}
+      - name: Reject stale deploys when main advanced
+        shell: bash
+        run: |
+          git fetch --depth=1 origin main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/main)" || {
+            echo "STALE_DEPLOY_BLOCKED: a newer main commit superseded this build"
+            exit 1
+          }
+      - name: Require Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "CLOUDFLARE_API_TOKEN missing"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "CLOUDFLARE_ACCOUNT_ID missing"; exit 1; }
+      - name: Fail closed — GET-only Pages project and exact active custom domain
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: node scripts/guard-pages-target.ts
+      - name: Deploy verified static artifact to Statistics Pages only
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4.161.0 pages deploy dist --project-name reltroner-statistics --branch main --commit-hash "${{ github.sha }}"
+      - name: Verify deployed website matches this exact GitHub commit and source digest
+        run: node scripts/verify-deployment.ts https://statistics.reltroner.com
