@@ -22,6 +22,9 @@ export const SECTIONS: ReadonlyArray<{ id: SectionId; label: string; href: strin
 export const ROUTES: readonly RouteDef[] = [
   { path: '/', title: 'Observatory overview', section: 'overview', summary: 'Source authority, headline canon indicators and entry points.' },
   { path: '/statistics', title: 'Statistical dashboard', section: 'statistics', summary: 'Production canon indicators, distributions and correlations.' },
+  { path: '/statistics/species', title: 'Species & ancestry demographics', section: 'statistics', summary: 'Canonical six-category primary ancestry, national percentages and derived populations; distinguish ancestry from biological species.' },
+  { path: '/statistics/spatial', title: 'Spatial 3D composition', section: 'statistics', summary: 'Terrestrial land footprints and principal resident habitats with separate denominators and missing geometric volumes.' },
+  { path: '/assistant', title: 'Statistics Intelligence Assistant', section: 'statistics', summary: 'Read-only evidence Q&A about statistics, source-grounded worldbuilding, ancestry and spatial composition.' },
   { path: '/statistics/scatter', title: 'Scatter explorer', section: 'statistics', summary: 'Compare any two indicators across nations.' },
   { path: '/statistics/decision-trees', title: 'Supervised decision trees', section: 'statistics', summary: 'Guarded scikit-learn classifier and regressor evaluation with canonical sufficiency gates.' },
   { path: '/countries', title: 'Countries', section: 'statistics', summary: 'Catalog and side-by-side comparison of modeled nations.' },
@@ -53,6 +56,9 @@ export const SECTION_PAGES: Readonly<Record<SectionId, ReadonlyArray<{ href: str
   statistics: [
     { href: '/statistics', label: 'Dashboard' },
     { href: '/statistics/scatter', label: 'Scatter' },
+    { href: '/statistics/species', label: 'Species' },
+    { href: '/statistics/spatial', label: 'Spatial 3D' },
+    { href: '/assistant', label: 'Ask AI' },
     { href: '/statistics/decision-trees', label: 'Decision trees' },
     { href: '/countries', label: 'Countries' },
     { href: '/history', label: 'History' },
@@ -97,7 +103,7 @@ export const ECOSYSTEM = [
 export function sectionFor(pathname: string): SectionId {
   const clean = pathname.replace(/\/+$/, '') || '/';
   if (clean === '/') return 'overview';
-  if (clean.startsWith('/statistics') || clean.startsWith('/countries') || clean.startsWith('/history')) return 'statistics';
+  if (clean.startsWith('/statistics') || clean.startsWith('/countries') || clean.startsWith('/history') || clean.startsWith('/assistant')) return 'statistics';
   if (clean.startsWith('/clustering') || clean.startsWith('/anomalies') || clean.startsWith('/qa')) return 'analysis';
   if (clean.startsWith('/drift') || clean.startsWith('/compare')) return 'drift';
   if (clean.startsWith('/graph') || clean.startsWith('/impact')) return 'knowledge';

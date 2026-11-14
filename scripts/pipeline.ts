@@ -17,6 +17,7 @@ import { loadGitHubSnapshot } from '../src/adapters/snapshot.ts';
 import { AnalyticsSchema, ArtifactManifestSchema, AuditSchema, CreativeArtifactSchema, DecisionArtifactSchema, GraphSchema, QaReportSchema, StatisticsDatasetSchema } from '../src/contracts/schemas.ts';
 import { compareSources } from '../src/engine/comparator.ts';
 import { buildCreativeIntelligenceArtifact } from '../src/engine/creative-intelligence/index.ts';
+import { buildComposition, CompositionSchema } from '../src/domain/composition.ts';
 import { buildDecisionArtifact } from '../src/engine/decision-intelligence/index.ts';
 import type { MlModel } from '../src/engine/decision-intelligence/ml.ts';
 import { sha256Hex } from '../src/engine/git-objects.ts';
@@ -54,6 +55,10 @@ log(steps.at(-1)!.detail);
 
 const stats = await extractStatistics(production, remodeling);
 steps.push({ id: 'observations', status: 'COMPLETED', detail: `${stats.observations.length} production observations, ${stats.proposals.length} remodeling proposals, ${stats.evidence_checks.filter((e) => e.status === 'VERIFIED').length}/${stats.evidence_checks.length} evidence rules verified` });
+log(steps.at(-1)!.detail);
+
+const composition = await buildComposition(remodeling);
+steps.push({ id: 'composition', status: 'COMPLETED', detail: `${composition.coverage.complete_ancestry} national ancestry profiles; ${composition.countries.filter((c) => c.surface_status === 'ASSIGNED').length} spatial profiles, pinned Remodeling source (not production canon)` });
 log(steps.at(-1)!.detail);
 
 const readDoc = async (s: typeof production) => {
@@ -97,6 +102,7 @@ write('observations.json', stats);
 write('qa.json', qa);
 write('graph.json', graph);
 write('creative.json', creative);
+write('composition.json', composition);
 
 if (args['--skip-python']) {
   steps.push({ id: 'analytics', status: 'SKIPPED', detail: 'Python analytics skipped by flag; analytical pages show the unavailable state.' });
@@ -112,6 +118,18 @@ if (args['--skip-python']) {
     throw new Error('Python analytics failed; artifacts were not published (last known good preserved).');
   }
   steps.push({ id: 'analytics', status: 'COMPLETED', detail: (res.stdout ?? '').trim().split('\n').pop() ?? 'ok' });
+  log(steps.at(-1)!.detail);
+  const figures = spawnSync(process.execPath, [
+    path.join(ROOT, 'scripts', 'run-python.mjs'), '-m', 'reltroner_analytics.composition_figures',
+    '--input', path.join(staging, 'composition.json'),
+    '--charts-dir', path.join(staging, 'charts'),
+  ], { cwd: ROOT, encoding: 'utf8' });
+  if (figures.status !== 0) {
+    process.stderr.write(figures.stdout ?? '');
+    process.stderr.write(figures.stderr ?? '');
+    throw new Error('Composition Matplotlib chart generation failed; previous artifacts preserved.');
+  }
+  steps.push({ id: 'composition-matplotlib', status: 'COMPLETED', detail: (figures.stdout ?? '').trim().split('\n').pop() ?? 'ok' });
   log(steps.at(-1)!.detail);
 }
 
@@ -149,7 +167,7 @@ log(steps.at(-1)!.detail);
 
 // Contract gates: every artifact must validate before anything is published.
 const gates: Array<[string, z.ZodType]> = [
-  ['audit.json', AuditSchema], ['observations.json', StatisticsDatasetSchema], ['qa.json', QaReportSchema], ['graph.json', GraphSchema], ['creative.json', CreativeArtifactSchema], ['decisions.json', DecisionArtifactSchema],
+  ['audit.json', AuditSchema], ['observations.json', StatisticsDatasetSchema], ['qa.json', QaReportSchema], ['graph.json', GraphSchema], ['creative.json', CreativeArtifactSchema], ['composition.json', CompositionSchema], ['decisions.json', DecisionArtifactSchema],
   ...(fs.existsSync(analyticsPath) ? [['analytics.json', AnalyticsSchema] as [string, z.ZodType]] : []),
 ];
 for (const [name, schema] of gates) {

@@ -8,6 +8,7 @@ import path from 'node:path';
 import type { z } from 'zod';
 import type { CreativeArtifact } from '../domain/creative.ts';
 import type { DecisionArtifact } from '../engine/decision-intelligence/index.ts';
+import { CompositionSchema, type Composition } from '../domain/composition.ts';
 import type { Audit, Finding } from '../domain/finding.ts';
 import type { KnowledgeGraph } from '../domain/graph.ts';
 import type { Observation, StatisticsDataset } from '../domain/observation.ts';
@@ -43,6 +44,7 @@ export const getQa = () => load<QaReport>('qa.json', QaReportSchema)!;
 export const getGraph = () => load<KnowledgeGraph>('graph.json', GraphSchema)!;
 export const getCreative = () => load<CreativeArtifact>('creative.json', CreativeArtifactSchema)!;
 export const getDecisions = () => load<DecisionArtifact>('decisions.json', DecisionArtifactSchema)!;
+export const getComposition = () => load<Composition>('composition.json', CompositionSchema)!;
 export const getAnalytics = () => load<Analytics>('analytics.json', AnalyticsSchema, true);
 
 export function getChartSvg(id: string): string | null {
