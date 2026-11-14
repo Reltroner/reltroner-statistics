@@ -97,7 +97,7 @@ def main() -> None:
         raise SystemExit("Unexpected composition contract")
     output = args.charts_dir
     countries = data["countries"]
-    source = "Source: Reltroner/reltroner-studio@" + data["source"]["commit_sha"][:12] + " · NCCM V6.5 Year 0"
+    source = "Source: " + data["source"]["repository"] + "@" + data["source"]["commit_sha"][:12] + " · NCCM V6.5 Year 0"
     pie(data["planet"]["ancestry"], "Asthortera · primary ancestry",
         "Creator-ratified representative 14-country benchmark; NOT a measured 37-country census. " + source,
         COLORS, output / "species-planet.svg")
