@@ -1,0 +1,30 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageIntro from '../components/PageIntro.astro';
+import AssistantWorkspace from '../features/statistics/AssistantWorkspace.tsx';
+import { getContext, getComposition } from '../lib/data.ts';
+
+const context = getContext();
+const composition = getComposition();
+---
+<BaseLayout title="Statistics Intelligence Assistant" description="Ask evidence-grounded questions about Asthortera's canonical statistics, national ancestry, spatial composition, source history and indexed worldbuilding relationships.">
+  <PageIntro eyebrow="Read-only Q&A · Evidence-first AI architecture"
+    title="Statistics Intelligence Assistant"
+    lede="Ask about canon indicators, species/primary ancestry, national population, Spatial 3D composition, and source-grounded worldbuilding. The default assistant computes and retrieves from the pinned public evidence index instead of inventing a number."
+    crumbs={[{ href: '/statistics', label: 'Statistics' }, { label: 'Ask AI' }]}
+    sources={['production','statistics','rules']} model={composition.model_version}
+    limits={[
+      'Public deterministic Q&A is active without an external AI model. Answers are restricted to indexed canonical statistics and narrative evidence.',
+      'The optional LLM synthesis endpoint is fail-closed: until owner-approved service configuration, a model key and rate limiter are provided, external synthesis is unavailable.',
+      'Natural-language answers are explanations rather than new canon. Source match does not prove causal truth; missing observations remain missing.',
+      'Do not submit confidential unpublished ideas to a public AI service. No private creator drafts are published in the static evidence index.',
+    ]}
+  />
+  <section class="pb-12"><div class="rs-container">
+    <div class="rs-card mb-6 grid gap-3 p-5 text-sm text-ink-2 sm:grid-cols-2">
+      <p><strong class="text-ink">Production input</strong><span class="mt-1 block break-all font-mono text-xs">{context.production.commit_sha}</span></p>
+      <p><strong class="text-ink">Model</strong><span class="mt-1 block">{composition.model_version} · pinned source · Year 0</span></p>
+    </div>
+    <AssistantWorkspace client:load />
+  </div></section>
+</BaseLayout>
