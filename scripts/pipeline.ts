@@ -57,8 +57,8 @@ const stats = await extractStatistics(production, remodeling);
 steps.push({ id: 'observations', status: 'COMPLETED', detail: `${stats.observations.length} production observations, ${stats.proposals.length} remodeling proposals, ${stats.evidence_checks.filter((e) => e.status === 'VERIFIED').length}/${stats.evidence_checks.length} evidence rules verified` });
 log(steps.at(-1)!.detail);
 
-const composition = await buildComposition(production);
-steps.push({ id: 'composition', status: 'COMPLETED', detail: `${composition.coverage.complete_ancestry} national ancestry profiles; ${composition.countries.filter((c) => c.surface_status === 'ASSIGNED').length} spatial profiles, pinned production source` });
+const composition = await buildComposition(remodeling);
+steps.push({ id: 'composition', status: 'COMPLETED', detail: `${composition.coverage.complete_ancestry} national ancestry profiles; ${composition.countries.filter((c) => c.surface_status === 'ASSIGNED').length} spatial profiles, pinned Remodeling source (not production canon)` });
 log(steps.at(-1)!.detail);
 
 const readDoc = async (s: typeof production) => {
