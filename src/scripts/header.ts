@@ -62,7 +62,7 @@ function setupMenus() {
   const menu = document.getElementById('mobile-nav');
   if (menuBtn && menu) {
     const setOpen = setupDisclosure(menuBtn, menu, { focusFirst: true, onToggle: (open) => document.body.classList.toggle('overflow-hidden', open) });
-    window.matchMedia('(min-width: 1024px)').addEventListener('change', (e) => { if (e.matches) setOpen(false); });
+    window.matchMedia('(min-width: 1280px)').addEventListener('change', (e) => { if (e.matches) setOpen(false); });
   }
   const ecoBtn = document.querySelector<HTMLButtonElement>('[data-ecosystem-toggle]');
   const eco = document.getElementById('ecosystem-menu');
