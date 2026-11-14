@@ -32,6 +32,8 @@ const scoped = data.countries.filter((c) => c.ancestry_status === 'ASSIGNED');
     <div class="rs-container">
       <CompositionExplorer client:load mode="ancestry" data={data} />
       <div class="mt-6 flex flex-wrap gap-3">
+        <a href="/data/species.csv" class="rs-button rs-button-ghost no-underline">Download primary ancestry CSV →</a>
+        <a href="/data/composition.json" class="rs-button rs-button-ghost no-underline">View source-anchored JSON →</a>
         <a href="/statistics/spatial" class="rs-button rs-button-ghost no-underline">Explore Spatial 3D Composition →</a>
         <a href="/statistics" class="rs-button rs-button-ghost no-underline">Return to Statistical Dashboard →</a>
       </div>
