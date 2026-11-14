@@ -42,7 +42,7 @@ export function assertProjectIdentity(value: unknown): void {
 
 export function assertStatisticsDomains(domains: unknown, siteUrl: string, totalCount?: number, totalPages?: number): void {
   if (!Array.isArray(domains)) throw new Error('ISOLATION_BLOCKED: cannot verify Pages custom domains');
-  if (totalPages !== undefined && totalPages !== 1) throw new Error('ISOLATION_BLOCKED: unverified Pages custom-domain pagination');
+  if (totalPages !== undefined && (totalPages > 1 || totalPages < 0 || (domains.length !== 0 && totalPages !== 1))) throw new Error('ISOLATION_BLOCKED: unverified Pages custom-domain pagination');
   if (totalCount !== undefined && totalCount !== domains.length) throw new Error('ISOLATION_BLOCKED: incomplete Pages custom-domain inventory');
 
   if (siteUrl === STATISTICS_PAGES_URL) {
