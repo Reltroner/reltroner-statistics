@@ -1,5 +1,8 @@
 # RC-DEPLOY-01 — Production Readiness & Visual Acceptance
 
+> **Historical acceptance record.** RC-DEPLOY-02 now authorizes exactly `statistics.reltroner.com` on the dedicated Statistics Pages project. Its safe two-stage bootstrap, hostname guard and automatic main-SHA deployment are specified in [RC-DEPLOY-02](RC-DEPLOY-02.md). RC-DEPLOY-01's earlier blanket custom-domain prohibition applies only to its historical release policy, not the newly approved Statistics-only hostname.
+
+
 **Scope:** Reltroner Statistics only. This is an isolation and release acceptance gate, not permission to change any Reltroner DNS record or nameserver.
 
 ## Protected services — no changes authorized

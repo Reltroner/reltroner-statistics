@@ -65,7 +65,7 @@ npm run preview                        # http://127.0.0.1:4173 with production h
 
 ## Publication
 
-The site is static and targets Cloudflare Pages, independent of `reltroner.com`. The release workflow publishes only after every gate passes and then verifies the live `build-info.json`. **It is not deployed yet**: publishing requires repository variables `CLOUDFLARE_PAGES_PROJECT` and `SITE_URL`, secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, and a `production` environment. Until then each run ends at a verified, downloadable build artifact.
+The deployment target is the **dedicated Cloudflare Pages** project `reltroner-statistics`, with its separately authorized public hostname **`https://statistics.reltroner.com`**. No Studio, LMS, HRM, apex, `www`, or nameserver changes are part of this repository's deployment. The CI workflow builds the exact GitHub `main` SHA, validates contracts, Python analytics, browsers, static links and PDF exports, then *only after the external Cloudflare project and active custom domain are configured* automatically publishes that successful CI artifact to Statistics Pages and checks the live `/build-info.json` commit/digest identity. An initial DNS-free `pages.dev` bootstrap and manual release are also available. Missing Pages credentials, custom-domain association, or GitHub production environment approvals intentionally block publication. **Do not interpret passing CI as confirmation of a live deployment.** See [RC-DEPLOY-02 — Local/GitHub/Statistics-domain parity](docs/RC-DEPLOY-02.md) for the isolated setup, fail-closed guard, synchronization CLI and live verification.
 
 ## License
 

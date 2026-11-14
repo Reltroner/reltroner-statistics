@@ -2,17 +2,20 @@
 /**
  * RC-DEPLOY-01: fail-closed Cloudflare Pages publication isolation.
  * GET-only preflight: NEVER modifies Cloudflare DNS, nameservers, domains, routes or workers.
- * The ONLY permitted deployment target is the dedicated Statistics pages.dev project.
+ * Only the dedicated Statistics Pages project is allowed: pages.dev bootstrap or the exact statistics.reltroner.com hostname.
  */
 import { pathToFileURL } from 'node:url';
 
 export const STATISTICS_PAGES_PROJECT = 'reltroner-statistics';
 export const STATISTICS_PAGES_URL = 'https://reltroner-statistics.pages.dev';
+export const STATISTICS_PUBLIC_URL = 'https://statistics.reltroner.com';
+export const STATISTICS_CUSTOM_DOMAIN = 'statistics.reltroner.com';
 
 export function assertStatisticsTarget(project: string, siteUrl: string): void {
-  if (project !== STATISTICS_PAGES_PROJECT || siteUrl !== STATISTICS_PAGES_URL) {
+  const allowedUrl = siteUrl === STATISTICS_PAGES_URL || siteUrl === STATISTICS_PUBLIC_URL;
+  if (project !== STATISTICS_PAGES_PROJECT || !allowedUrl) {
     throw new Error(
-      'ISOLATION_BLOCKED: only the dedicated reltroner-statistics project and its exact https://reltroner-statistics.pages.dev URL are allowed. No custom-domain publication.'
+      'ISOLATION_BLOCKED: only reltroner-statistics Pages at its exact pages.dev bootstrap URL or https://statistics.reltroner.com is authorized.'
     );
   }
 }
@@ -37,12 +40,28 @@ export function assertProjectIdentity(value: unknown): void {
   }
 }
 
-export function assertNoCustomDomains(domains: unknown): void {
+export function assertStatisticsDomains(domains: unknown, siteUrl: string, totalCount?: number, totalPages?: number): void {
   if (!Array.isArray(domains)) throw new Error('ISOLATION_BLOCKED: cannot verify Pages custom domains');
-  if (domains.length !== 0) throw new Error('ISOLATION_BLOCKED: Statistics Pages project has custom domains; zero custom domains required for DNS-free release');
+  if (totalPages !== undefined && (totalPages > 1 || totalPages < 0 || (domains.length !== 0 && totalPages !== 1))) throw new Error('ISOLATION_BLOCKED: unverified Pages custom-domain pagination');
+  if (totalCount !== undefined && totalCount !== domains.length) throw new Error('ISOLATION_BLOCKED: incomplete Pages custom-domain inventory');
+
+  if (siteUrl === STATISTICS_PAGES_URL) {
+    if (domains.length !== 0) throw new Error('ISOLATION_BLOCKED: pages.dev bootstrap requires zero custom domains');
+    return;
+  }
+
+  if (siteUrl !== STATISTICS_PUBLIC_URL || domains.length !== 1) {
+    throw new Error('ISOLATION_BLOCKED: expected exactly one Statistics-only custom domain');
+  }
+  const domain = domains[0] as { name?: unknown; status?: unknown } | null;
+  if (domain?.name !== STATISTICS_CUSTOM_DOMAIN || domain.status !== 'active') {
+    throw new Error('ISOLATION_BLOCKED: statistics.reltroner.com must be the sole ACTIVE custom domain');
+  }
 }
 
-async function getCloudflareResult(url: string, token: string): Promise<unknown> {
+type CloudflareReadResult = { result: unknown; result_info?: { total_count?: number; total_pages?: number } };
+
+async function getCloudflareResult(url: string, token: string): Promise<CloudflareReadResult> {
   const response = await fetch(url, {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
@@ -50,9 +69,9 @@ async function getCloudflareResult(url: string, token: string): Promise<unknown>
     signal: AbortSignal.timeout(20_000),
   });
   if (!response.ok) throw new Error(`ISOLATION_BLOCKED: Cloudflare read-only API returned HTTP ${response.status}`);
-  const data = await response.json() as { success?: boolean; result?: unknown };
+  const data = await response.json() as { success?: boolean; result?: unknown; result_info?: CloudflareReadResult['result_info'] };
   if (data.success !== true) throw new Error('ISOLATION_BLOCKED: Cloudflare API did not confirm success');
-  return data.result;
+  return { result: data.result, result_info: data.result_info };
 }
 
 export async function verifyPagesIsolation(environment: NodeJS.ProcessEnv = process.env): Promise<void> {
@@ -67,15 +86,20 @@ export async function verifyPagesIsolation(environment: NodeJS.ProcessEnv = proc
   }
   const endpoint = `https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects/${STATISTICS_PAGES_PROJECT}`;
   const projectData = await getCloudflareResult(endpoint, token);
-  assertProjectIdentity(projectData);
+  assertProjectIdentity(projectData.result);
   const domainData = await getCloudflareResult(`${endpoint}/domains`, token);
-  assertNoCustomDomains(domainData);
+  assertStatisticsDomains(
+    domainData.result,
+    siteUrl,
+    domainData.result_info?.total_count,
+    domainData.result_info?.total_pages,
+  );
 
   process.stdout.write(JSON.stringify({
     status: 'ISOLATED_STATISTICS_PAGES_VERIFIED',
     target_project: STATISTICS_PAGES_PROJECT,
-    site_url: STATISTICS_PAGES_URL,
-    custom_domains: 0,
+    site_url: siteUrl,
+    custom_domains: siteUrl === STATISTICS_PUBLIC_URL ? [STATISTICS_CUSTOM_DOMAIN] : [],
     cloudflare_methods: ['GET'],
     dns_mutations: 0,
     nameserver_mutations: 0,
