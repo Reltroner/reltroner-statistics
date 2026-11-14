@@ -33,23 +33,23 @@ if (-not (Test-Path -LiteralPath $Root -PathType Container)) {
 }
 Set-Location -LiteralPath $Root
 $resolved = (Resolve-Path -LiteralPath $Root).Path.TrimEnd('\')
-$actual = [string]((Invoke-GitChecked @('rev-parse','--show-toplevel')) | Select-Object -First 1)
+$actual = [string]((Invoke-GitChecked -Arguments @('rev-parse','--show-toplevel')) | Select-Object -First 1)
 if ($actual.Replace('/','\').TrimEnd('\') -ine $resolved) {
     throw "Wrong Git repository: $actual"
 }
-$branch = [string]((Invoke-GitChecked @('branch','--show-current')) | Select-Object -First 1)
+$branch = [string]((Invoke-GitChecked -Arguments @('branch','--show-current')) | Select-Object -First 1)
 if ($branch -cne 'main') { throw "Expected main branch, found '$branch'" }
-$origin = [string]((Invoke-GitChecked @('remote','get-url','origin')) | Select-Object -First 1)
+$origin = [string]((Invoke-GitChecked -Arguments @('remote','get-url','origin')) | Select-Object -First 1)
 if ($origin -cnotmatch $OriginPattern) { throw "Unexpected origin URL: $origin" }
-$dirty = @(Invoke-GitChecked @('status','--porcelain=v1','--untracked-files=all'))
+$dirty = @(Invoke-GitChecked -Arguments @('status','--porcelain=v1','--untracked-files=all'))
 if ($dirty.Count -gt 0 -and ($dirty -join '').Trim().Length -gt 0) {
     throw "Local uncommitted/untracked work exists. No files were modified. Review and commit/back up your changes before attempting a fast-forward. git status --short"
 }
 
 Write-Host '=== FETCH REMOTE MAIN (NO RESET, NO REBASE) ===' -ForegroundColor Cyan
-Invoke-GitChecked @('fetch','--no-tags','origin','main') | Out-Host
-$localBefore = [string]((Invoke-GitChecked @('rev-parse','HEAD')) | Select-Object -First 1)
-$remote = [string]((Invoke-GitChecked @('rev-parse','refs/remotes/origin/main')) | Select-Object -First 1)
+Invoke-GitChecked -Arguments @('fetch','--no-tags','origin','main') | Out-Host
+$localBefore = [string]((Invoke-GitChecked -Arguments @('rev-parse','HEAD')) | Select-Object -First 1)
+$remote = [string]((Invoke-GitChecked -Arguments @('rev-parse','refs/remotes/origin/main')) | Select-Object -First 1)
 
 if ($localBefore -cne $remote) {
     & git merge-base --is-ancestor HEAD refs/remotes/origin/main
@@ -57,12 +57,12 @@ if ($localBefore -cne $remote) {
         throw "Local and remote main diverged or local is ahead. Refusing to reset, force-push, rebase or overwrite. Local=$localBefore Remote=$remote"
     }
     Write-Host '=== SAFE FAST-FORWARD ===' -ForegroundColor Cyan
-    Invoke-GitChecked @('merge','--ff-only','refs/remotes/origin/main') | Out-Host
+    Invoke-GitChecked -Arguments @('merge','--ff-only','refs/remotes/origin/main') | Out-Host
 }
 
-$head = [string]((Invoke-GitChecked @('rev-parse','HEAD')) | Select-Object -First 1)
-$remoteAfter = [string]((Invoke-GitChecked @('rev-parse','refs/remotes/origin/main')) | Select-Object -First 1)
-$dirtyAfter = @(Invoke-GitChecked @('status','--porcelain=v1','--untracked-files=all'))
+$head = [string]((Invoke-GitChecked -Arguments @('rev-parse','HEAD')) | Select-Object -First 1)
+$remoteAfter = [string]((Invoke-GitChecked -Arguments @('rev-parse','refs/remotes/origin/main')) | Select-Object -First 1)
+$dirtyAfter = @(Invoke-GitChecked -Arguments @('status','--porcelain=v1','--untracked-files=all'))
 if ($head -cne $remoteAfter -or ($dirtyAfter -join '').Trim().Length -gt 0) {
     throw "SYNC_FAILED: local HEAD, origin/main, or working tree do not match"
 }
