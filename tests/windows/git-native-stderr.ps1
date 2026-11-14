@@ -51,4 +51,9 @@ try {
 if (-not $FailedAsExpected) {
     throw 'Git wrapper failed to reject a genuine non-zero Git exit code.'
 }
+# GitHub Actions' Windows PowerShell runner exits using the ambient LASTEXITCODE.
+# After the intentional negative test, execute a successful checked Git command so
+# the test job exits zero rather than propagating the expected Git failure status.
+Invoke-GitChecked -Arguments @('rev-parse', '--is-inside-work-tree') | Out-Null
+if ($LASTEXITCODE -ne 0) { throw 'Failed to restore successful native command exit status.' }
 Write-Host 'POWERSHELL51_NATIVE_STDERR_REGRESSION: PASS' -ForegroundColor Green
