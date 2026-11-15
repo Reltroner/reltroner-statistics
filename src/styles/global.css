@@ -29,6 +29,9 @@
   --accent-contrast: #ffffff;
   --accent-soft: rgba(76, 157, 255, 0.14);
   --cyan: #35d9f2;
+  /* Denominator accents of the Spatial 3D panels: land area vs residents (structure only, not data series). */
+  --dim-land: #35d9f2;
+  --dim-residents: #b4a8ff;
   --focus: #7cc4ff;
   --atmosphere-1: rgba(26, 98, 230, 0.22);
   --atmosphere-2: rgba(53, 217, 242, 0.09);
@@ -96,6 +99,8 @@
   --accent-contrast: #ffffff;
   --accent-soft: rgba(21, 89, 224, 0.09);
   --cyan: #0b7286;
+  --dim-land: #0b7286;
+  --dim-residents: #5b45d6;
   --focus: #1d4ed8;
   --atmosphere-1: rgba(21, 89, 224, 0.07);
   --atmosphere-2: rgba(6, 182, 212, 0.05);
@@ -352,7 +357,7 @@
 }
 
 @media (forced-colors: active) {
-  .rs-badge, .rs-chip, .rs-card { border: 1px solid CanvasText; }
+  .rs-badge, .rs-chip, .rs-card, .rs-controls, .rs-panel { border: 1px solid CanvasText; }
 }
 
 @media print {
@@ -399,4 +404,26 @@
   @media (max-width: 640px) {
     .rs-button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: center; }
   }
+
+  /* Explorer controls sit directly above the section they drive: step 1 (inspect) is primary, step 2 (compare) secondary. */
+  .rs-controls { min-width: 0; padding: 1rem 1.1rem; border-radius: var(--radius-lg); }
+  @media (min-width: 640px) { .rs-controls { padding: 1.15rem 1.4rem; } }
+  .rs-controls[data-controls="inspect"] { background: var(--surface-1); border: 1px solid var(--border-strong); border-left: 3px solid var(--accent); box-shadow: var(--shadow-card); }
+  .rs-controls[data-controls="compare"] { background: var(--surface-inset); border: 1px dashed var(--border-strong); }
+  .rs-controls-step { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+  .rs-controls[data-controls="inspect"] .rs-controls-step { color: var(--accent); }
+
+  /* Side-by-side panels of different denominators: one accent per dimension, stated in words as well. */
+  [data-dimension="land"] { --dim: var(--dim-land); }
+  [data-dimension="residents"] { --dim: var(--dim-residents); }
+  .rs-panel {
+    display: flex; flex-direction: column; gap: 1rem; min-width: 0; padding: 0.85rem; border-radius: var(--radius-lg);
+    border: 1px solid color-mix(in srgb, var(--dim, var(--accent)) 32%, var(--border)); border-top: 3px solid var(--dim, var(--accent));
+    background: color-mix(in srgb, var(--dim, var(--accent)) 5%, transparent);
+  }
+  @media (min-width: 640px) { .rs-panel { padding: 1.1rem; } }
+  .rs-dim-tag { display: inline-flex; align-items: center; gap: 0.45rem; max-width: 100%; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim, var(--accent)); }
+  .rs-dim-tag svg { flex: none; }
+  .rs-dim-dot { display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
+  .rs-dim-dot::before { content: ""; flex: none; width: 0.55rem; height: 0.55rem; border-radius: 999px; background: var(--dim, var(--accent)); }
 }

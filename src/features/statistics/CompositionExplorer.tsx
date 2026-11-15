@@ -63,9 +63,51 @@ function MetricChoice({ id, value, onChange, labels }: { id: string; value: Metr
   );
 }
 
-function Table({ caption, children, minWidth }: { caption: string; children: ReactNode; minWidth?: number }) {
+/**
+ * A control block placed directly above the section it drives. Step 1 (inspect) is the primary
+ * choice; step 2 (compare) is visibly secondary and only refines the comparison below it.
+ */
+function ControlBlock({ kind, label, step, align, footer, children }: { kind: 'inspect' | 'compare'; label: string; step: string; align: 'start' | 'end'; footer?: ReactNode; children: ReactNode }) {
   return (
-    <div className="rs-table-wrap mt-3" tabIndex={0} role="region" aria-label={caption}>
+    <section aria-label={label} data-controls={kind} className="rs-controls">
+      <p className="rs-controls-step">{step}</p>
+      <div className={`mt-3 grid gap-4 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] md:gap-6 ${align === 'end' ? 'md:items-end' : 'md:items-start'}`}>{children}</div>
+      {footer ? <p className="mt-3 text-xs text-ink-3">{footer}</p> : null}
+    </section>
+  );
+}
+
+type Dimension = 'land' | 'residents';
+
+function DimIcon({ dim }: { dim: Dimension }) {
+  return (
+    <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      {dim === 'land' ? <path d="M3 19h18l-6.5-11-4 6.5-2.5-3.5z" /> : <path d="M4 10.5 12 4l8 6.5V20h-5.5v-5.5h-5V20H4z" />}
+    </svg>
+  );
+}
+
+function DimTag({ dim, children }: { dim: Dimension; children: ReactNode }) {
+  return <p className="rs-dim-tag" data-dimension={dim}><DimIcon dim={dim} /><span className="min-w-0">{children}</span></p>;
+}
+
+/** One denominator per panel: the accent, icon and tag name the dimension; the description states the denominator. */
+function DimensionPanel({ dim, id, tag, title, description, children }: { dim: Dimension; id: string; tag: string; title: string; description: ReactNode; children: ReactNode }) {
+  return (
+    <section className="rs-panel" data-dimension={dim} aria-labelledby={id}>
+      <header className="min-w-0">
+        <DimTag dim={dim}>{tag}</DimTag>
+        <h3 id={id} className="rs-h3 mt-2">{title}</h3>
+        <p className="mt-1.5 text-sm text-ink-2">{description}</p>
+      </header>
+      {children}
+    </section>
+  );
+}
+
+function Table({ caption, children, minWidth, className = 'mt-3' }: { caption: string; children: ReactNode; minWidth?: number; className?: string }) {
+  return (
+    <div className={`rs-table-wrap ${className}`} tabIndex={0} role="region" aria-label={caption}>
       <table className="rs-table" style={minWidth ? { minWidth } : undefined}>
         <caption className="rs-sr">{caption}</caption>
         {children}
@@ -118,12 +160,6 @@ export function AncestryExplorer({ data, dims }: { data: Composition; dims: Figu
 
   return (
     <div className="space-y-10">
-      <section aria-label="Ancestry controls" className="rs-card grid gap-5 p-5 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)]">
-        <Picker id="ancestry-country" label="Inspect a nation" items={countries} value={a.id} onChange={setA} note={note} />
-        <Picker id="ancestry-compare" label="Compare with" items={countries} value={b.id} onChange={setB} note={note} />
-        <MetricChoice id="ancestry-metric" value={metric} onChange={setMetric} labels={['Share of residents (%)', 'Residents (billion)']} />
-      </section>
-
       <section aria-labelledby="planet-ancestry-h" className="grid gap-5 lg:grid-cols-2">
         <Figure id="species-planet" dims={dims} title="Asthortera · primary ancestry (representative benchmark)"
           alt={`Pie chart of the representative planetary primary ancestry shares: ${planet.rows.map((r) => `${r.label} ${fmt(r.pct)}%`).join(', ')}.`} />
@@ -143,52 +179,68 @@ export function AncestryExplorer({ data, dims }: { data: Composition; dims: Figu
         </div>
       </section>
 
-      <Figure wide id={metric === 'pct' ? 'species-stacked-percent' : 'species-stacked-billions'} dims={dims}
-        title={metric === 'pct' ? `${assigned.length} nations · share of each national population` : `${assigned.length} nations · residents by primary ancestry (billion)`}
-        alt={metric === 'pct' ? `Horizontal 100% stacked bars of primary ancestry shares for ${assigned.length} nations.` : `Horizontal stacked bars of residents by primary ancestry in billions for ${assigned.length} nations.`} />
-
-      <section aria-labelledby="country-ancestry-h">
-        <h2 id="country-ancestry-h" className="rs-h2">{a.name} · primary ancestry</h2>
-        <p className="mt-2 text-sm text-ink-2">
-          {fmt(a.population_billion)} billion unique residents · {a.cohort === 'PROFILED_14' ? 'profiled nation' : 'development nation'} · <span className="font-mono text-xs">{a.pointer}.ancestry_primary_pct</span>
-        </p>
-        {a.status === 'ASSIGNED' ? (
-          <div className="mt-5 grid gap-5 lg:grid-cols-2">
-            <Figure id={`species-country-${countrySlug(a.id)}`} dims={dims} title={`${a.name} · share of residents`}
-              alt={`Pie chart of primary ancestry in ${a.name}: ${a.rows.map((r) => `${r.label} ${fmt(r.pct)}%`).join(', ')}.`} />
-            <div className="rs-card min-w-0 p-5">
-              <h3 className="rs-h3">Residents by primary ancestry</h3>
-              <p className="mt-2 text-sm text-ink-2">Denominator: {fmt(a.population_billion)} billion unique residents. Billions = population × share / 100.</p>
-              <Table caption={`Primary ancestry of ${a.name}`}>
-                <thead><tr><th scope="col">Primary ancestry</th><th scope="col" className="num">Share</th><th scope="col" className="num">Billion</th></tr></thead>
-                <tbody>{a.rows.map((r) => <tr key={r.key}><th scope="row">{r.label}</th><td className="num">{fmt(r.pct)}%</td><td className="num">{fmt(r.absolute_billion)}</td></tr>)}</tbody>
-                <tfoot><tr><th scope="row">Total</th><td className="num">{fmt(a.rows.reduce((s, r) => s + r.pct, 0))}%</td><td className="num">{fmt(a.population_billion)}</td></tr></tfoot>
-              </Table>
-              <p className="mt-3 flex flex-wrap gap-2 text-xs"><Status tone="canon">Shares: CANON_OBSERVED</Status><Status tone="canon">Billions: CANON_DERIVED</Status>
-                <Status tone={a.remodeling.status === 'DIFFERENT' ? 'proposed' : 'unknown'}>Remodeling: {a.remodeling.status.replace('_', ' ').toLowerCase()}</Status></p>
+      <div className="space-y-5" data-flow="inspect">
+        <ControlBlock kind="inspect" label="Nation inspection controls" step="Step 1 · Inspect" align="end">
+          <Picker id="ancestry-country" label="Inspect a nation" items={countries} value={a.id} onChange={setA} note={note} />
+          <p className="text-sm text-ink-3 md:pb-2.5">Sets the nation for the chart and table below and the first nation of the comparison.</p>
+        </ControlBlock>
+        <section aria-labelledby="country-ancestry-h">
+          <h2 id="country-ancestry-h" className="rs-h2">{a.name} · primary ancestry</h2>
+          <p className="mt-2 text-sm text-ink-2">
+            {fmt(a.population_billion)} billion unique residents · {a.cohort === 'PROFILED_14' ? 'profiled nation' : 'development nation'} · <span className="font-mono text-xs">{a.pointer}.ancestry_primary_pct</span>
+          </p>
+          {a.status === 'ASSIGNED' ? (
+            <div className="mt-5 grid gap-5 lg:grid-cols-2">
+              <Figure id={`species-country-${countrySlug(a.id)}`} dims={dims} title={`${a.name} · share of residents`}
+                alt={`Pie chart of primary ancestry in ${a.name}: ${a.rows.map((r) => `${r.label} ${fmt(r.pct)}%`).join(', ')}.`} />
+              <div className="rs-card min-w-0 p-5">
+                <h3 className="rs-h3">Residents by primary ancestry</h3>
+                <p className="mt-2 text-sm text-ink-2">Denominator: {fmt(a.population_billion)} billion unique residents. Billions = population × share / 100.</p>
+                <Table caption={`Primary ancestry of ${a.name}`}>
+                  <thead><tr><th scope="col">Primary ancestry</th><th scope="col" className="num">Share</th><th scope="col" className="num">Billion</th></tr></thead>
+                  <tbody>{a.rows.map((r) => <tr key={r.key}><th scope="row">{r.label}</th><td className="num">{fmt(r.pct)}%</td><td className="num">{fmt(r.absolute_billion)}</td></tr>)}</tbody>
+                  <tfoot><tr><th scope="row">Total</th><td className="num">{fmt(a.rows.reduce((s, r) => s + r.pct, 0))}%</td><td className="num">{fmt(a.population_billion)}</td></tr></tfoot>
+                </Table>
+                <p className="mt-3 flex flex-wrap gap-2 text-xs"><Status tone="canon">Shares: CANON_OBSERVED</Status><Status tone="canon">Billions: CANON_DERIVED</Status>
+                  <Status tone={a.remodeling.status === 'DIFFERENT' ? 'proposed' : 'unknown'}>Remodeling: {a.remodeling.status.replace('_', ' ').toLowerCase()}</Status></p>
+              </div>
             </div>
-          </div>
-        ) : (
-          <p role="status" className="rs-notice mt-4">Not assigned: production main records no national ancestry shares for {a.name}. The value is unknown, not zero, and nothing is imputed.</p>
-        )}
-      </section>
+          ) : (
+            <p role="status" className="rs-notice mt-4">Not assigned: production main records no national ancestry shares for {a.name}. The value is unknown, not zero, and nothing is imputed.</p>
+          )}
+        </section>
+      </div>
 
-      <section aria-labelledby="ancestry-compare-h">
-        <h2 id="ancestry-compare-h" className="rs-h2">{a.name} compared with {b.name}</h2>
-        {a.status === 'ASSIGNED' && b.status === 'ASSIGNED' ? (
-          <Table caption={`Primary ancestry of ${a.name} and ${b.name}`} minWidth={640}>
-            <thead><tr><th scope="col">Primary ancestry</th><th scope="col" className="num">{a.name} %</th><th scope="col" className="num">{b.name} %</th><th scope="col" className="num">Difference</th><th scope="col" className="num">{a.name} B</th><th scope="col" className="num">{b.name} B</th></tr></thead>
-            <tbody>{ANCESTRIES.map((cat) => {
-              const ra = a.rows.find((r) => r.key === cat.key)!;
-              const rb = b.rows.find((r) => r.key === cat.key)!;
-              return <tr key={cat.key}><th scope="row">{cat.label}</th><td className="num">{fmt(ra.pct)}%</td><td className="num">{fmt(rb.pct)}%</td><td className="num">{pp(ra.pct - rb.pct)}</td><td className="num">{fmt(ra.absolute_billion)}</td><td className="num">{fmt(rb.absolute_billion)}</td></tr>;
-            })}</tbody>
-            <tfoot><tr><th scope="row">Population</th><td className="num">100%</td><td className="num">100%</td><td /><td className="num">{fmt(a.population_billion)}</td><td className="num">{fmt(b.population_billion)}</td></tr></tfoot>
-          </Table>
-        ) : (
-          <p role="status" className="rs-notice mt-3">A comparison needs assigned shares for both nations. {[a, b].filter((c) => c.status !== 'ASSIGNED').map((c) => c.name).join(' and ')} {[a, b].filter((c) => c.status !== 'ASSIGNED').length === 1 ? 'has' : 'have'} none in production main.</p>
-        )}
-        <p className="mt-2 text-xs text-ink-3">Differences are in percentage points (pp) of each nation’s own residents.</p>
+      <div className="space-y-5" data-flow="compare">
+        <ControlBlock kind="compare" label="Comparison controls" step="Step 2 · Compare (optional)" align="start"
+          footer={`${a.name} is compared with the nation chosen here. The metric also sets the cross-nation chart and the country × ancestry matrix further down.`}>
+          <Picker id="ancestry-compare" label="Compare with" items={countries} value={b.id} onChange={setB} note={note} />
+          <MetricChoice id="ancestry-metric" value={metric} onChange={setMetric} labels={['Share of residents (%)', 'Residents (billion)']} />
+        </ControlBlock>
+        <section aria-labelledby="ancestry-compare-h">
+          <h2 id="ancestry-compare-h" className="rs-h2">{a.name} compared with {b.name}</h2>
+          {a.status === 'ASSIGNED' && b.status === 'ASSIGNED' ? (
+            <Table caption={`Primary ancestry of ${a.name} and ${b.name}`} minWidth={640}>
+              <thead><tr><th scope="col">Primary ancestry</th><th scope="col" className="num">{a.name} %</th><th scope="col" className="num">{b.name} %</th><th scope="col" className="num">Difference</th><th scope="col" className="num">{a.name} B</th><th scope="col" className="num">{b.name} B</th></tr></thead>
+              <tbody>{ANCESTRIES.map((cat) => {
+                const ra = a.rows.find((r) => r.key === cat.key)!;
+                const rb = b.rows.find((r) => r.key === cat.key)!;
+                return <tr key={cat.key}><th scope="row">{cat.label}</th><td className="num">{fmt(ra.pct)}%</td><td className="num">{fmt(rb.pct)}%</td><td className="num">{pp(ra.pct - rb.pct)}</td><td className="num">{fmt(ra.absolute_billion)}</td><td className="num">{fmt(rb.absolute_billion)}</td></tr>;
+              })}</tbody>
+              <tfoot><tr><th scope="row">Population</th><td className="num">100%</td><td className="num">100%</td><td /><td className="num">{fmt(a.population_billion)}</td><td className="num">{fmt(b.population_billion)}</td></tr></tfoot>
+            </Table>
+          ) : (
+            <p role="status" className="rs-notice mt-3">A comparison needs assigned shares for both nations. {[a, b].filter((c) => c.status !== 'ASSIGNED').map((c) => c.name).join(' and ')} {[a, b].filter((c) => c.status !== 'ASSIGNED').length === 1 ? 'has' : 'have'} none in production main.</p>
+          )}
+          <p className="mt-2 text-xs text-ink-3">Differences are in percentage points (pp) of each nation’s own residents.</p>
+        </section>
+      </div>
+
+      <section aria-labelledby="ancestry-across-h" className="space-y-4">
+        <h2 id="ancestry-across-h" className="rs-h2">Primary ancestry across nations</h2>
+        <Figure wide id={metric === 'pct' ? 'species-stacked-percent' : 'species-stacked-billions'} dims={dims}
+          title={metric === 'pct' ? `${assigned.length} nations · share of each national population` : `${assigned.length} nations · residents by primary ancestry (billion)`}
+          alt={metric === 'pct' ? `Horizontal 100% stacked bars of primary ancestry shares for ${assigned.length} nations.` : `Horizontal stacked bars of residents by primary ancestry in billions for ${assigned.length} nations.`} />
       </section>
 
       <section aria-labelledby="ancestry-matrix-h">
@@ -266,82 +318,86 @@ export function SpatialExplorer({ data, dims }: { data: Composition; dims: Figur
 
   return (
     <div className="space-y-10">
-      <section aria-label="Spatial controls" className="rs-card grid gap-5 p-5 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)]">
-        <Picker id="spatial-country" label="Inspect a nation" items={countries} value={a.id} onChange={setA} note={note} />
-        <Picker id="spatial-compare" label="Compare with" items={countries} value={b.id} onChange={setB} note={note} />
-        <MetricChoice id="spatial-metric" value={metric} onChange={setMetric} labels={['Share of denominator (%)', 'Quantity (million km² · billion residents)']} />
-      </section>
-
-      <section aria-labelledby="spatial-national-h">
-        <h2 id="spatial-national-h" className="rs-h2">{a.name} · Spatial 3D composition{a.reference ? ` (${a.reference})` : ''}</h2>
-        <p className="mt-2 text-sm text-ink-2">
-          Remodeling record <span className="font-mono text-xs">{a.pointer}.spatial_3d_canon</span>{a.spatial_status_label ? <> · status label <span className="font-mono text-xs">{a.spatial_status_label}</span></> : null} · <Status tone="proposed">PROPOSED in this observatory</Status>
-        </p>
-        <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          <div className="min-w-0 space-y-4">
-            {a.surface_status === 'ASSIGNED' && <Figure id={`spatial-surface-${slug}`} dims={dims} title="Terrestrial surface footprint"
-              alt={`Pie chart of the terrestrial surface footprint of ${a.name}: ${a.surface.map((r) => `${r.label} ${fmt(r.pct)}%`).join(', ')}.`} />}
-            <div className="rs-card min-w-0 p-5">
-              <h3 className="rs-h3">Surface footprint · share of national land</h3>
-              <p className="mt-2 text-sm text-ink-2">Denominator: {a.land_area_million_km2 === null ? 'national land area (not assigned)' : `${fmt(a.land_area_million_km2)} million km² of national terrestrial land`}{a.surface_denominator ? ` (“${a.surface_denominator}”)` : ''}. Not built, constructed or habitable volume.</p>
+      <div className="space-y-5" data-flow="inspect">
+        <ControlBlock kind="inspect" label="Nation inspection controls" step="Step 1 · Inspect" align="end">
+          <Picker id="spatial-country" label="Inspect a nation" items={countries} value={a.id} onChange={setA} note={note} />
+          <p className="text-sm text-ink-3 md:pb-2.5">Sets the nation for both panels and the geometry status below, and the first nation of the comparison.</p>
+        </ControlBlock>
+        <section aria-labelledby="spatial-national-h">
+          <h2 id="spatial-national-h" className="rs-h2">{a.name} · Spatial 3D composition{a.reference ? ` (${a.reference})` : ''}</h2>
+          <p className="mt-2 text-sm text-ink-2">
+            Remodeling record <span className="font-mono text-xs">{a.pointer}.spatial_3d_canon</span>{a.spatial_status_label ? <> · status label <span className="font-mono text-xs">{a.spatial_status_label}</span></> : null} · <Status tone="proposed">PROPOSED in this observatory</Status>
+          </p>
+          <div className="mt-5 grid gap-5 lg:grid-cols-2">
+            <DimensionPanel dim="land" id="spatial-surface-panel-h" tag="Land area" title="Terrestrial surface footprint"
+              description={<>Denominator: {a.land_area_million_km2 === null ? 'national land area (not assigned)' : `${fmt(a.land_area_million_km2)} million km² of national terrestrial land`}{a.surface_denominator ? ` (“${a.surface_denominator}”)` : ''}. Not built, constructed or habitable volume.</>}>
+              {a.surface_status === 'ASSIGNED' && <Figure id={`spatial-surface-${slug}`} dims={dims} title={`${a.name} · share of national land`}
+                alt={`Pie chart of the terrestrial surface footprint of ${a.name}: ${a.surface.map((r) => `${r.label} ${fmt(r.pct)}%`).join(', ')}.`} />}
               {a.surface_status === 'ASSIGNED' ? (
-                <Table caption={`Terrestrial surface footprint of ${a.name}`}>
+                <Table className="" caption={`Terrestrial surface footprint of ${a.name}`}>
                   <thead><tr><th scope="col">Surface class</th><th scope="col" className="num">Share of land</th><th scope="col" className="num">Million km²</th></tr></thead>
                   <tbody>{a.surface.map((r) => <tr key={r.key}><th scope="row">{r.label}</th><td className="num">{fmt(r.pct)}%</td><td className="num">{r.area_million_km2 === null ? 'No land area' : fmt(r.area_million_km2)}</td></tr>)}</tbody>
                   <tfoot><tr><th scope="row">Total</th><td className="num">{fmt(a.surface.reduce((s, r) => s + r.pct, 0))}%</td><td className="num">{a.land_area_million_km2 === null ? '—' : fmt(a.land_area_million_km2)}</td></tr></tfoot>
                 </Table>
-              ) : <p role="status" className="rs-notice mt-3">Not assigned in the remodeling record; not zero.</p>}
-            </div>
-          </div>
-          <div className="min-w-0 space-y-4">
-            {a.habitat_status === 'ASSIGNED' && <Figure id={`spatial-habitat-${slug}`} dims={dims} title="Principal home habitats"
-              alt={`Pie chart of the principal home habitats of ${a.name}: ${a.habitats.map((r) => `${r.label} ${fmt(r.pct)}%`).join(', ')}.`} />}
-            <div className="rs-card min-w-0 p-5">
-              <h3 className="rs-h3">Principal home habitat · share of residents</h3>
-              <p className="mt-2 text-sm text-ink-2">Denominator: {fmt(a.population_billion)} billion unique usual residents{a.habitat_denominator ? ` (“${a.habitat_denominator}”)` : ''}. Not land area and not urbanization.</p>
+              ) : <p role="status" className="rs-notice">Not assigned in the remodeling record; not zero.</p>}
+            </DimensionPanel>
+            <DimensionPanel dim="residents" id="spatial-habitat-panel-h" tag="Residents" title="Principal home habitats"
+              description={<>Denominator: {fmt(a.population_billion)} billion unique usual residents{a.habitat_denominator ? ` (“${a.habitat_denominator}”)` : ''}. Not land area and not urbanization.</>}>
+              {a.habitat_status === 'ASSIGNED' && <Figure id={`spatial-habitat-${slug}`} dims={dims} title={`${a.name} · share of residents`}
+                alt={`Pie chart of the principal home habitats of ${a.name}: ${a.habitats.map((r) => `${r.label} ${fmt(r.pct)}%`).join(', ')}.`} />}
               {a.habitat_status === 'ASSIGNED' ? (
-                <Table caption={`Principal home habitats of ${a.name}`}>
+                <Table className="" caption={`Principal home habitats of ${a.name}`}>
                   <thead><tr><th scope="col">Home habitat</th><th scope="col" className="num">Share of residents</th><th scope="col" className="num">Billion residents</th></tr></thead>
                   <tbody>{a.habitats.map((r) => <tr key={r.key}><th scope="row">{r.label}</th><td className="num">{fmt(r.pct)}%</td><td className="num">{fmt(r.absolute_billion)}</td></tr>)}</tbody>
                   <tfoot><tr><th scope="row">Total</th><td className="num">{fmt(a.habitats.reduce((s, r) => s + r.pct, 0))}%</td><td className="num">{fmt(a.population_billion)}</td></tr></tfoot>
                 </Table>
-              ) : <p role="status" className="rs-notice mt-3">Not assigned in the remodeling record; not zero.</p>}
-            </div>
+              ) : <p role="status" className="rs-notice">Not assigned in the remodeling record; not zero.</p>}
+            </DimensionPanel>
           </div>
-        </div>
-        <div className="rs-card mt-5 p-5">
-          <h3 className="rs-h3">3D geometry of {a.name}</h3>
-          <ul className="mt-3 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
-            {a.geometry.map((g) => <li key={g.key} className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg border border-line px-3 py-2"><span className="min-w-0 text-ink-2">{g.label}</span><Status>{g.status === 'UNASSIGNED' ? 'UNASSIGNED · not zero' : 'PRESENT · not rendered'}</Status></li>)}
-          </ul>
-          <p className="mt-3 text-xs text-ink-3">No mesh, polygon or volume is drawn, because none is assigned in the source.</p>
-        </div>
-      </section>
+          <div className="rs-card mt-5 p-5">
+            <h3 className="rs-h3">3D geometry of {a.name}</h3>
+            <ul className="mt-3 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+              {a.geometry.map((g) => <li key={g.key} className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg border border-line px-3 py-2"><span className="min-w-0 text-ink-2">{g.label}</span><Status>{g.status === 'UNASSIGNED' ? 'UNASSIGNED · not zero' : 'PRESENT · not rendered'}</Status></li>)}
+            </ul>
+            <p className="mt-3 text-xs text-ink-3">No mesh, polygon or volume is drawn, because none is assigned in the source.</p>
+          </div>
+        </section>
+      </div>
 
-      <section aria-labelledby="spatial-compare-h">
-        <h2 id="spatial-compare-h" className="rs-h2">{a.name} compared with {b.name}</h2>
-        <Table caption={`Spatial composition of ${a.name} and ${b.name}`} minWidth={680}>
-          <thead><tr><th scope="col">Category</th><th scope="col">Denominator</th><th scope="col" className="num">{a.name}</th><th scope="col" className="num">{b.name}</th><th scope="col" className="num">Difference</th></tr></thead>
-          <tbody>
-            {SURFACES.map((cat) => {
-              const ra = a.surface.find((r) => r.key === cat.key);
-              const rb = b.surface.find((r) => r.key === cat.key);
-              return <tr key={cat.key}><th scope="row">{cat.label}</th><td>Land</td><td className="num">{spatialCell(a, 'surface', cat.key, metric)}</td><td className="num">{spatialCell(b, 'surface', cat.key, metric)}</td>
-                <td className="num">{ra && rb ? (metric === 'pct' ? pp(ra.pct - rb.pct) : ra.area_million_km2 !== null && rb.area_million_km2 !== null ? `${fmt(ra.area_million_km2 - rb.area_million_km2)} M km²` : '—') : '—'}</td></tr>;
-            })}
-            {HABITATS.map((cat) => {
-              const ra = a.habitats.find((r) => r.key === cat.key);
-              const rb = b.habitats.find((r) => r.key === cat.key);
-              return <tr key={cat.key}><th scope="row">{cat.label}</th><td>Residents</td><td className="num">{spatialCell(a, 'habitat', cat.key, metric)}</td><td className="num">{spatialCell(b, 'habitat', cat.key, metric)}</td>
-                <td className="num">{ra && rb ? (metric === 'pct' ? pp(ra.pct - rb.pct) : `${fmt(ra.absolute_billion - rb.absolute_billion)} B`) : '—'}</td></tr>;
-            })}
-          </tbody>
-        </Table>
-        <p className="mt-2 text-xs text-ink-3">Land rows and resident rows have different denominators and are never added together.</p>
-      </section>
+      <div className="space-y-5" data-flow="compare">
+        <ControlBlock kind="compare" label="Comparison controls" step="Step 2 · Compare (optional)" align="start"
+          footer={`${a.name} is compared with the nation chosen here. The metric also sets the cross-nation charts and tables further down.`}>
+          <Picker id="spatial-compare" label="Compare with" items={countries} value={b.id} onChange={setB} note={note} />
+          <MetricChoice id="spatial-metric" value={metric} onChange={setMetric} labels={['Share of denominator (%)', 'Quantity (million km² · billion residents)']} />
+        </ControlBlock>
+        <section aria-labelledby="spatial-compare-h">
+          <h2 id="spatial-compare-h" className="rs-h2">{a.name} compared with {b.name}</h2>
+          <Table caption={`Spatial composition of ${a.name} and ${b.name}`} minWidth={680}>
+            <thead><tr><th scope="col">Category</th><th scope="col">Denominator</th><th scope="col" className="num">{a.name}</th><th scope="col" className="num">{b.name}</th><th scope="col" className="num">Difference</th></tr></thead>
+            <tbody>
+              {SURFACES.map((cat) => {
+                const ra = a.surface.find((r) => r.key === cat.key);
+                const rb = b.surface.find((r) => r.key === cat.key);
+                return <tr key={cat.key}><th scope="row">{cat.label}</th><td><span className="rs-dim-dot" data-dimension="land">Land</span></td><td className="num">{spatialCell(a, 'surface', cat.key, metric)}</td><td className="num">{spatialCell(b, 'surface', cat.key, metric)}</td>
+                  <td className="num">{ra && rb ? (metric === 'pct' ? pp(ra.pct - rb.pct) : ra.area_million_km2 !== null && rb.area_million_km2 !== null ? `${fmt(ra.area_million_km2 - rb.area_million_km2)} M km²` : '—') : '—'}</td></tr>;
+              })}
+              {HABITATS.map((cat) => {
+                const ra = a.habitats.find((r) => r.key === cat.key);
+                const rb = b.habitats.find((r) => r.key === cat.key);
+                return <tr key={cat.key}><th scope="row">{cat.label}</th><td><span className="rs-dim-dot" data-dimension="residents">Residents</span></td><td className="num">{spatialCell(a, 'habitat', cat.key, metric)}</td><td className="num">{spatialCell(b, 'habitat', cat.key, metric)}</td>
+                  <td className="num">{ra && rb ? (metric === 'pct' ? pp(ra.pct - rb.pct) : `${fmt(ra.absolute_billion - rb.absolute_billion)} B`) : '—'}</td></tr>;
+              })}
+            </tbody>
+          </Table>
+          <p className="mt-2 text-xs text-ink-3">Land rows and resident rows have different denominators and are never added together.</p>
+        </section>
+      </div>
 
       <section aria-labelledby="surface-h" className="space-y-4">
-        <h2 id="surface-h" className="rs-h2">Terrestrial surface footprint across nations</h2>
+        <div>
+          <DimTag dim="land">Land area</DimTag>
+          <h2 id="surface-h" className="rs-h2 mt-1">Terrestrial surface footprint across nations</h2>
+        </div>
         <Figure wide id={metric === 'pct' ? 'spatial-surface-percent' : 'spatial-surface-area'} dims={dims}
           title={metric === 'pct' ? 'Share of national terrestrial land' : 'Area of national terrestrial land (million km²)'}
           alt={`Horizontal stacked bars of the terrestrial surface footprint for ${data.spatial.coverage.surface_assigned} nations${metric === 'pct' ? ' in percent of national land' : ' in million km²'}.`} />
@@ -352,7 +408,10 @@ export function SpatialExplorer({ data, dims }: { data: Composition; dims: Figur
       </section>
 
       <section aria-labelledby="habitat-h" className="space-y-4">
-        <h2 id="habitat-h" className="rs-h2">Principal home habitats across nations</h2>
+        <div>
+          <DimTag dim="residents">Residents</DimTag>
+          <h2 id="habitat-h" className="rs-h2 mt-1">Principal home habitats across nations</h2>
+        </div>
         <Figure wide id={metric === 'pct' ? 'spatial-habitat-percent' : 'spatial-habitat-residents'} dims={dims}
           title={metric === 'pct' ? 'Share of unique usual residents' : 'Unique usual residents (billion)'}
           alt={`Horizontal stacked bars of principal home habitats for ${data.spatial.coverage.habitat_assigned} nations${metric === 'pct' ? ' in percent of residents' : ' in billions of residents'}.`} />

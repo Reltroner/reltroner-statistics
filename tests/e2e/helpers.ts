@@ -51,7 +51,7 @@ export async function expectNoHorizontalOverflow(page: Page) {
 export async function expectContainedText(page: Page) {
   const problems = await page.evaluate(() => {
     const out: string[] = [];
-    const containers = [...document.querySelectorAll('.rs-card, .rs-notice, header[data-site-header] .rs-container, footer .rs-container')];
+    const containers = [...document.querySelectorAll('.rs-card, .rs-notice, .rs-controls, .rs-panel, header[data-site-header] .rs-container, footer .rs-container')];
     const range = document.createRange();
     for (const box of containers) {
       const cr = box.getBoundingClientRect();
