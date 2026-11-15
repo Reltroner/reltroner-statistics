@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import * as echarts from 'echarts/core';
-import { BarChart, BoxplotChart, CustomChart, HeatmapChart, LineChart, ScatterChart, TreemapChart } from 'echarts/charts';
+import { BarChart, BoxplotChart, CustomChart, HeatmapChart, LineChart, ScatterChart } from 'echarts/charts';
 import { AriaComponent, DataZoomComponent, GridComponent, LegendComponent, MarkAreaComponent, MarkLineComponent, TooltipComponent, VisualMapComponent } from 'echarts/components';
 import { SVGRenderer } from 'echarts/renderers';
 import { LabelLayout } from 'echarts/features';
@@ -9,7 +9,7 @@ import { readTheme, type ChartTheme } from './theme.ts';
 import { chartAnimationMs } from '../../lib/motion.ts';
 
 echarts.use([
-  BarChart, BoxplotChart, CustomChart, HeatmapChart, LineChart, ScatterChart, TreemapChart,
+  BarChart, BoxplotChart, CustomChart, HeatmapChart, LineChart, ScatterChart,
   AriaComponent, DataZoomComponent, GridComponent, LegendComponent, MarkAreaComponent, MarkLineComponent, TooltipComponent, VisualMapComponent,
   SVGRenderer, LabelLayout,
 ]);
@@ -22,13 +22,17 @@ interface Props {
   /** Merge updates by series id so position changes animate (state transitions). */
   merge?: boolean;
   onClick?: (params: { data?: unknown; name?: string; seriesName?: string }) => void;
+  /** Called after every render and resize with the instance, for layout that needs exact pixel positions. */
+  onLayout?: (chart: echarts.ECharts) => void;
 }
 
 /**
  * ECharts island wrapper. The SVG renderer keeps text crisp and selectable; the option builder
  * receives the active theme, so a theme toggle re-renders with the validated mode palette.
  */
-export default function EChart({ build, height, label, deps = [], merge = false, onClick }: Props) {
+export default function EChart({ build, height, label, deps = [], merge = false, onClick, onLayout }: Props) {
+  const layoutRef = useRef(onLayout);
+  layoutRef.current = onLayout;
   const host = useRef<HTMLDivElement>(null);
   const chart = useRef<echarts.ECharts | null>(null);
   const [themeVersion, setThemeVersion] = useState(0);
@@ -37,7 +41,7 @@ export default function EChart({ build, height, label, deps = [], merge = false,
     if (!host.current) return;
     const instance = echarts.init(host.current, undefined, { renderer: 'svg' });
     chart.current = instance;
-    const ro = new ResizeObserver(() => instance.resize());
+    const ro = new ResizeObserver(() => { instance.resize(); layoutRef.current?.(instance); });
     ro.observe(host.current);
     const onTheme = () => setThemeVersion((n) => n + 1);
     window.addEventListener('rs:themechange', onTheme);
@@ -71,6 +75,7 @@ export default function EChart({ build, height, label, deps = [], merge = false,
     );
     instance.off('click');
     if (onClick) instance.on('click', (p) => onClick(p as never));
+    layoutRef.current?.(instance);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [themeVersion, ...deps]);
 

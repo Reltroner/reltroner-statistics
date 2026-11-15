@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import type * as echarts from 'echarts/core';
 import EChart from '../charts/EChart.tsx';
 import { axisStyle, esc, SYMBOLS, tooltipStyle, type ChartTheme } from '../charts/theme.ts';
 import { formatValue, tickValue } from '../../lib/format.ts';
@@ -51,6 +52,77 @@ export default function ScatterExplorer({ rows, indicators, clusterRuns, recomme
     const vals = plotted.map((r) => (sm ? r.values[sm.id] : null)).filter((v): v is number => v != null && v > 0);
     return vals.length ? ([Math.sqrt(Math.min(...vals)), Math.sqrt(Math.max(...vals))] as [number, number]) : null;
   }, [plotted, sm]);
+  /**
+   * Boundary-aware label side. A label sits on the side of its point that has room: points in the
+   * right part of the plotted range are labeled to their left, all others to their right. The
+   * position is computed from the data range (linear or logarithmic, as drawn), so it holds at
+   * every chart width; together with the value-axis padding below, no label reaches the viewport edge.
+   */
+  const fraction = (v: number, axis: 'x' | 'y') => {
+    const key = axis === 'x' ? x : y;
+    const log = axis === 'x' ? logX && canLogX : logY && canLogY;
+    const vals = plotted.map((r) => r.values[key] as number).map((n) => (log ? Math.log10(n) : n));
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    const t = log ? Math.log10(v) : v;
+    return hi === lo ? 0.5 : (t - lo) / (hi - lo);
+  };
+  const labelSide = (vx: number) => (fraction(vx, 'x') > 0.62 ? 'left' : 'right');
+
+  // Measured placement: after each render the exact pixel position of every point is read from the chart and
+  // each label takes the first side that stays inside the plot area and touches no placed label and no other
+  // marker. Larger bubbles are placed first. A label with no free side is not drawn and is named below the chart.
+  type Side = 'right' | 'left' | 'top' | 'bottom' | 'topRight' | 'topLeft' | 'bottomRight' | 'bottomLeft' | 'none';
+  type Placed = { side: Side; dx: number; dy: number };
+  const layoutKey = [x, y, size, cohort, color, logX && canLogX, logY && canLogY].join('|');
+  const [placement, setPlacement] = useState<{ key: string; sides: Record<string, Placed> } | null>(null);
+  const onLayout = useCallback((chart: echarts.ECharts) => {
+    const grid = (chart as unknown as { getModel(): { getComponent(t: string, i: number): { coordinateSystem?: { getRect(): { x: number; y: number; width: number; height: number } } } | undefined } })
+      .getModel()?.getComponent('grid', 0)?.coordinateSystem?.getRect();
+    if (!grid) return;
+    const ctx = document.createElement('canvas').getContext('2d');
+    const font = getComputedStyle(document.documentElement).getPropertyValue('--font-sans').trim() || 'system-ui, sans-serif';
+    if (ctx) ctx.font = `11px ${font}`;
+    const points = groups.flatMap((g) => g.rows.map((r) => {
+      const px = chart.convertToPixel({ seriesId: g.id }, [r.values[x] as number, r.values[y] as number]) as number[] | undefined;
+      return { name: r.name, px: px?.[0] ?? NaN, py: px?.[1] ?? NaN, radius: symbolSize(sm ? r.values[sm.id] : null) / 2 };
+    })).filter((p) => Number.isFinite(p.px) && Number.isFinite(p.py));
+    const order = [...points].sort((a, b) => b.radius - a.radius || (a.name < b.name ? -1 : 1));
+    const placed: Array<{ l: number; r: number; t: number; b: number }> = [];
+    const hit = (a: { l: number; r: number; t: number; b: number }, b: { l: number; r: number; t: number; b: number }, gap = 2) => a.l < b.r + gap && a.r > b.l - gap && a.t < b.b + gap && a.b > b.t - gap;
+    const sides: Record<string, Placed> = {};
+    for (const p of order) {
+      const w = (ctx ? ctx.measureText(p.name).width : p.name.length * 6.2) + 6;
+      const h = 17;
+      const d = p.radius + 6;
+      const q = p.radius * 0.72 + 4;
+      const rects: Record<Exclude<Side, 'none'>, { l: number; r: number; t: number; b: number }> = {
+        right: { l: p.px + d, r: p.px + d + w, t: p.py - h / 2, b: p.py + h / 2 },
+        left: { l: p.px - d - w, r: p.px - d, t: p.py - h / 2, b: p.py + h / 2 },
+        top: { l: p.px - w / 2, r: p.px + w / 2, t: p.py - d - h, b: p.py - d },
+        bottom: { l: p.px - w / 2, r: p.px + w / 2, t: p.py + d, b: p.py + d + h },
+        topRight: { l: p.px + q, r: p.px + q + w, t: p.py - q - h, b: p.py - q },
+        topLeft: { l: p.px - q - w, r: p.px - q, t: p.py - q - h, b: p.py - q },
+        bottomRight: { l: p.px + q, r: p.px + q + w, t: p.py + q, b: p.py + q + h },
+        bottomLeft: { l: p.px - q - w, r: p.px - q, t: p.py + q, b: p.py + q + h },
+      };
+      const prefer: Array<Exclude<Side, 'none'>> = p.px > grid.x + grid.width * 0.62
+        ? ['left', 'top', 'bottom', 'topLeft', 'bottomLeft', 'topRight', 'bottomRight', 'right']
+        : ['right', 'top', 'bottom', 'topRight', 'bottomRight', 'topLeft', 'bottomLeft', 'left'];
+      const side = prefer.find((s) => {
+        const c = rects[s];
+        if (c.l < grid.x + 1 || c.r > grid.x + grid.width - 1 || c.t < grid.y + 1 || c.b > grid.y + grid.height - 1) return false;
+        if (placed.some((q) => hit(c, q))) return false;
+        return !points.some((o) => o !== p && hit(c, { l: o.px - o.radius, r: o.px + o.radius, t: o.py - o.radius, b: o.py + o.radius }, 1));
+      });
+      // Offsets are relative to the top-left corner of the marker's bounding box, as ECharts expects for array positions.
+      sides[p.name] = side ? { side, dx: rects[side].l - (p.px - p.radius), dy: rects[side].t - (p.py - p.radius) } : { side: 'none', dx: 0, dy: 0 };
+      if (side) placed.push(rects[side]);
+    }
+    setPlacement((prev) => (prev && prev.key === layoutKey && JSON.stringify(prev.sides) === JSON.stringify(sides) ? prev : { key: layoutKey, sides }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layoutKey, groups, sm]);
+  const sideFor = (name: string, vx: number): Placed | 'left' | 'right' => (placement?.key === layoutKey && placement.sides[name] ? placement.sides[name]! : labelSide(vx));
+  const hiddenLabels = placement?.key === layoutKey ? Object.entries(placement.sides).filter(([, s]) => s.side === 'none').map(([n]) => n).sort() : [];
   const symbolSize = (v: number | null | undefined) => {
     if (!sizeRange || v == null || v <= 0) return 11;
     const [lo, hi] = sizeRange;
@@ -62,23 +134,32 @@ export default function ScatterExplorer({ rows, indicators, clusterRuns, recomme
     const colorFor = (slot: number) => (run ? (slot < 3 ? t.clusters[slot] : t.fold) : t.series[0]);
     const ax = axisStyle(t);
     return {
-      grid: { left: 64, right: 28, top: 24, bottom: 56, containLabel: true },
+      // containLabel reserves room for axis labels only; data labels are kept inside by label sides and axis padding.
+      grid: { left: 64, right: 28, top: 28, bottom: 56, containLabel: true },
       tooltip: {
         ...tooltipStyle(t), trigger: 'item',
         formatter: (p: { data: { name: string; value: [number, number]; size: number | null; group: string } }) =>
           `<strong>${esc(p.data.name)}</strong><br/>${esc(xm.label)}: <strong>${esc(formatValue(p.data.value[0], xm.format))}</strong><br/>${esc(ym.label)}: <strong>${esc(formatValue(p.data.value[1], ym.format))}</strong>` +
           (sm ? `<br/>${esc(sm.label)}: ${esc(formatValue(p.data.size, sm.format))}` : '') + `<br/><span style="opacity:.75">${esc(p.data.group)} · production canon</span>`,
       },
-      xAxis: { type: logX && canLogX ? 'log' : 'value', name: `${xm.label} (${xm.unit})`, nameLocation: 'middle', nameGap: 34, scale: true, ...ax, axisLabel: { ...ax.axisLabel, formatter: (v: number) => tickValue(v, xm.format), hideOverlap: true } },
-      yAxis: { type: logY && canLogY ? 'log' : 'value', name: `${ym.label} (${ym.unit})`, nameLocation: 'middle', nameGap: 52, scale: true, ...ax, axisLabel: { ...ax.axisLabel, formatter: (v: number) => tickValue(v, ym.format) } },
+      xAxis: { type: logX && canLogX ? 'log' : 'value', name: `${xm.label} (${xm.unit})`, nameLocation: 'middle', nameGap: 34, scale: true, boundaryGap: ['7%', '7%'], ...ax, axisLabel: { ...ax.axisLabel, formatter: (v: number) => tickValue(v, xm.format), hideOverlap: true } },
+      yAxis: { type: logY && canLogY ? 'log' : 'value', name: `${ym.label} (${ym.unit})`, nameLocation: 'middle', nameGap: 52, scale: true, boundaryGap: ['8%', '8%'], ...ax, axisLabel: { ...ax.axisLabel, formatter: (v: number) => tickValue(v, ym.format) } },
       legend: { top: 0, right: 0, textStyle: { color: t.ink2 }, itemWidth: 12, itemHeight: 12, show: groups.length > 1 },
       series: groups.map((g) => ({
         id: g.id, name: g.name, type: 'scatter', symbol: g.slot < SYMBOLS.length ? SYMBOLS[g.slot] : 'circle',
         itemStyle: !run && g.slot === 1 ? { color: t.surface, borderColor: t.series[0], borderWidth: 2 } : { color: colorFor(g.slot), borderColor: t.surface, borderWidth: 2 },
         emphasis: { focus: 'self', itemStyle: { borderColor: t.ink, borderWidth: 2 } },
-        label: { show: true, position: 'right', distance: 6, color: t.ink2, fontSize: 11, formatter: (p: { data: { name: string } }) => p.data.name },
-        labelLayout: { hideOverlap: true, moveOverlap: 'shiftY' },
-        data: g.rows.map((r) => ({ name: r.name, value: [r.values[x], r.values[y]], size: sm ? r.values[sm.id] : null, group: g.name, symbolSize: symbolSize(sm ? r.values[sm.id] : null) })),
+        label: { show: true, distance: 6, padding: [2, 3], color: t.ink2, fontSize: 11, formatter: (p: { data: { name: string } }) => p.data.name },
+        // Sides come from the measured placement above; hideOverlap stays as a last guard before the first measurement.
+        labelLayout: { hideOverlap: true },
+        data: g.rows.map((r) => {
+          const side = sideFor(r.name, r.values[x] as number);
+          return {
+            name: r.name, value: [r.values[x], r.values[y]], size: sm ? r.values[sm.id] : null, group: g.name, symbolSize: symbolSize(sm ? r.values[sm.id] : null),
+            label: typeof side === 'string' ? { show: true, position: side }
+              : side.side === 'none' ? { show: false } : { show: true, position: [side.dx, side.dy], align: 'left', verticalAlign: 'top' },
+          };
+        }),
       })),
     };
   };
@@ -120,7 +201,8 @@ export default function ScatterExplorer({ rows, indicators, clusterRuns, recomme
         <span className="text-ink-3">{plotted.length} plotted · the 18-state residual is one aggregate and is never plotted as a nation</span>
       </div>
       <div className="rs-card mt-4 p-3 sm:p-4">
-        <EChart build={build} height={460} merge label={`Scatter plot of ${ym.label} against ${xm.label} for ${plotted.length} nations`} deps={[x, y, size, cohort, color, logX, logY]} />
+        <EChart build={build} height={460} merge onLayout={onLayout} label={`Scatter plot of ${ym.label} against ${xm.label} for ${plotted.length} nations`} deps={[x, y, size, cohort, color, logX, logY, placement]} />
+        {hiddenLabels.length > 0 && <p className="mt-2 px-1 text-xs text-ink-3">Not labeled in the chart because no free space is next to the point: {hiddenLabels.join(', ')}. Hover a point or open the table view for every value.</p>}
       </div>
       {missing.length > 0 && (
         <p className="mt-3 text-sm text-ink-3">
