@@ -95,10 +95,12 @@ export const SECTION_PAGES: Readonly<Record<SectionId, ReadonlyArray<{ href: str
   methodology: [],
 };
 
-export const ECOSYSTEM = [
-  { label: 'Reltroner Studio', href: 'https://reltroner.com', description: 'The fictional world of Asthortera and the systems behind it.' },
-  { label: 'Reltroner Learning Academy', href: 'https://lms.reltroner.com', description: 'Courses and guided learning across the ecosystem.' },
-] as const;
+/** Platforms of the Reltroner ecosystem. Exactly one entry is the current site; it is shown as "You are here", not as a link. */
+export const ECOSYSTEM: ReadonlyArray<{ id: string; label: string; href: string; description: string; current: boolean }> = [
+  { id: 'statistics', label: 'Reltroner Statistics', href: 'https://statistics.reltroner.com', description: 'Source-pinned statistics, drift forensics and evidence tools for Asthortera.', current: true },
+  { id: 'studio', label: 'Reltroner Studio', href: 'https://www.reltroner.com', description: 'The fictional world of Asthortera and the systems behind it.', current: false },
+  { id: 'academy', label: 'Reltroner Learning Academy', href: 'https://lms.reltroner.com', description: 'Courses and guided learning across the ecosystem.', current: false },
+];
 
 export function sectionFor(pathname: string): SectionId {
   const clean = pathname.replace(/\/+$/, '') || '/';

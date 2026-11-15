@@ -51,16 +51,28 @@ const active = sectionFor(pathname);
       <div class="relative hidden md:block lg:hidden xl:block">
         <button type="button" data-ecosystem-toggle aria-expanded="false" aria-controls="ecosystem-menu" class="rs-button rs-button-ghost !min-h-10 !px-3 text-sm">
           Ecosystem
-          <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
+          <svg class="rs-chevron" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
         </button>
-        <div id="ecosystem-menu" hidden class="rs-card absolute right-0 top-[calc(100%+0.6rem)] z-50 w-80 p-2" style="box-shadow: var(--shadow-pop);">
-          <ul>
+        <div id="ecosystem-menu" hidden data-ecosystem-menu role="group" aria-labelledby="ecosystem-menu-h"
+          class="rs-card absolute right-0 top-[calc(100%+0.6rem)] z-50 w-[22rem] max-w-[calc(100vw-1.5rem)] p-2" style="box-shadow: var(--shadow-pop);">
+          <p id="ecosystem-menu-h" class="rs-eyebrow px-3 pb-1 pt-2">Platform Ecosystem</p>
+          <ul class="grid gap-1">
             {ECOSYSTEM.map((e) => (
               <li>
-                <a href={e.href} target="_blank" rel="noopener noreferrer" class="block rounded-xl p-3 no-underline hover:bg-surface-2">
-                  <span class="flex items-center gap-1 text-sm font-semibold text-ink">{e.label}<span aria-hidden="true">↗</span><span class="rs-sr"> (opens in a new tab)</span></span>
-                  <span class="mt-0.5 block text-xs leading-5 text-ink-3">{e.description}</span>
-                </a>
+                {e.current ? (
+                  <div aria-current="true" data-ecosystem-current class="rs-eco-row rs-eco-current">
+                    <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span class="text-sm font-semibold text-ink">{e.label}</span>
+                      <span class="rs-eco-here">You are here</span>
+                    </span>
+                    <span class="mt-0.5 block text-xs leading-5 text-ink-2">{e.description}</span>
+                  </div>
+                ) : (
+                  <a href={e.href} target="_blank" rel="noopener noreferrer" class="rs-eco-row block no-underline">
+                    <span class="flex items-center gap-1 text-sm font-semibold text-ink">{e.label}<span aria-hidden="true">↗</span><span class="rs-sr"> (opens in a new tab)</span></span>
+                    <span class="mt-0.5 block text-xs leading-5 text-ink-3">{e.description}</span>
+                  </a>
+                )}
               </li>
             ))}
           </ul>
@@ -100,9 +112,19 @@ const active = sectionFor(pathname);
         </div>
       ))}
       <div>
-        <p class="rs-eyebrow mb-2">Ecosystem</p>
-        <ul class="grid gap-1">
-          {ECOSYSTEM.map((e) => <li><a href={e.href} target="_blank" rel="noopener noreferrer" class="block rounded-lg px-2 py-2 text-[0.95rem] text-ink-2 no-underline hover:bg-accent-soft">{e.label} <span aria-hidden="true">↗</span><span class="rs-sr"> (opens in a new tab)</span></a></li>)}
+        <p class="rs-eyebrow mb-2" id="mobile-ecosystem-h">Platform Ecosystem</p>
+        <ul class="grid gap-1" aria-labelledby="mobile-ecosystem-h">
+          {ECOSYSTEM.map((e) => (
+            <li>
+              {e.current ? (
+                <div aria-current="true" data-ecosystem-current class="rs-eco-row rs-eco-current !px-2 !py-2">
+                  <span class="flex flex-wrap items-center gap-x-2 gap-y-1"><span class="text-[0.95rem] font-semibold text-ink">{e.label}</span><span class="rs-eco-here">You are here</span></span>
+                </div>
+              ) : (
+                <a href={e.href} target="_blank" rel="noopener noreferrer" class="block rounded-lg px-2 py-2 text-[0.95rem] text-ink-2 no-underline hover:bg-accent-soft">{e.label} <span aria-hidden="true">↗</span><span class="rs-sr"> (opens in a new tab)</span></a>
+              )}
+            </li>
+          ))}
         </ul>
       </div>
     </div>
@@ -110,6 +132,14 @@ const active = sectionFor(pathname);
 </header>
 
 <style>
+  .rs-eco-row { display: block; border-radius: 0.85rem; padding: 0.75rem; }
+  a.rs-eco-row:hover { background: var(--surface-2); }
+  a.rs-eco-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .rs-eco-current { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+  .rs-eco-here { display: inline-flex; align-items: center; border-radius: 999px; padding: 0.05rem 0.55rem; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; color: var(--accent-contrast); background: var(--accent-strong); white-space: nowrap; }
+  [data-ecosystem-toggle][aria-expanded='true'] .rs-chevron { transform: rotate(180deg); }
+  .rs-chevron { transition: transform 160ms ease; }
+  @media (prefers-reduced-motion: reduce) { .rs-chevron { transition: none; } }
   [data-theme-toggle] .theme-icon-sun { display: none; }
   [data-theme-toggle][data-current='light'] .theme-icon-sun { display: block; }
   [data-theme-toggle][data-current='light'] .theme-icon-moon { display: none; }

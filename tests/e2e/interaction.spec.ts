@@ -141,3 +141,59 @@ test('responsive viewports (360, 390, 768, 1024, 1280, 1440px) and Linux fallbac
     expect(metrics.scroll, `mobile Linux fallback font on ${route}`).toBeLessThanOrEqual(metrics.client + 1);
   }
 });
+
+test('R7 Platform Ecosystem: current platform marked "You are here", keyboard, Escape, outside click and mobile parity @responsive', async ({ page }) => {
+  await page.goto('/statistics');
+  const width = page.viewportSize()?.width ?? 1440;
+  const button = page.locator('[data-ecosystem-toggle]');
+  if (await button.isVisible()) {
+    const menu = page.locator('#ecosystem-menu');
+    await expect(button).toHaveAttribute('aria-expanded', 'false');
+    await button.click();
+    await expect(button).toHaveAttribute('aria-expanded', 'true');
+    await expect(menu).toBeVisible();
+    await expect(menu.getByText('Platform Ecosystem')).toBeVisible();
+    const current = menu.locator('[data-ecosystem-current]');
+    await expect(current).toContainText('Reltroner Statistics');
+    await expect(current).toContainText('You are here');
+    await expect(current).toHaveAttribute('aria-current', 'true');
+    await expect(current.locator('a')).toHaveCount(0);
+    await expect(menu.getByRole('link', { name: /Reltroner Studio/ })).toHaveAttribute('href', 'https://www.reltroner.com');
+    await expect(menu.getByRole('link', { name: /Reltroner Learning Academy/ })).toHaveAttribute('href', 'https://lms.reltroner.com');
+    const box = await menu.boundingBox();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(width + 1);
+    await page.keyboard.press('Escape');
+    await expect(menu).toBeHidden();
+    await expect(button).toBeFocused();
+    // Keyboard: Enter opens, Tab walks the links, tabbing out closes.
+    await page.keyboard.press('Enter');
+    await expect(menu).toBeVisible();
+    await page.keyboard.press('Tab');
+    await expect(menu.getByRole('link', { name: /Reltroner Studio/ })).toBeFocused();
+    const ring = await menu.getByRole('link', { name: /Reltroner Studio/ }).evaluate((el) => getComputedStyle(el).outlineStyle);
+    expect(ring).not.toBe('none');
+    await page.keyboard.press('Tab');
+    await expect(menu.getByRole('link', { name: /Reltroner Learning Academy/ })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(menu).toBeHidden();
+    await expect(button).toHaveAttribute('aria-expanded', 'false');
+    // Outside click closes.
+    await button.click();
+    await expect(menu).toBeVisible();
+    await page.mouse.click(5, (box?.y ?? 100) + 300);
+    await expect(menu).toBeHidden();
+  }
+  const toggle = page.locator('[data-menu-toggle]');
+  if (await toggle.isVisible()) {
+    await toggle.click();
+    const mobile = page.locator('#mobile-nav');
+    await expect(mobile.getByText('Platform Ecosystem')).toBeVisible();
+    await expect(mobile.locator('[data-ecosystem-current]')).toContainText('You are here');
+    await expect(mobile.getByRole('link', { name: /Reltroner Studio/ })).toHaveAttribute('href', 'https://www.reltroner.com');
+    await expect(mobile.getByRole('link', { name: /Reltroner Learning Academy/ })).toHaveAttribute('href', 'https://lms.reltroner.com');
+    await page.keyboard.press('Escape');
+    await expect(mobile).toBeHidden();
+  }
+  await expectNoHorizontalOverflow(page);
+});
