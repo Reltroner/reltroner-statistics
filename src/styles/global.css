@@ -295,6 +295,17 @@
   .rs-table tr:last-child td { border-bottom: 0; }
   .rs-table td.num, .rs-table th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .rs-table tbody tr:hover td { background: color-mix(in srgb, var(--accent-soft) 60%, transparent); }
+  /* Row headers read as data labels, not as column captions. */
+  .rs-table tbody th, .rs-table tfoot th { text-transform: none; letter-spacing: 0; font-size: 0.86rem; font-weight: 600; color: var(--text); background: transparent; white-space: normal; min-width: 8rem; }
+  .rs-table tfoot th, .rs-table tfoot td { border-top: 1px solid var(--border-strong); border-bottom: 0; font-weight: 700; color: var(--text); }
+
+  /* Matplotlib figures ship in both themes; only the active theme's variant is displayed and fetched. */
+  .rs-fig { display: block; }
+  :root:not([data-theme="light"]) .rs-fig-light { display: none; }
+  [data-theme="light"] .rs-fig-dark { display: none; }
+  /* Wide figures keep legible text on narrow screens by scrolling inside their card instead of shrinking. */
+  .rs-figure-scroll { overflow-x: auto; border-radius: var(--radius); }
+  @media (max-width: 639px) { .rs-fig-wide { min-width: 600px; } }
 
   .rs-stat { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
   .rs-stat-label { font-size: 0.78rem; color: var(--text-3); font-weight: 600; }
@@ -373,6 +384,8 @@
    zero so navigation, buttons and cards (which opt out with no-underline) are unaffected. */
 @layer base {
   :where(p, li, dd, td, blockquote, figcaption, .rs-prose) a:not(.rs-button, .rs-chip, .rs-sha) { text-decoration-line: underline; text-decoration-thickness: 1px; }
+  /* Long identifiers in running text (JSON pointers, field names, SHAs) wrap instead of widening the page. */
+  :where(p, li, dd, figcaption, blockquote) code { overflow-wrap: anywhere; }
 }
 
 /* Mobile robustness: implicit grid columns never grow past their container, and chips/buttons may wrap. */

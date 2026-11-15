@@ -14,10 +14,10 @@ import path from 'node:path';
 import type { z } from 'zod';
 import { verifyDeployment } from '../src/adapters/deployment.ts';
 import { loadGitHubSnapshot } from '../src/adapters/snapshot.ts';
-import { AnalyticsSchema, ArtifactManifestSchema, AuditSchema, CreativeArtifactSchema, DecisionArtifactSchema, GraphSchema, QaReportSchema, StatisticsDatasetSchema } from '../src/contracts/schemas.ts';
+import { AnalyticsSchema, ArtifactManifestSchema, AuditSchema, CompositionSchema, CreativeArtifactSchema, DecisionArtifactSchema, GraphSchema, QaReportSchema, StatisticsDatasetSchema } from '../src/contracts/schemas.ts';
 import { compareSources } from '../src/engine/comparator.ts';
 import { buildCreativeIntelligenceArtifact } from '../src/engine/creative-intelligence/index.ts';
-import { buildComposition, CompositionSchema } from '../src/domain/composition.ts';
+import { buildComposition } from '../src/engine/composition.ts';
 import { buildDecisionArtifact } from '../src/engine/decision-intelligence/index.ts';
 import type { MlModel } from '../src/engine/decision-intelligence/ml.ts';
 import { sha256Hex } from '../src/engine/git-objects.ts';
@@ -57,8 +57,8 @@ const stats = await extractStatistics(production, remodeling);
 steps.push({ id: 'observations', status: 'COMPLETED', detail: `${stats.observations.length} production observations, ${stats.proposals.length} remodeling proposals, ${stats.evidence_checks.filter((e) => e.status === 'VERIFIED').length}/${stats.evidence_checks.length} evidence rules verified` });
 log(steps.at(-1)!.detail);
 
-const composition = await buildComposition(remodeling);
-steps.push({ id: 'composition', status: 'COMPLETED', detail: `${composition.coverage.complete_ancestry} national ancestry profiles; ${composition.countries.filter((c) => c.surface_status === 'ASSIGNED').length} spatial profiles, pinned Remodeling source (not production canon)` });
+const composition = await buildComposition(production, remodeling);
+steps.push({ id: 'composition', status: 'COMPLETED', detail: `${composition.ancestry.coverage.assigned} national ancestry profiles from production main; ${composition.spatial.coverage.surface_assigned} surface and ${composition.spatial.coverage.habitat_assigned} habitat profiles from remodeling main (not production canon)` });
 log(steps.at(-1)!.detail);
 
 const readDoc = async (s: typeof production) => {
@@ -123,6 +123,7 @@ if (args['--skip-python']) {
     path.join(ROOT, 'scripts', 'run-python.mjs'), '-m', 'reltroner_analytics.composition_figures',
     '--input', path.join(staging, 'composition.json'),
     '--charts-dir', path.join(staging, 'charts'),
+    '--schemas', path.join(ROOT, 'analytics', 'schemas'),
   ], { cwd: ROOT, encoding: 'utf8' });
   if (figures.status !== 0) {
     process.stderr.write(figures.stdout ?? '');

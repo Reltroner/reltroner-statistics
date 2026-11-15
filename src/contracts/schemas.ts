@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import { CHANGE_TYPES, CONTENT_CHANGE_NATURES, EPISTEMIC_STATUSES, FILE_CLASSIFICATIONS, FINDING_CLASSIFICATIONS, FINDING_LEVELS, REVIEW_STATUSES } from '../domain/status.ts';
 import { EDGE_TYPES, NODE_TYPES } from '../domain/graph.ts';
+import { ANCESTRIES, COMPOSITION_SCHEMA, GEOMETRY_FIELDS, HABITATS, SHARE_TOLERANCE, SURFACES } from '../domain/composition.ts';
 import {
   CAUSAL_CLASSES,
   EXTRACTION_CONFIDENCES,
@@ -708,6 +709,53 @@ export const CreativeArtifactSchema = z.object({
   'creative summary counts must match array lengths',
 );
 
+// ------------------------------------------------------------------ Sentient composition (ancestry + Spatial 3D)
+const pct = finite.refine((v) => v >= 0 && v <= 100, 'percentage between 0 and 100');
+const keysOf = (cats: ReadonlyArray<{ key: string }>) => z.enum(cats.map((c) => c.key) as [string, ...string[]]);
+const closes = (rows: Array<{ pct: number }>, n: number) => rows.length === 0 || (rows.length === n && Math.abs(rows.reduce((s, r) => s + r.pct, 0) - 100) <= SHARE_TOLERANCE);
+const shareRows = (cats: ReadonlyArray<{ key: string }>) => z.array(z.object({ key: keysOf(cats), label: z.string(), pct, absolute_billion: finite.refine((v) => v >= 0) }))
+  .refine((rows) => closes(rows, cats.length), 'a share vector is empty or names every category and closes to 100%');
+const compositionSource = (side: 'production' | 'remodeling', repository: string) => z.object({ side: z.literal(side), repository: z.literal(repository), commit_sha: sha, blob_sha: sha, path: z.string() });
+const assignment = z.enum(['ASSIGNED', 'NOT_ASSIGNED']);
+const cohortEnum = z.enum(['PROFILED_14', 'DEVELOPMENT_5']);
+export const CompositionSchema = z.object({
+  schema_version: z.literal(COMPOSITION_SCHEMA),
+  model_version: z.string().min(1),
+  sources: z.object({ production: compositionSource('production', 'Reltroner/reltroner-studio'), remodeling: compositionSource('remodeling', 'Reltroner/reltroner-studio-remodeling').nullable() }),
+  ancestry: z.object({
+    authority: z.literal('PRODUCTION_MAIN'), pct_status: z.literal('CANON_OBSERVED'), absolute_status: z.literal('CANON_DERIVED'), absolute_formula: z.string(),
+    planet: z.object({
+      population_billion: finite.refine((v) => v > 0), sovereign_states: z.number().int().positive(), method: z.literal('CREATOR_RATIFIED_REPRESENTATIVE_14_COUNTRY_BENCHMARK'),
+      reference_population_billion: finite.refine((v) => v > 0), provenance_note: z.string(), headcount_source: z.enum(['SOURCE_STATED', 'DERIVED_FROM_SHARES']),
+      rows: shareRows(ANCESTRIES).refine((r) => r.length === ANCESTRIES.length, 'the planetary vector names every category'), pointer: z.string(),
+    }),
+    countries: z.array(z.object({
+      id: z.string().regex(/^country:[a-z0-9-]+$/), name: z.string().min(1), cohort: cohortEnum, population_billion: finite.refine((v) => v >= 0), status: assignment,
+      rows: shareRows(ANCESTRIES), pointer: z.string(),
+      remodeling: z.object({ status: z.enum(['IDENTICAL', 'DIFFERENT', 'NOT_ASSIGNED', 'RECORD_ABSENT']), population_billion: finite.nullable(), rows: shareRows(ANCESTRIES) }),
+    }).refine((c) => (c.status === 'ASSIGNED') === (c.rows.length > 0), 'status ASSIGNED exactly when shares exist')),
+    coverage: z.object({ assigned: z.number().int().nonnegative(), not_assigned: z.number().int().nonnegative(), residual_states: z.number().int().nonnegative(), residual_population_billion: finite.refine((v) => v >= 0) }),
+  }),
+  spatial: z.object({
+    authority: z.literal('REMODELING_MAIN_CREATOR_RATIFIED_NOT_PRODUCTION'), status: z.enum(['PROPOSED', 'INSUFFICIENT_DATA']), production_spatial_records: z.number().int().nonnegative(),
+    countries: z.array(z.object({
+      id: z.string().regex(/^country:[a-z0-9-]+$/), name: z.string().min(1), cohort: cohortEnum, population_billion: finite.refine((v) => v >= 0),
+      land_area_million_km2: finite.nullable(), production_land_area_million_km2: finite.nullable(), production_population_billion: finite.nullable(),
+      spatial_status_label: z.string().nullable(), land_area_status_label: z.string().nullable(), reference: z.string().nullable(),
+      surface_status: assignment, surface_denominator: z.string().nullable(),
+      surface: z.array(z.object({ key: keysOf(SURFACES), label: z.string(), pct, area_million_km2: finite.nullable() })).refine((rows) => closes(rows, SURFACES.length), 'surface vector closes to 100%'),
+      habitat_status: assignment, habitat_denominator: z.string().nullable(), habitats: shareRows(HABITATS),
+      geometry: z.array(z.object({ key: keysOf(GEOMETRY_FIELDS), label: z.string(), status: z.enum(['UNASSIGNED', 'PRESENT_NOT_RENDERED']) })),
+      pointer: z.string(),
+    }).refine((c) => (c.surface_status === 'ASSIGNED') === (c.surface.length > 0) && (c.habitat_status === 'ASSIGNED') === (c.habitats.length > 0), 'status ASSIGNED exactly when the vector exists')),
+    coverage: z.object({ surface_assigned: z.number().int().nonnegative(), habitat_assigned: z.number().int().nonnegative(), countries: z.number().int().nonnegative() }),
+  }),
+  unknowns: z.array(z.string()),
+}).strict()
+  .refine((c) => c.ancestry.coverage.assigned === c.ancestry.countries.filter((x) => x.status === 'ASSIGNED').length, 'ancestry coverage matches records')
+  .refine((c) => c.spatial.coverage.countries === c.spatial.countries.length, 'spatial coverage matches records')
+  .refine((c) => c.sources.remodeling !== null || c.spatial.countries.length === 0, 'spatial records require a remodeling source');
+
 export const JSON_SCHEMA_EXPORTS = Object.freeze({
   'audit.schema.json': AuditSchema,
   'observations.schema.json': StatisticsDatasetSchema,
@@ -717,4 +765,5 @@ export const JSON_SCHEMA_EXPORTS = Object.freeze({
   'manifest.schema.json': ArtifactManifestSchema,
   'creative.schema.json': CreativeArtifactSchema,
   'decisions.schema.json': DecisionArtifactSchema,
+  'composition.schema.json': CompositionSchema,
 });

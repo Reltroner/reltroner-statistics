@@ -8,11 +8,11 @@ import path from 'node:path';
 import type { z } from 'zod';
 import type { CreativeArtifact } from '../domain/creative.ts';
 import type { DecisionArtifact } from '../engine/decision-intelligence/index.ts';
-import { CompositionSchema, type Composition } from '../domain/composition.ts';
+import type { Composition } from '../domain/composition.ts';
 import type { Audit, Finding } from '../domain/finding.ts';
 import type { KnowledgeGraph } from '../domain/graph.ts';
 import type { Observation, StatisticsDataset } from '../domain/observation.ts';
-import { AnalyticsSchema, ArtifactManifestSchema, AuditSchema, CreativeArtifactSchema, DecisionArtifactSchema, GraphSchema, QaReportSchema, StatisticsDatasetSchema } from '../contracts/schemas.ts';
+import { AnalyticsSchema, ArtifactManifestSchema, AuditSchema, CreativeArtifactSchema, DecisionArtifactSchema, GraphSchema, QaReportSchema, StatisticsDatasetSchema, CompositionSchema } from '../contracts/schemas.ts';
 import type { QaCheck } from '../engine/qa.ts';
 
 export type Analytics = z.infer<typeof AnalyticsSchema>;
@@ -51,6 +51,23 @@ export function getChartSvg(id: string): string | null {
   if (!/^[a-z0-9-]+$/.test(id)) return null;
   const file = path.join(DIR, 'charts', `${id}.svg`);
   return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : null;
+}
+
+/** Ids of every generated chart whose id starts with one of the prefixes. */
+export function chartIds(prefixes: readonly string[]): string[] {
+  const dir = path.join(DIR, 'charts');
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir).filter((f) => f.endsWith('.svg')).map((f) => f.slice(0, -4)).filter((id) => /^[a-z0-9-]+$/.test(id) && prefixes.some((p) => id.startsWith(p))).sort();
+}
+
+/** Intrinsic size of generated charts (from the SVG viewBox), so images reserve their space before loading. */
+export function chartDims(prefixes: readonly string[]): Record<string, [number, number]> {
+  const out: Record<string, [number, number]> = {};
+  for (const id of chartIds(prefixes)) {
+    const m = /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(getChartSvg(id)?.slice(0, 2000) ?? '');
+    if (m) out[id] = [Math.round(Number(m[1])), Math.round(Number(m[2]))];
+  }
+  return out;
 }
 
 export function getContext() {

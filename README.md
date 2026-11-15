@@ -13,6 +13,8 @@
 
 Production main is never presented as the deployed commit. Remodeling values are always labeled `PROPOSED`. Nothing here writes to either Studio repository.
 
+Composition follows the same rule. `/statistics/species` reads primary ancestry from production main (national shares `CANON_OBSERVED`, residents = population × share / 100 `CANON_DERIVED`; primary ancestry is not a species taxonomy). `/statistics/spatial` reads the Spatial 3D records that exist only in remodeling main (creator-ratified there, not published, so `PROPOSED`); surface shares use national land, habitat shares use unique residents, and polygons or km³ volumes stay unassigned. `/assistant` answers deterministically from the published evidence index and labels every statement with its status; its optional generated explanation (`functions/api/assistant.ts`) is off unless the owner configures a provider, server-side secrets and a rate limiter.
+
 ## How it works
 
 ```text
