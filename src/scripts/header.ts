@@ -32,7 +32,7 @@ function setupTheme() {
   });
 }
 
-function setupDisclosure(button: HTMLButtonElement, panel: HTMLElement, opts: { focusFirst?: boolean; closeOnOutside?: boolean; onToggle?: (open: boolean) => void } = {}) {
+function setupDisclosure(button: HTMLButtonElement, panel: HTMLElement, opts: { focusFirst?: boolean; closeOnOutside?: boolean; closeOnFocusOut?: boolean; onToggle?: (open: boolean) => void } = {}) {
   const setOpen = (open: boolean, returnFocus = false) => {
     button.setAttribute('aria-expanded', String(open));
     panel.hidden = !open;
@@ -54,6 +54,15 @@ function setupDisclosure(button: HTMLButtonElement, panel: HTMLElement, opts: { 
   panel.addEventListener('click', (e) => {
     if ((e.target as HTMLElement).closest('a')) setOpen(false);
   });
+  if (opts.closeOnFocusOut) {
+    // Tabbing past the last entry (or anywhere outside) closes the menu, so it never lingers over the page.
+    const onFocusOut = (e: FocusEvent) => {
+      const next = e.relatedTarget as Node | null;
+      if (button.getAttribute('aria-expanded') === 'true' && next && !panel.contains(next) && !button.contains(next)) setOpen(false);
+    };
+    panel.addEventListener('focusout', onFocusOut);
+    button.addEventListener('focusout', onFocusOut);
+  }
   return setOpen;
 }
 
@@ -66,7 +75,7 @@ function setupMenus() {
   }
   const ecoBtn = document.querySelector<HTMLButtonElement>('[data-ecosystem-toggle]');
   const eco = document.getElementById('ecosystem-menu');
-  if (ecoBtn && eco) setupDisclosure(ecoBtn, eco, { closeOnOutside: true });
+  if (ecoBtn && eco) setupDisclosure(ecoBtn, eco, { closeOnOutside: true, closeOnFocusOut: true });
 }
 
 let paletteReady: Promise<void> | null = null;

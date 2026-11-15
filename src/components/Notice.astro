@@ -1,6 +1,8 @@
 ---
 interface Props { title: string; tone?: 'info' | 'caution' | 'unavailable'; class?: string }
 const { title, tone = 'info', class: className } = Astro.props;
+// Status tokens such as INSUFFICIENT_LABELED_DATA may break after an underscore on narrow screens.
+const titleParts = title.split(/(?<=_)/);
 ---
 <div role="note" class:list={['rs-notice', className]} data-tone={tone === 'info' ? undefined : tone}>
   <svg class="mt-0.5 shrink-0" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">
@@ -8,5 +10,5 @@ const { title, tone = 'info', class: className } = Astro.props;
       : tone === 'unavailable' ? <><circle cx="12" cy="12" r="9" /><path d="M8 12h8" /></>
       : <><circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7h.01" /></>}
   </svg>
-  <div><p><strong>{title}</strong></p><div class="mt-1"><slot /></div></div>
+  <div class="min-w-0 break-words"><p><strong>{titleParts.map((part, i) => <Fragment>{i > 0 && <wbr />}{part}</Fragment>)}</strong></p><div class="mt-1"><slot /></div></div>
 </div>

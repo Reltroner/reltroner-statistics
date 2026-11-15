@@ -1,0 +1,32 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageIntro from '../components/PageIntro.astro';
+import AssistantWorkspace from '../features/statistics/AssistantWorkspace.tsx';
+import { getComposition, getContext } from '../lib/data.ts';
+
+const context = getContext();
+const composition = getComposition();
+// Generated explanations stay off unless the owner explicitly enables them at build time and configures the server side.
+const synthesisAvailable = import.meta.env.PUBLIC_RELTRONER_AI_SYNTHESIS === 'true';
+---
+<BaseLayout title="Statistics Intelligence Assistant" description="Ask evidence-grounded questions about Asthortera's statistics, primary ancestry, Spatial 3D composition and source-grounded worldbuilding. Answers are deterministic and cite pinned sources.">
+  <PageIntro eyebrow="Read-only Q&A · deterministic evidence answers"
+    title="Statistics Intelligence Assistant"
+    lede="Ask about Year 0 indicators, primary ancestry, national population, Spatial 3D composition and source-grounded worldbuilding. Every answer is computed from the published evidence index, states the status of each value and links to the pinned source."
+    crumbs={[{ href: '/statistics', label: 'Statistics' }, { label: 'Ask AI' }]}
+    sources={['production', 'remodeling', 'statistics', 'rules']} model={composition.model_version}
+    limits={[
+      'Answers are deterministic: matching and arithmetic over published evidence. No language model runs unless the owner enables the optional explanation service.',
+      synthesisAvailable ? 'Optional generated explanations are enabled and are labeled as prose; the evidence answer always accompanies them.' : 'Generated explanations are switched off on this site. Nothing is sent to an external AI provider.',
+      'Production values are canon (CANON_OBSERVED, CANON_DERIVED); Spatial 3D values come from remodeling main and are PROPOSED; a missing value is INSUFFICIENT_DATA.',
+      'A narrative match is not a causal claim, and candidate links are never presented as verified. No private creator drafts are in the index.',
+    ]}
+  />
+  <section class="pb-12"><div class="rs-container">
+    <div class="rs-card mb-6 grid gap-3 p-5 text-sm text-ink-2 sm:grid-cols-2">
+      <p class="min-w-0"><strong class="text-ink">Production main</strong><span class="mt-1 block break-all font-mono text-xs">{context.production.commit_sha}</span></p>
+      <p class="min-w-0"><strong class="text-ink">Remodeling main</strong><span class="mt-1 block break-all font-mono text-xs">{composition.sources.remodeling?.commit_sha ?? 'not available'}</span></p>
+    </div>
+    <AssistantWorkspace client:load synthesisAvailable={synthesisAvailable} />
+  </div></section>
+</BaseLayout>

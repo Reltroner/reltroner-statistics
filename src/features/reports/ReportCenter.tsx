@@ -240,7 +240,7 @@ export default function ReportCenter() {
             {EXPORT_FORMATS.map((f) => {
               const unavailable = f === 'pdf' && !pdfReady;
               return (
-                <label key={f} className={`rs-card flex cursor-pointer items-start gap-3 p-3 ${formats.has(f) ? '!border-[var(--accent)]' : ''} ${unavailable ? 'opacity-70' : ''}`}>
+                <label key={f} className={`rs-card flex cursor-pointer items-start gap-3 p-3 ${formats.has(f) ? '!border-[var(--accent)]' : ''} ${unavailable ? 'border-dashed' : ''}`}>
                   <input type="checkbox" className="mt-1" checked={formats.has(f)} onChange={() => toggleFormat(f)} />
                   <span><span className="font-semibold text-ink">{FORMAT_INFO[f].label}</span><span className="block text-xs text-ink-3">{FORMAT_INFO[f].detail}</span>
                     {unavailable && <span className="mt-1 block text-xs text-[var(--status-warning-text)]">Precomputed PDF not available for this selection in this build.</span>}</span>

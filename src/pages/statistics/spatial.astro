@@ -1,0 +1,44 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import StatTile from '../../components/StatTile.astro';
+import { SpatialExplorer } from '../../features/statistics/CompositionExplorer.tsx';
+import { chartDims, getComposition } from '../../lib/data.ts';
+
+const data = getComposition();
+const s = data.spatial;
+const dims = chartDims(['spatial-']);
+const rel = s.countries.find((c) => c.name === 'Reltronland');
+---
+<BaseLayout title="Spatial 3D composition" description="Terrestrial surface footprint and principal home habitats of Asthortera's nations (NCCM V6.5, Year 0) from remodeling main, with separate denominators and unassigned 3D geometry.">
+  <PageIntro eyebrow="Statistics · Spatial 3D · NCCM V6.5 Year 0 · Remodeling" title="Spatial 3D composition"
+    lede="See how each nation's terrestrial land is classified and where its residents principally live: on the land surface, underground, underwater or floating. Two denominators, never mixed."
+    crumbs={[{ href: '/statistics', label: 'Statistics' }, { label: 'Spatial 3D' }]}
+    sources={['remodeling', 'model', 'statistics']} model={data.model_version}
+    limits={[
+      `These records exist only in remodeling main, where they are creator-ratified inside the remodeling workspace. Production main carries ${s.production_spatial_records} spatial records, so the values are not published Studio canon.`,
+      'Surface footprint is a share of national terrestrial land area, not built, constructed or habitable volume.',
+      'Principal home habitat is a share of unique usual residents, not land area, density or the urbanization rate.',
+      'Country polygons, constructed and habitable km³, marine residence by depth and habitat capacity are unassigned, not zero.',
+    ]}
+  />
+  <section class="pb-9" aria-label="Spatial coverage">
+    <div class="rs-container grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatTile label="Nations with surface footprints" value={`${s.coverage.surface_assigned} / ${s.coverage.countries}`} note="Four land classes, share of land" />
+      <StatTile label="Nations with home habitats" value={`${s.coverage.habitat_assigned} / ${s.coverage.countries}`} note="Four habitats, share of residents" />
+      {rel && rel.habitats.length > 0 ? <StatTile label="Reltronland underground" value={rel.habitats.find((h) => h.key === 'underground') ? `${rel.habitats.find((h) => h.key === 'underground')!.pct}%` : 'Not assigned'} note={`Of ${rel.population_billion.toLocaleString("en-US")} B unique usual residents`} /> : <StatTile label="Reltronland" value="Not assigned" note="No habitat record" />}
+      <StatTile label="3D geometry and volumes" value="Unassigned" note="Not zero; nothing invented" />
+    </div>
+  </section>
+  <section class="pb-12">
+    <div class="rs-container">
+      <SpatialExplorer client:load data={data} dims={dims} />
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a href="/data/spatial.csv" download class="rs-button rs-button-ghost no-underline">Download Spatial 3D CSV</a>
+        <a href="/data/composition.json" class="rs-button rs-button-ghost no-underline">Composition JSON</a>
+        <a href="/statistics/species" class="rs-button rs-button-ghost no-underline">Species & ancestry →</a>
+        <a href="/assistant" class="rs-button rs-button-ghost no-underline">Ask the evidence assistant →</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

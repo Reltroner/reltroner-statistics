@@ -1,0 +1,663 @@
+{
+  "$id": "https://reltroner-statistics.invalid/schemas/composition.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "reltroner-composition.v2"
+    },
+    "model_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sources": {
+      "type": "object",
+      "properties": {
+        "production": {
+          "type": "object",
+          "properties": {
+            "side": {
+              "type": "string",
+              "const": "production"
+            },
+            "repository": {
+              "type": "string",
+              "const": "Reltroner/reltroner-studio"
+            },
+            "commit_sha": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "blob_sha": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "side",
+            "repository",
+            "commit_sha",
+            "blob_sha",
+            "path"
+          ],
+          "additionalProperties": false
+        },
+        "remodeling": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "side": {
+                  "type": "string",
+                  "const": "remodeling"
+                },
+                "repository": {
+                  "type": "string",
+                  "const": "Reltroner/reltroner-studio-remodeling"
+                },
+                "commit_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                "blob_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "side",
+                "repository",
+                "commit_sha",
+                "blob_sha",
+                "path"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "production",
+        "remodeling"
+      ],
+      "additionalProperties": false
+    },
+    "ancestry": {
+      "type": "object",
+      "properties": {
+        "authority": {
+          "type": "string",
+          "const": "PRODUCTION_MAIN"
+        },
+        "pct_status": {
+          "type": "string",
+          "const": "CANON_OBSERVED"
+        },
+        "absolute_status": {
+          "type": "string",
+          "const": "CANON_DERIVED"
+        },
+        "absolute_formula": {
+          "type": "string"
+        },
+        "planet": {
+          "type": "object",
+          "properties": {
+            "population_billion": {
+              "type": "number"
+            },
+            "sovereign_states": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "method": {
+              "type": "string",
+              "const": "CREATOR_RATIFIED_REPRESENTATIVE_14_COUNTRY_BENCHMARK"
+            },
+            "reference_population_billion": {
+              "type": "number"
+            },
+            "provenance_note": {
+              "type": "string"
+            },
+            "headcount_source": {
+              "type": "string",
+              "enum": [
+                "SOURCE_STATED",
+                "DERIVED_FROM_SHARES"
+              ]
+            },
+            "rows": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "enum": [
+                      "depeisit",
+                      "cistheta",
+                      "cosmeilian",
+                      "native",
+                      "phantomkind",
+                      "other"
+                    ]
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "pct": {
+                    "type": "number"
+                  },
+                  "absolute_billion": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "key",
+                  "label",
+                  "pct",
+                  "absolute_billion"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "pointer": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "population_billion",
+            "sovereign_states",
+            "method",
+            "reference_population_billion",
+            "provenance_note",
+            "headcount_source",
+            "rows",
+            "pointer"
+          ],
+          "additionalProperties": false
+        },
+        "countries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^country:[a-z0-9-]+$"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "cohort": {
+                "type": "string",
+                "enum": [
+                  "PROFILED_14",
+                  "DEVELOPMENT_5"
+                ]
+              },
+              "population_billion": {
+                "type": "number"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "ASSIGNED",
+                  "NOT_ASSIGNED"
+                ]
+              },
+              "rows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "enum": [
+                        "depeisit",
+                        "cistheta",
+                        "cosmeilian",
+                        "native",
+                        "phantomkind",
+                        "other"
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "pct": {
+                      "type": "number"
+                    },
+                    "absolute_billion": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "label",
+                    "pct",
+                    "absolute_billion"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "pointer": {
+                "type": "string"
+              },
+              "remodeling": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "IDENTICAL",
+                      "DIFFERENT",
+                      "NOT_ASSIGNED",
+                      "RECORD_ABSENT"
+                    ]
+                  },
+                  "population_billion": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "rows": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                          "enum": [
+                            "depeisit",
+                            "cistheta",
+                            "cosmeilian",
+                            "native",
+                            "phantomkind",
+                            "other"
+                          ]
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "pct": {
+                          "type": "number"
+                        },
+                        "absolute_billion": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "label",
+                        "pct",
+                        "absolute_billion"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "status",
+                  "population_billion",
+                  "rows"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "cohort",
+              "population_billion",
+              "status",
+              "rows",
+              "pointer",
+              "remodeling"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "coverage": {
+          "type": "object",
+          "properties": {
+            "assigned": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "not_assigned": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "residual_states": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "residual_population_billion": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "assigned",
+            "not_assigned",
+            "residual_states",
+            "residual_population_billion"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "authority",
+        "pct_status",
+        "absolute_status",
+        "absolute_formula",
+        "planet",
+        "countries",
+        "coverage"
+      ],
+      "additionalProperties": false
+    },
+    "spatial": {
+      "type": "object",
+      "properties": {
+        "authority": {
+          "type": "string",
+          "const": "REMODELING_MAIN_CREATOR_RATIFIED_NOT_PRODUCTION"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PROPOSED",
+            "INSUFFICIENT_DATA"
+          ]
+        },
+        "production_spatial_records": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "countries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^country:[a-z0-9-]+$"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "cohort": {
+                "type": "string",
+                "enum": [
+                  "PROFILED_14",
+                  "DEVELOPMENT_5"
+                ]
+              },
+              "population_billion": {
+                "type": "number"
+              },
+              "land_area_million_km2": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "production_land_area_million_km2": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "production_population_billion": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "spatial_status_label": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "land_area_status_label": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "reference": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "surface_status": {
+                "type": "string",
+                "enum": [
+                  "ASSIGNED",
+                  "NOT_ASSIGNED"
+                ]
+              },
+              "surface_denominator": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "surface": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "enum": [
+                        "nature_minimal_intervention",
+                        "urban_active",
+                        "urban_operational_low_or_biological_zero",
+                        "urban_dormant"
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "pct": {
+                      "type": "number"
+                    },
+                    "area_million_km2": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "label",
+                    "pct",
+                    "area_million_km2"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "habitat_status": {
+                "type": "string",
+                "enum": [
+                  "ASSIGNED",
+                  "NOT_ASSIGNED"
+                ]
+              },
+              "habitat_denominator": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "habitats": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "enum": [
+                        "surface_land",
+                        "underground",
+                        "underwater",
+                        "floating"
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "pct": {
+                      "type": "number"
+                    },
+                    "absolute_billion": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "label",
+                    "pct",
+                    "absolute_billion"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "geometry": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "enum": [
+                        "polygon",
+                        "constructed_volume_km3",
+                        "habitable_volume_km3",
+                        "marine_vertical_resident_distribution",
+                        "habitat_capacity"
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "UNASSIGNED",
+                        "PRESENT_NOT_RENDERED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "label",
+                    "status"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "pointer": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "cohort",
+              "population_billion",
+              "land_area_million_km2",
+              "production_land_area_million_km2",
+              "production_population_billion",
+              "spatial_status_label",
+              "land_area_status_label",
+              "reference",
+              "surface_status",
+              "surface_denominator",
+              "surface",
+              "habitat_status",
+              "habitat_denominator",
+              "habitats",
+              "geometry",
+              "pointer"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "coverage": {
+          "type": "object",
+          "properties": {
+            "surface_assigned": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "habitat_assigned": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "countries": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "surface_assigned",
+            "habitat_assigned",
+            "countries"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "authority",
+        "status",
+        "production_spatial_records",
+        "countries",
+        "coverage"
+      ],
+      "additionalProperties": false
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "model_version",
+    "sources",
+    "ancestry",
+    "spatial",
+    "unknowns"
+  ],
+  "additionalProperties": false
+}

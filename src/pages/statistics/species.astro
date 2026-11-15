@@ -1,0 +1,45 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import StatTile from '../../components/StatTile.astro';
+import { AncestryExplorer } from '../../features/statistics/CompositionExplorer.tsx';
+import { chartDims, getComposition } from '../../lib/data.ts';
+import { fmt } from '../../domain/composition.ts';
+
+const data = getComposition();
+const a = data.ancestry;
+const dims = chartDims(['species-']);
+const largest = [...a.planet.rows].sort((x, y) => y.pct - x.pct)[0]!;
+---
+<BaseLayout title="Species & ancestry demographics" description="Primary ancestry of Asthortera's sentient population from production main: the representative planetary benchmark, national shares, derived residents and explicit coverage gaps.">
+  <PageIntro eyebrow="Statistics · Sentient demographics · NCCM V6.5 Year 0" title="Species & ancestry demographics"
+    lede="Explore the six-category primary ancestry model of Asthortera, compare nations by share and by residents, and see exactly which national compositions the source does not assign."
+    crumbs={[{ href: '/statistics', label: 'Statistics' }, { label: 'Species & ancestry' }]}
+    sources={['production', 'model', 'statistics']} model={data.model_version}
+    limits={[
+      'Primary ancestry is not a biological species taxonomy; the source records no independent species classification.',
+      `The planetary shares are a creator-ratified benchmark of the 14 profiled nations (reference ${fmt(a.planet.reference_population_billion, 0)} billion), not a census of all ${a.planet.sovereign_states} states.`,
+      `${a.coverage.not_assigned} development nations have no national shares and ${a.coverage.residual_states} states form one aggregate. Missing shares are unknown, not zero.`,
+      'Residents in billions are population × share / 100 of the same production record, not enumerated headcounts.',
+    ]}
+  />
+  <section class="pb-9" aria-label="Ancestry headline metrics">
+    <div class="rs-container grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatTile label="Asthortera residents" value={`${fmt(a.planet.population_billion, 0)} B`} note="Production main, Year 0" />
+      <StatTile label="Largest planetary group" value={`${fmt(largest.pct, 1)}%`} note={`${largest.label} (representative benchmark)`} />
+      <StatTile label="Nations with assigned shares" value={String(a.coverage.assigned)} note="Six shares closing to 100% each" />
+      <StatTile label="Not assigned" value={`${a.coverage.not_assigned} + ${a.coverage.residual_states}`} note="Development nations + aggregated states" />
+    </div>
+  </section>
+  <section class="pb-12">
+    <div class="rs-container">
+      <AncestryExplorer client:load data={data} dims={dims} />
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a href="/data/species.csv" download class="rs-button rs-button-ghost no-underline">Download ancestry CSV</a>
+        <a href="/data/composition.json" class="rs-button rs-button-ghost no-underline">Composition JSON</a>
+        <a href="/statistics/spatial" class="rs-button rs-button-ghost no-underline">Spatial 3D composition →</a>
+        <a href="/assistant" class="rs-button rs-button-ghost no-underline">Ask the evidence assistant →</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

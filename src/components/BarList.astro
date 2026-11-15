@@ -14,7 +14,7 @@ const top = max ?? Math.max(...items.map((i) => Math.abs(i.value)), 1e-12);
     {items.map((i) => {
       const pct = Math.max(0.6, (Math.abs(i.value) / top) * 100);
       return (
-        <li class="grid grid-cols-[minmax(7rem,11rem)_minmax(0,1fr)] items-center gap-3 text-sm">
+        <li class="grid grid-cols-[minmax(5rem,11rem)_minmax(8rem,1fr)] items-center gap-3 text-sm">
           <span class="truncate text-ink-2" title={i.label}>{i.href ? <a href={i.href} class="text-ink-2 hover:text-ink">{i.label}</a> : i.label}</span>
           <span class="flex min-w-0 items-center gap-2">
             <span class="relative h-3.5 min-w-0 flex-1" title={`${i.label}: ${i.display}${i.note ? ` (${i.note})` : ''}`}>

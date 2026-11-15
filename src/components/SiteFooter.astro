@@ -27,7 +27,7 @@ const year = new Date(ctx.generated_at).getUTCFullYear();
     <div>
       <p class="rs-eyebrow mb-3">Ecosystem</p>
       <ul class="grid gap-2 text-sm">
-        {ECOSYSTEM.map((e) => <li><a href={e.href} target="_blank" rel="noopener noreferrer">{e.label}<span class="rs-sr"> (opens in a new tab)</span></a></li>)}
+        {ECOSYSTEM.filter((e) => !e.current).map((e) => <li><a href={e.href} target="_blank" rel="noopener noreferrer">{e.label}<span class="rs-sr"> (opens in a new tab)</span></a></li>)}
         <li><a href="/methodology">Methodology</a></li>
         <li><a href="https://github.com/Reltroner/reltroner-statistics" target="_blank" rel="noopener noreferrer">Source code<span class="rs-sr"> (opens in a new tab)</span></a></li>
       </ul>
@@ -35,7 +35,7 @@ const year = new Date(ctx.generated_at).getUTCFullYear();
   </div>
   <div class="border-t border-line">
     <p class="rs-container rs-muted py-5 text-xs">
-      © 2025–{year} Raidan · Reltroner Statistics License. Asthortera, Reltronland and related names remain protected by the Reltroner Studio license.
+      © 2025–{year} Rei Reltroner · Reltroner Statistics License. Asthortera, Reltronland and related names remain protected by the Reltroner Studio license.
     </p>
   </div>
 </footer>
