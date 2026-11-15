@@ -12,6 +12,9 @@ const ROUTES = [
   '/', '/statistics', '/statistics/scatter', '/statistics/species', '/statistics/spatial', '/statistics/decision-trees', '/assistant', '/countries',
   '/history', '/clustering', '/anomalies', '/qa', '/drift', '/graph', '/creative', '/creative/decisions', '/reports', '/methodology',
 ];
+// Linux renders the font stack with wider fallbacks than Windows. Forcing wide families (Verdana ≈
+// DejaVu Sans) at the narrowest width makes a local run catch what CI would.
+const WIDE_FONTS = ':root{--font-sans:Verdana,"DejaVu Sans",sans-serif!important;--font-display:Verdana,"DejaVu Sans",sans-serif!important;--font-mono:"Courier New","DejaVu Sans Mono",monospace!important}';
 
 for (const route of ROUTES) {
   test(`R6 layout ${route}: 8 widths × 2 themes without overflow or console errors`, async ({ page }) => {
@@ -34,6 +37,15 @@ for (const route of ROUTES) {
         });
       }
     }
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.goto(route);
+    await page.addStyleTag({ content: WIDE_FONTS });
+    await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => undefined);
+    await test.step('wide fallback fonts 320px', async () => {
+      expect(await page.evaluate(() => getComputedStyle(document.body).fontFamily), 'wide font override applied').toMatch(/^Verdana/);
+      await expectNoHorizontalOverflow(page);
+      await expectContainedText(page);
+    });
     watch.expectClean();
   });
 }
