@@ -7,10 +7,11 @@ export interface RouteDef {
   summary: string;
 }
 
-export type SectionId = 'overview' | 'statistics' | 'analysis' | 'drift' | 'knowledge' | 'creative' | 'reports' | 'methodology';
+export type SectionId = 'overview' | 'statistics' | 'calculator' | 'analysis' | 'drift' | 'knowledge' | 'creative' | 'reports' | 'methodology';
 
 export const SECTIONS: ReadonlyArray<{ id: SectionId; label: string; href: string }> = [
   { id: 'statistics', label: 'Statistics', href: '/statistics' },
+  { id: 'calculator', label: 'Calculator', href: '/calculator' },
   { id: 'analysis', label: 'Analysis', href: '/clustering' },
   { id: 'drift', label: 'Drift', href: '/drift' },
   { id: 'knowledge', label: 'Graph', href: '/graph' },
@@ -29,6 +30,7 @@ export const ROUTES: readonly RouteDef[] = [
   { path: '/statistics/decision-trees', title: 'Supervised decision trees', section: 'statistics', summary: 'Guarded scikit-learn classifier and regressor evaluation with canonical sufficiency gates.' },
   { path: '/countries', title: 'Countries', section: 'statistics', summary: 'Catalog and side-by-side comparison of modeled nations.' },
   { path: '/history', title: 'Historical dynamics', section: 'statistics', summary: 'Sparse canonical anchors from 1010 BAC to Year 0, never interpolated.' },
+  { path: '/calculator', title: 'Calculator & Scenario Intelligence', section: 'calculator', summary: 'Deterministic source-backed calculations, conditional future scenarios, historical backcasts, a qualitative rubric and sensitivity sweeps.' },
   { path: '/clustering', title: 'Clustering laboratory', section: 'analysis', summary: 'Seeded K-Means and DBSCAN with sufficiency gates.' },
   { path: '/anomalies', title: 'Anomalies and outliers', section: 'analysis', summary: 'Robust outlier review. An outlier is not a canon error.' },
   { path: '/qa', title: 'Quality assurance', section: 'analysis', summary: 'Deterministic invariants, evidence checks and source-declared issues.' },
@@ -63,6 +65,7 @@ export const SECTION_PAGES: Readonly<Record<SectionId, ReadonlyArray<{ href: str
     { href: '/countries', label: 'Countries' },
     { href: '/history', label: 'History' },
   ],
+  calculator: [],
   analysis: [
     { href: '/clustering', label: 'Clustering' },
     { href: '/anomalies', label: 'Anomalies' },
@@ -106,6 +109,7 @@ export function sectionFor(pathname: string): SectionId {
   const clean = pathname.replace(/\/+$/, '') || '/';
   if (clean === '/') return 'overview';
   if (clean.startsWith('/statistics') || clean.startsWith('/countries') || clean.startsWith('/history') || clean.startsWith('/assistant')) return 'statistics';
+  if (clean.startsWith('/calculator')) return 'calculator';
   if (clean.startsWith('/clustering') || clean.startsWith('/anomalies') || clean.startsWith('/qa')) return 'analysis';
   if (clean.startsWith('/drift') || clean.startsWith('/compare')) return 'drift';
   if (clean.startsWith('/graph') || clean.startsWith('/impact')) return 'knowledge';

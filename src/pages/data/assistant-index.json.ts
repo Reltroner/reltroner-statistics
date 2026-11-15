@@ -1,8 +1,9 @@
 import type { APIRoute } from 'astro';
 import type { AgentFact, AgentIndex, AgentNarrative, AgentRelation } from '../../domain/assistant.ts';
+import { SCENARIO_INDICATORS, type SourceAnchor } from '../../domain/calculator.ts';
 import { indicatorFormat, indicatorLabel, indicatorUnit } from '../../domain/indicators.ts';
 import { formatValue } from '../../lib/format.ts';
-import { currentObservations, getComposition, getContext, getCreative } from '../../lib/data.ts';
+import { currentObservations, getComposition, getContext, getCreative, getStats } from '../../lib/data.ts';
 import { ROUTES } from '../../lib/site.ts';
 
 /**
@@ -10,6 +11,10 @@ import { ROUTES } from '../../lib/site.ts';
  * production Year 0 canon values, the composition artifact, source-grounded narrative entities
  * and their verified or declared relationships. It never contains private creator drafts,
  * candidate relationships as facts, or credentials.
+ *
+ * `anchors` and `foundations` are additive members for the Calculator: the few source values at
+ * years other than Year 0 (each with its own status) and the sovereign foundation years. They let a
+ * backcast show what the source itself states and refuse a year before a nation existed.
  */
 export const GET: APIRoute = () => {
   const ctx = getContext();
@@ -44,6 +49,15 @@ export const GET: APIRoute = () => {
     });
   const indicators = [...new Set(facts.map((f) => f.indicator))].sort().map((id) => ({ id, label: indicatorLabel(id), unit: indicatorUnit(id) }));
   const composition = getComposition();
+  const stats = getStats();
+  const anchors: SourceAnchor[] = stats.observations
+    .filter((o) => o.period.year_bac > 0 && !o.period.interval && o.value !== null && (SCENARIO_INDICATORS as readonly string[]).includes(o.indicator_id))
+    .filter((o): o is typeof o & { status: SourceAnchor['status'] } => o.status === 'CANON_OBSERVED' || o.status === 'CANON_DERIVED' || o.status === 'SCENARIO')
+    .map((o) => ({
+      entity_id: o.entity_id, entity: o.entity_name, indicator: o.indicator_id, label: indicatorLabel(o.indicator_id), value: o.value!, unit: o.unit, year_bac: o.period.year_bac, status: o.status,
+      source: { repository: o.source.repository, commit_sha: o.source.commit_sha, path: o.source.path, pointer: o.source.pointer, line: o.source.line },
+    }));
+  const foundations = Object.fromEntries(stats.entities.filter((e) => e.foundation_bac !== null).map((e) => [e.id, e.foundation_bac!]));
   const index: AgentIndex = {
     schema_version: 'reltroner-agent-index.v2',
     production_sha: ctx.production.commit_sha,
@@ -55,6 +69,8 @@ export const GET: APIRoute = () => {
     relations,
     candidate_counts,
     routes: ROUTES.map((r) => ({ title: r.title, href: r.path, summary: r.summary })),
+    anchors,
+    foundations,
   };
   return new Response(JSON.stringify(index), { headers: { 'Content-Type': 'application/json; charset=utf-8' } });
 };

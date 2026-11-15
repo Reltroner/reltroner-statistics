@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react';
-import { STATUS_EXPLANATIONS, answerQuestion, type AgentAnswer, type AgentIndex, type EvidenceStatus } from '../../domain/assistant.ts';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
+import { STATUS_EXPLANATIONS, answerCalculation, answerQuestion, type AgentAnswer, type AgentIndex, type EvidenceStatus } from '../../domain/assistant.ts';
+import { HANDOFF_PATH, sessionStore, takeHandoff, writeHandoff } from '../../engine/calculator/handoff.ts';
 
 const SUGGESTIONS = [
   'Berapa Phantomkind di Beluftner?',
@@ -8,10 +9,11 @@ const SUGGESTIONS = [
   'Spatial 3D composition Reltronland.',
   'What is the SDI of Reltronland?',
   'What does the verified evidence say about Henchoway?',
+  'If Reltronland grows by 1% annually for 100 years, what is the population?',
 ];
 
 const TONE: Readonly<Record<EvidenceStatus, string>> = {
-  CANON_OBSERVED: 'canon', CANON_DERIVED: 'canon', MODEL_ESTIMATE: 'model', PROPOSED: 'proposed', INSUFFICIENT_DATA: 'unknown', SOURCE_MATCH: 'scenario', CANDIDATE: 'archived',
+  CANON_OBSERVED: 'canon', CANON_DERIVED: 'canon', MODEL_ESTIMATE: 'model', SCENARIO: 'scenario', PROPOSED: 'proposed', INSUFFICIENT_DATA: 'unknown', SOURCE_MATCH: 'scenario', CANDIDATE: 'archived',
 };
 
 export default function AssistantWorkspace({ synthesisAvailable = false }: { synthesisAvailable?: boolean }) {
@@ -21,22 +23,51 @@ export default function AssistantWorkspace({ synthesisAvailable = false }: { syn
   const [prose, setProse] = useState<string | null>(null);
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
+  const [handoffBlocked, setHandoffBlocked] = useState(false);
   const index = useRef<AgentIndex | null>(null);
+
+  async function loadIndex(): Promise<AgentIndex> {
+    if (!index.current) {
+      const response = await fetch('/data/assistant-index.json', { credentials: 'same-origin' });
+      if (!response.ok) throw new Error(`evidence index unavailable (HTTP ${response.status})`);
+      const parsed = (await response.json()) as AgentIndex;
+      if (parsed.schema_version !== 'reltroner-agent-index.v2') throw new Error('unexpected index contract');
+      index.current = parsed;
+    }
+    return index.current;
+  }
+
+  // A result handed over by /calculator is recomputed here from the validated request; an invalid payload is ignored.
+  useEffect(() => {
+    const request = takeHandoff(sessionStore(), 'assistant', Date.now());
+    if (!request) return;
+    setBusy(true);
+    setStatus('Reading the published evidence index…');
+    loadIndex()
+      .then((loaded) => {
+        setAnswer(answerCalculation(loaded, request));
+        setStatus('Explanation of the result handed over by the Calculator, recomputed in your browser by the shared engine. No external AI service was called.');
+      })
+      .catch((error: unknown) => setStatus(`The evidence index could not be loaded: ${error instanceof Error ? error.message : 'unknown error'}.`))
+      .finally(() => setBusy(false));
+  }, []);
+
+  /** Stores the validated request for /calculator. Without session storage the link still opens the right mode. */
+  function openInCalculator(e: MouseEvent<HTMLAnchorElement>) {
+    const request = answer?.calculator?.request;
+    if (!request || handoffBlocked || writeHandoff(sessionStore(), 'calculator', request, Date.now())) return;
+    e.preventDefault();
+    setHandoffBlocked(true);
+  }
 
   async function run(text: string) {
     if (busy || text.trim().length < 3) return;
     setBusy(true);
     setProse(null);
+    setHandoffBlocked(false);
     setStatus('Reading the published evidence index…');
     try {
-      if (!index.current) {
-        const response = await fetch('/data/assistant-index.json', { credentials: 'same-origin' });
-        if (!response.ok) throw new Error(`evidence index unavailable (HTTP ${response.status})`);
-        const parsed = (await response.json()) as AgentIndex;
-        if (parsed.schema_version !== 'reltroner-agent-index.v2') throw new Error('unexpected index contract');
-        index.current = parsed;
-      }
-      const grounded = answerQuestion(index.current, text);
+      const grounded = answerQuestion(await loadIndex(), text);
       setAnswer(grounded);
       setStatus('Answer computed in your browser from the published evidence index. No external AI service was called.');
       if (synthesis && synthesisAvailable) {
@@ -139,6 +170,17 @@ export default function AssistantWorkspace({ synthesisAvailable = false }: { syn
               <h3 className="rs-h3 mt-6">What the evidence does not establish</h3>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-ink-2">{answer.limitations.map((l, i) => <li key={i}>{l}</li>)}</ul>
             </>
+          )}
+          {answer.calculator && (
+            <div className="mt-6 rounded-xl border border-line bg-surface-2 p-4" data-calculator-handoff={answer.calculator.request ? 'request' : 'inputs-needed'}>
+              <p className="text-sm text-ink-2">
+                {answer.calculator.request
+                  ? 'Open the same inputs in the Calculator to change them, see the chart and table, and export JSON or CSV. The Calculator recomputes the result with the same engine.'
+                  : 'Enter the inputs in the Calculator to run this. Nothing is assumed for you.'}
+              </p>
+              <a className="rs-button rs-button-secondary mt-3 no-underline" href={answer.calculator.request && !handoffBlocked ? HANDOFF_PATH.calculator : `${HANDOFF_PATH.calculator}#${handoffBlocked ? 'handoff-unavailable' : answer.calculator.mode}`} onClick={openInCalculator}>Open in Calculator</a>
+              {handoffBlocked && <p role="status" className="mt-3 text-sm text-ink-2" data-handoff-fallback>Session storage is unavailable in this browser, so the inputs cannot be carried over. The link above now opens the Calculator, where you can enter them; this answer stays complete.</p>}
+            </div>
           )}
           <h3 className="rs-h3 mt-6">Continue exploring</h3>
           <ul className="mt-3 flex flex-wrap gap-2">{answer.suggested_routes.map((r) => <li key={r}><a className="rs-button rs-button-ghost !min-h-10 !px-3 !text-xs no-underline" href={r}>{r}</a></li>)}</ul>

@@ -1,0 +1,32 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageIntro from '../components/PageIntro.astro';
+import CalculatorWorkspace from '../features/calculator/CalculatorWorkspace.tsx';
+import { FORMULAS, LIMITS } from '../domain/calculator.ts';
+import { getComposition } from '../lib/data.ts';
+
+const composition = getComposition();
+---
+<BaseLayout title="Calculator & Scenario Intelligence" description="Deterministic calculations on pinned Asthortera source values, conditional future scenarios, historical backcasts, a weighted qualitative rubric and sensitivity sweeps. Every result states its formula, assumptions, status and source.">
+  <PageIntro eyebrow="Deterministic calculator · conditional scenarios"
+    title="Calculator & Scenario Intelligence"
+    lede="Calculate from pinned Year 0 source values, project a conditional future, reconstruct a conditional past, weigh three cooperation hypotheses and test how sensitive a result is to your assumptions. Every result shows its formula, inputs, status, source and limits."
+    crumbs={[{ label: 'Calculator' }]}
+    sources={['production', 'remodeling', 'statistics', 'rules']} model={composition.model_version}
+    limits={[
+      'Any value you supply (a growth rate, a what-if share, a score) makes the result a SCENARIO. No calculator output is canon, and nothing is written to a source.',
+      'There is no empirical forecast: the source holds one or two observed points per indicator, so projections are assumption-driven and labeled INSUFFICIENT_DATA_FOR_EMPIRICAL_FORECAST.',
+      'Backcasts are conditional hypotheses. The source has no annual series, and no year between its sparse values is interpolated or shown as observed.',
+      'Spatial 3D values come from remodeling main and stay PROPOSED. Land-area and resident denominators are never mixed, and a missing value is unknown, not zero.',
+      `Only ${Object.keys(FORMULAS).length} allowlisted formulas run; rates outside ${LIMITS.RATE_MIN_PCT}% to ${LIMITS.RATE_MAX_PCT}% per year and horizons over ${LIMITS.MAX_PERIODS} years are rejected, never clamped.`,
+    ]}
+  />
+  <section class="pb-12"><div class="rs-container">
+    <CalculatorWorkspace client:load />
+    <div class="mt-8 flex flex-wrap gap-3">
+      <a href="/assistant" class="rs-button rs-button-ghost no-underline">Ask the evidence assistant →</a>
+      <a href="/history" class="rs-button rs-button-ghost no-underline">Sparse historical anchors →</a>
+      <a href="/methodology" class="rs-button rs-button-ghost no-underline">Statuses and methods →</a>
+    </div>
+  </div></section>
+</BaseLayout>

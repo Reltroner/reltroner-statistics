@@ -254,7 +254,7 @@
     transition: background-color var(--motion-control) var(--ease-standard), border-color var(--motion-control) var(--ease-standard), color var(--motion-control) var(--ease-standard);
   }
   .rs-button-primary { background: var(--accent-strong); color: var(--accent-contrast); }
-  .rs-button-primary:hover { background: color-mix(in srgb, var(--accent-strong) 86%, white); }
+  .rs-button-primary:hover { background: color-mix(in srgb, var(--accent-strong) 86%, black); }
   .rs-button-secondary { background: var(--surface-2); color: var(--text); border-color: var(--border-strong); }
   .rs-button-secondary:hover { border-color: var(--accent); }
   .rs-button-ghost { background: transparent; color: var(--text-2); }

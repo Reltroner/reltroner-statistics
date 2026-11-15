@@ -7,11 +7,17 @@
  * matches are SOURCE_MATCH and candidate links are CANDIDATE. A question about a statistic the
  * index does not hold gets INSUFFICIENT_DATA, never a nearby number. Nothing here calls a model,
  * writes canon or reads private drafts.
+ *
+ * Calculator tools: a scenario question is parsed into a typed request and evaluated by the same
+ * engine as /calculator (src/domain/calculator.ts). No arithmetic is repeated here, a missing
+ * parameter is asked for instead of assumed, and a user assumption always yields SCENARIO.
  */
+import { formatBac } from './calendar.ts';
+import { PLANET_ID, RUBRIC, SCENARIO_NAMES, evaluate, modeOf, show, type CalcMode, type CalcRequest, type CalcResult, type ScenarioIndicator, type SourceAnchor, type SourceRef } from './calculator.ts';
 import type { Composition, ShareRow } from './composition.ts';
 
-export type EvidenceStatus = 'CANON_OBSERVED' | 'CANON_DERIVED' | 'MODEL_ESTIMATE' | 'PROPOSED' | 'INSUFFICIENT_DATA' | 'SOURCE_MATCH' | 'CANDIDATE';
-export type AnswerIntent = 'ANCESTRY' | 'SPATIAL' | 'INDICATOR' | 'NARRATIVE' | 'ROUTE' | 'UNSUPPORTED' | 'EMPTY';
+export type EvidenceStatus = 'CANON_OBSERVED' | 'CANON_DERIVED' | 'MODEL_ESTIMATE' | 'SCENARIO' | 'PROPOSED' | 'INSUFFICIENT_DATA' | 'SOURCE_MATCH' | 'CANDIDATE';
+export type AnswerIntent = 'ANCESTRY' | 'SPATIAL' | 'INDICATOR' | 'NARRATIVE' | 'ROUTE' | 'UNSUPPORTED' | 'EMPTY' | 'CALCULATOR';
 
 export interface AgentFact {
   entity_id: string;
@@ -46,6 +52,10 @@ export interface AgentIndex {
   /** Candidate (co-occurrence) relationships per entity. Counted, never presented as verified. */
   candidate_counts: Record<string, number>;
   routes: Array<{ title: string; href: string; summary: string }>;
+  /** Source values at years other than Year 0, with their own status. Additive: older v2 indexes omit it. */
+  anchors?: SourceAnchor[];
+  /** Sovereign foundation year (BAC) by entity id. Additive. */
+  foundations?: Record<string, number>;
 }
 export interface AgentCitation { title: string; url: string; detail: string }
 export interface AgentStatement { text: string; status: EvidenceStatus; cite: number | null }
@@ -59,12 +69,15 @@ export interface AgentAnswer {
   citations: AgentCitation[];
   limitations: string[];
   suggested_routes: string[];
+  /** On calculator answers: the validated request (for the hand-off to /calculator) and the shared result. */
+  calculator?: { mode: CalcMode; request: CalcRequest | null; result: CalcResult | null };
 }
 
 export const STATUS_EXPLANATIONS: Readonly<Record<EvidenceStatus, string>> = Object.freeze({
   CANON_OBSERVED: 'Assigned directly in production main, the authoritative published source.',
   CANON_DERIVED: 'Arithmetic on canonical production values (for example population × share / 100).',
   MODEL_ESTIMATE: 'Output of a statistical model of this observatory. Never canon.',
+  SCENARIO: 'Conditional on an assumption supplied with the question (a growth rate, a what-if share). Never canon.',
   PROPOSED: 'From remodeling main: creator-ratified in the remodeling workspace, not published production canon.',
   INSUFFICIENT_DATA: 'The index holds no source value for this. Nothing is estimated in its place.',
   SOURCE_MATCH: 'A ranked match in source-grounded narrative evidence, not a synthesis of every passage.',
@@ -314,6 +327,150 @@ function narrativeAnswer(index: AgentIndex, question: string, q: string): AgentA
   return b.done(['/creative/explore', '/graph', '/creative/decisions']);
 }
 
+// ---------------------------------------------------------------- calculator tools (shared engine, bounded parsing)
+const WHAT_IF = ['if', 'jika', 'kalau', 'seandainya', 'andai', 'suppose', 'would', 'hypothetical', 'hipotetis', 'assuming', 'changed to', 'berubah menjadi', 'menjadi'];
+const GROWTH = ['grow', 'grows', 'grew', 'growing', 'growth', 'tumbuh', 'bertumbuh', 'pertumbuhan', 'increase', 'increases', 'naik', 'meningkat', 'annually', 'annual', 'per year', 'per tahun', 'tahunan', 'setiap tahun'];
+const DECLINE = ['shrink', 'shrinks', 'decline', 'declines', 'decrease', 'decreases', 'turun', 'menyusut', 'berkurang'];
+const PAST = ['before year 0', 'years before', 'years earlier', 'years ago', 'sebelum tahun 0', 'tahun sebelum', 'tahun yang lalu', 'tahun lalu', 'backcast'];
+const SWEEP = ['sensitivity', 'sensitivitas', 'sweep'];
+const COOPERATION = ['cooperation', 'cooperate', 'kerja sama', 'kerjasama', 'bekerja sama'];
+const NOT_CANON_SUBJECT = ['backcast', 'backcasting', 'reconstruction', 'rekonstruksi', 'projection', 'proyeksi', 'scenario', 'skenario'];
+const SCENARIO_TERMS: Readonly<Record<ScenarioIndicator, readonly string[]>> = {
+  gdp_per_capita: ['gdp per capita', 'pdb per kapita', 'per capita', 'per kapita'],
+  gdp_usd: ['gdp', 'pdb', 'nominal gdp', 'produk domestik bruto'],
+  population: ['population', 'populasi', 'populasinya', 'penduduk', 'penduduknya', 'residents', 'warga', 'inhabitants'],
+};
+/** Indicators that are not a compound-scenario baseline. Naming one yields INSUFFICIENT_DATA, never a substitute. */
+const NOT_PROJECTED = Object.keys(INDICATOR_TERMS).filter((id) => !['population', 'gdp_usd', 'gdp_per_capita', 'gdp_share', 'real_gdp_growth', 'population_growth'].includes(id));
+
+const NUMBER_START = '(?:^|[^\\p{L}\\p{N}.])';
+/** Percentages in order of appearance; a decimal comma is accepted ("0,5%"). */
+function percents(q: string): number[] {
+  return [...q.matchAll(new RegExp(`${NUMBER_START}([+\\-−]?)(\\d+(?:[.,]\\d+)?)\\s?(?:%|percent|persen)`, 'gu'))].map((m) => (m[1] === '-' || m[1] === '−' ? -1 : 1) * Number(m[2]!.replace(',', '.')));
+}
+function firstInt(q: string, unit: string): number | null {
+  const m = new RegExp(`${NUMBER_START}(\\d{1,5})\\s?-?\\s?(?:${unit})(?![\\p{L}\\p{N}])`, 'u').exec(q);
+  return m ? Number(m[1]) : null;
+}
+
+function calculationAnswer(index: AgentIndex, question: string, request: CalcRequest): AgentAnswer {
+  const outcome = evaluate(index, request);
+  if (!outcome.ok) {
+    const b = new Builder(question, 'CALCULATOR', 'Calculator · not evaluated').say(outcome.message, 'INSUFFICIENT_DATA');
+    b.a.limitations.push(outcome.status === 'INSUFFICIENT_DATA' ? 'No value is estimated, filled in or borrowed from another entity or indicator.' : 'The request is outside the supported range. Nothing is clamped or adjusted silently.');
+    const a = b.done(['/calculator', '/methodology']);
+    a.calculator = { mode: modeOf(request), request: null, result: null };
+    return a;
+  }
+  const r = outcome.result;
+  const b = new Builder(question, 'CALCULATOR', `Calculator · ${r.title}`);
+  const cite = (s: SourceRef | null) => (s ? b.cite({ title: `${s.role === 'production' ? 'Production main' : 'Remodeling main'} · ${s.path}`, url: s.url, detail: `${s.pointer ?? s.path} · ${s.commit_sha.slice(0, 12)}` }) : null);
+  for (const s of r.summary) b.say(s.text, s.status, cite(s.source));
+  for (const e of r.evidence) b.say(`${e.label}: ${e.text}`, e.state === 'SOURCE_PASSAGE' ? 'SOURCE_MATCH' : 'INSUFFICIENT_DATA', cite(e.source));
+  b.say(`Method: ${r.formula_expression} (formula ${r.formula_id}, version ${r.formula_version}). ${r.assumptions.map((x) => x.text).join(' ')}`.trim(), r.result_status);
+  b.a.limitations.push(...r.limitations);
+  const a = b.done(['/calculator', '/methodology']);
+  // A computed value is as strong as its result status; an unscored rubric keeps its mix of passages and gaps.
+  if (r.result_value !== null) a.status = r.result_status;
+  a.calculator = { mode: modeOf(request), request, result: r };
+  return a;
+}
+
+/** Explains a request handed over by /calculator. The result is recomputed here; stored numbers are never trusted. */
+export function answerCalculation(index: AgentIndex, request: CalcRequest): AgentAnswer {
+  return calculationAnswer(index, '', request);
+}
+
+function inputsNeeded(question: string, mode: CalcMode, missing: string[]): AgentAnswer {
+  const b = new Builder(question, 'CALCULATOR', 'Calculator · inputs needed');
+  b.say(`This reads as a scenario, but it cannot be evaluated as asked. Missing or ambiguous: ${missing.join('; ')}. Nothing is assumed in its place.`, 'INSUFFICIENT_DATA');
+  b.a.limitations.push('A scenario is evaluated only when every parameter is stated. Enter the inputs in the Calculator to run it.');
+  const a = b.done(['/calculator', '/methodology']);
+  a.calculator = { mode, request: null, result: null };
+  return a;
+}
+
+function whyNotCanon(index: AgentIndex, question: string): AgentAnswer {
+  const b = new Builder(question, 'CALCULATOR', 'Why a backcast or projection is not canon');
+  const anchors = index.anchors ?? [];
+  b.say('A backcast divides a Year 0 source value by an assumed growth factor (past = anchor ÷ (1 + rate)^elapsed years); a projection multiplies by it. The rate is an assumption supplied with the question, so the output is a SCENARIO: conditional on that rate and observed by no source.', 'SCENARIO');
+  b.say(`Canon is only what production main assigns (CANON_OBSERVED) or computes from its own values (CANON_DERIVED). The source holds sparse values, not an annual series: one Year 0 value per indicator and ${anchors.length} earlier value${anchors.length === 1 ? '' : 's'} in this index. The years between them are not observed and are never interpolated.`, 'INSUFFICIENT_DATA');
+  const observed = anchors.find((x) => x.status === 'CANON_OBSERVED' && x.indicator === 'population') ?? anchors.find((x) => x.status === 'CANON_OBSERVED');
+  if (observed) {
+    b.say(`By contrast, this value is canon because the source states it: ${observed.entity} · ${observed.label} was ${show(observed.value, observed.unit)} in ${formatBac(observed.year_bac)}.`, 'CANON_OBSERVED',
+      b.cite({ title: `${observed.entity} · ${observed.label} · ${formatBac(observed.year_bac)}`, url: blobUrl(observed.source, observed.source.line), detail: `${observed.source.path}${observed.source.line ? `:${observed.source.line}` : ''} · ${observed.source.commit_sha.slice(0, 12)}` }));
+  }
+  b.say('Nothing the Calculator or this Assistant computes is written to a source or ratified. Only the creator changes canon, in the source repositories.', 'SCENARIO');
+  b.a.limitations.push('A conditional historical backcast must not be read as a historical population or statistic.', 'An empirical forecast would need many observed points; with these sparse values it stays INSUFFICIENT_DATA_FOR_EMPIRICAL_FORECAST.');
+  const a = b.done(['/calculator', '/history', '/methodology']);
+  a.status = 'SCENARIO';
+  a.calculator = { mode: 'backcast', request: null, result: null };
+  return a;
+}
+
+/** Null unless the question is one of the bounded calculator patterns; every other question keeps its existing answer. */
+function calculatorAnswer(index: AgentIndex, question: string, q: string, named: Array<{ id: string; name: string }>, planet: boolean): AgentAnswer | null {
+  if (has(q, NOT_CANON_SUBJECT) && has(q, ['canon', 'canonical', 'kanon']) && has(q, ['why', 'mengapa', 'kenapa', 'not', 'bukan'])) return whyNotCanon(index, question);
+  if (has(q, COOPERATION) && ['country:reltronland', 'country:depcutland'].every((id) => named.some((n) => n.id === id))) {
+    const weights = Object.fromEntries(RUBRIC.criteria.map((c) => [c.id, 1])) as Extract<CalcRequest, { operation: 'evaluateQualitativeScenario' }>['weights'];
+    return calculationAnswer(index, question, { operation: 'evaluateQualitativeScenario', weights, scores: { A: {}, B: {}, C: {} } });
+  }
+  let rates = percents(q);
+  const years = firstInt(q, 'years?|yrs?|tahun');
+  const bac = firstInt(q, 'bac');
+  const whatIf = has(q, WHAT_IF);
+  const growth = has(q, GROWTH) || has(q, DECLINE);
+  const past = has(q, PAST) || bac !== null;
+  const habitat = Object.entries(HABITAT_CATEGORY).filter(([, t]) => has(q, t)).map(([k]) => k);
+  const ancestry = Object.entries(CATEGORY_TERMS).filter(([, t]) => has(q, t)).map(([k]) => k);
+  const shareIntent = whatIf && !growth && rates.length > 0 && habitat.length + ancestry.length > 0;
+  const scenarioIntent = (growth && (rates.length > 0 || years !== null) && (whatIf || years !== null || past)) || (past && rates.length > 0);
+  if (!shareIntent && !scenarioIntent) return null;
+
+  const unknown = named.length || planet ? [] : unknownNames(index, question);
+  if (unknown.length) {
+    const b = new Builder(question, 'CALCULATOR', 'Calculator · not an entity of the evidence index');
+    b.say(`${unknown.join(', ')} ${unknown.length === 1 ? 'is' : 'are'} not a nation or entity of the evidence index, so there is no source value to start from. No other nation and no planetary value is substituted.`, 'INSUFFICIENT_DATA');
+    const a = b.done(['/calculator', '/countries']);
+    a.calculator = { mode: shareIntent ? 'calculate' : past ? 'backcast' : 'future', request: null, result: null };
+    return a;
+  }
+  if (shareIntent) {
+    const categories = [...habitat, ...ancestry];
+    if (named.length !== 1 || rates.length !== 1 || categories.length !== 1) return inputsNeeded(question, 'calculate', ['exactly one nation, one category and one share in percent']);
+    return calculationAnswer(index, question, { operation: 'calculate', formula: habitat.length ? 'population_x_habitat_share' : 'population_x_ancestry_share', entity_id: named[0]!.id, category: categories[0]!, share_pct: rates[0]! });
+  }
+
+  const mode: CalcMode = past ? 'backcast' : rates.length > 1 ? 'compare' : 'future';
+  let indicators = (Object.keys(SCENARIO_TERMS) as ScenarioIndicator[]).filter((id) => has(q, SCENARIO_TERMS[id]));
+  if (indicators.includes('gdp_per_capita')) indicators = indicators.filter((id) => id !== 'gdp_usd');
+  if (!indicators.length && NOT_PROJECTED.some((id) => has(q, INDICATOR_TERMS[id]!))) {
+    const b = new Builder(question, 'CALCULATOR', 'Calculator · indicator not supported for scenarios');
+    b.say('Compound scenarios start from population, nominal GDP or GDP per capita. No scenario is computed for another indicator, and no other indicator is substituted.', 'INSUFFICIENT_DATA');
+    const a = b.done(['/calculator', '/statistics']);
+    a.calculator = { mode, request: null, result: null };
+    return a;
+  }
+  const entity = named.length === 1 ? named[0]!.id : !named.length && planet ? PLANET_ID : null;
+  const missing = [
+    ...(entity ? [] : ['one nation (or Asthortera)']),
+    ...(indicators.length === 1 ? [] : ['one indicator: population, nominal GDP or GDP per capita']),
+    ...(rates.length ? [] : ['an annual rate in percent']),
+    ...(past ? ((bac ?? years) === null ? ['how many years before Year 0, or a BAC year'] : rates.length > 1 ? ['a single annual rate'] : []) : years === null ? ['a horizon in years'] : []),
+  ];
+  if (missing.length || !entity) return inputsNeeded(question, mode, missing);
+  if (has(q, DECLINE)) rates = rates.map((r) => (r > 0 ? -r : r));
+  const base = { entity_id: entity, indicator: indicators[0]! };
+  if (past) return calculationAnswer(index, question, { operation: 'reconstructScenario', ...base, target_bac: (bac ?? years)!, annual_rate_pct: rates[0]!, label: 'Assistant backcast' });
+  if (rates.length === 1) return calculationAnswer(index, question, { operation: 'projectScenario', ...base, annual_rate_pct: rates[0]!, horizon_years: years!, label: 'Assistant scenario' });
+  if (rates.length === 2 && has(q, SWEEP)) {
+    return calculationAnswer(index, question, { operation: 'analyzeSensitivity', ...base, horizon_years: years!, rate_min_pct: Math.min(...rates), rate_max_pct: Math.max(...rates), steps: firstInt(q, 'steps?|samples?|langkah|sampel') ?? 11 });
+  }
+  const ordered = [...rates].sort((x, y) => x - y);
+  const names = ordered.length === 3 ? SCENARIO_NAMES : ordered.length === 2 ? ['Lower rate', 'Higher rate'] : ordered.map((_, i) => `Scenario ${i + 1}`);
+  return calculationAnswer(index, question, { operation: 'compareScenarios', ...base, horizon_years: years!, scenarios: ordered.map((r, i) => ({ label: names[i]!, annual_rate_pct: r })) });
+}
+
 export function answerQuestion(index: AgentIndex, rawQuestion: string): AgentAnswer {
   const question = rawQuestion.trim().slice(0, MAX_QUESTION);
   if (question.length < 3) {
@@ -322,6 +479,8 @@ export function answerQuestion(index: AgentIndex, rawQuestion: string): AgentAns
   const q = norm(question);
   const named = countriesIn(index, q);
   const planet = has(q, ['asthortera', 'planet', 'planetary', 'planeter', 'seluruh planet']);
+  const calculated = calculatorAnswer(index, question, q, named, planet);
+  if (calculated) return calculated;
   const unknown = named.length || planet ? [] : unknownNames(index, question);
   const category = Object.values(CATEGORY_TERMS).some((t) => has(q, t));
   const spatial = has(q, SPATIAL_TERMS);
