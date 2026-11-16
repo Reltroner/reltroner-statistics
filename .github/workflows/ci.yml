@@ -109,6 +109,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Static build (pages, PDFs from HTML, CSP headers, link validation)
         run: npm run build
+      - name: Verify Pages Functions bundle and workerd runtime (/api/v1/* and /mcp)
+        run: npm run verify:runtime
       - name: Browser tests (routes, 4 viewports, themes, a11y, keyboard, exports)
         run: npm run test:e2e
       - name: RC-DEPLOY-01 — upload responsive visual acceptance screenshots
@@ -155,6 +157,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: 'npm'
+      - run: npm ci
       - uses: actions/download-artifact@v4
         with:
           name: site-${{ github.sha }}
