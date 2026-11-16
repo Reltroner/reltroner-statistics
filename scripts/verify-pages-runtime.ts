@@ -40,7 +40,7 @@ const proc = spawn(
   isWin
     ? ['/d', '/s', '/c', `npx --yes wrangler@4.161.0 pages dev dist --ip 127.0.0.1 --port ${PORT}`]
     : ['--yes', 'wrangler@4.161.0', 'pages', 'dev', 'dist', '--ip', '127.0.0.1', '--port', String(PORT)],
-  { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] },
+  { cwd: ROOT, detached: !isWin, stdio: ['ignore', 'pipe', 'pipe'] },
 );
 
 let logs = '';
@@ -189,9 +189,14 @@ try {
     semantic_digest: buildInfo.semantic_digest,
   })}\n`);
 } finally {
+  proc.stdout?.destroy();
+  proc.stderr?.destroy();
   if (isWin && proc.pid) {
     spawnSync('taskkill', ['/pid', String(proc.pid), '/T', '/F'], { stdio: 'ignore' });
-  } else {
-    proc.kill('SIGTERM');
+  } else if (proc.pid) {
+    try { process.kill(-proc.pid, 'SIGKILL'); } catch { /* group already gone */ }
+    try { proc.kill('SIGKILL'); } catch { /* process already gone */ }
   }
+  proc.unref();
 }
+process.exit(0);
