@@ -37,8 +37,10 @@ GitHub API (read-only, pinned SHAs)
 
 | Path | Contents |
 |---|---|
-| `src/domain/` | Source identities, statuses, calendar (BAC), indicators, observation, knowledge graph, and creative intelligence domain models; impact traversal & proposal lifecycle |
-| `src/engine/` | Comparator, JSON/markdown diff, evidence rules, QA identities, graph builder, and `creative-intelligence/` (narrative extraction, 12-category audit, opportunity ranking, story refactoring, canon remodeling, deterministic AI boundary) |
+| `src/domain/` | Source identities, statuses, calendar (BAC), indicators, observation, knowledge graph, calculator (`calculator.ts`), and creative intelligence domain models; impact traversal & proposal lifecycle |
+| `src/engine/` | Comparator, JSON/markdown diff, evidence rules, QA identities, graph builder, calculator export/handoff (`calculator/`), and `creative-intelligence/` / `decision-intelligence/` |
+| `src/api/` | Read-only intelligence API & stateless MCP gateway adapters (`contract.ts`, `service.ts`, `http.ts`, `mcp.ts`, `discovery.ts`) shared by `/api/v1/*`, `/mcp`, `/llms.txt`, `/ai/*.json`, and `/openapi.json` |
+| `functions/` | Cloudflare Pages Functions: `/api/v1/[[path]].ts` (REST), `/mcp.ts` (stateless Streamable HTTP MCP), and `/api/assistant.ts` (fail-closed optional explanation) |
 | `src/adapters/` | GitHub client, verified object cache, snapshot loader, deployment verification |
 | `src/contracts/` | Zod contracts (generate `analytics/schemas/*.schema.json`) |
 | `src/export/` | Report model, creative report adapter, eight renderers, XLSX writer, deterministic ZIP bundler |
@@ -59,11 +61,12 @@ $env:GITHUB_TOKEN = (gh auth token)   # process-local, never written to disk
 npm run verify:baseline                # determinism gate for the pinned pair
 npm run pipeline                       # read both sources at their current main, pinned at resolution
 npm run build                          # site + PDFs + headers + link validation
+npm run verify:runtime                 # wrangler pages functions build + workerd /api/v1/* & /mcp check
 npm test; npm run test:py; npm run test:e2e
-npm run preview                        # http://127.0.0.1:4173 with production headers
+npm run preview                        # http://127.0.0.1:4173 with production headers (static only)
 ```
 
-`./scripts/audit-local.ps1` runs the gate, pipeline, tests and build in one step.
+`./scripts/audit-local.ps1` runs the gate, pipeline, tests and build in one step. See [RS-AI-API-001 Architecture](docs/RS-AI-API-001-ARCHITECTURE.md) and [MCP Client Setup](docs/RS-AI-API-001-MCP-CLIENT-SETUP.md) for `/llms.txt`, `/ai/manifest.json`, `/openapi.json`, `/api/v1/*`, and `/mcp`.
 
 ## Publication
 

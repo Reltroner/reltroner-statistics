@@ -53,3 +53,30 @@ test('production values never claim deployment verification without evidence', a
   await expect(page.getByText(/DEPLOYMENT_(UN)?VERIFIED/).first()).toBeVisible();
   if (build.studio_deployment === 'DEPLOYMENT_UNVERIFIED') await expect(page.getByText('DEPLOYMENT_UNVERIFIED').first()).toBeVisible();
 });
+
+test('AI discovery documents (/llms.txt, /ai/manifest.json, /ai/context.json, /openapi.json) are served with valid contracts', async ({ request }) => {
+  const llms = await request.get('/llms.txt');
+  expect(llms.status()).toBe(200);
+  expect(llms.headers()['content-type']).toContain('text/plain');
+  expect(await llms.text()).toContain('# Reltroner Statistics — Asthortera Intelligence');
+
+  const manifestRes = await request.get('/ai/manifest.json');
+  expect(manifestRes.status()).toBe(200);
+  const manifest = await manifestRes.json();
+  expect(manifest.schema_version).toBe('rs-ai-manifest.v1');
+  expect(manifest.mcp.endpoint).toBe('/mcp');
+  expect(manifest.mcp.tools.length).toBe(13);
+
+  const contextRes = await request.get('/ai/context.json');
+  expect(contextRes.status()).toBe(200);
+  const context = await contextRes.json();
+  expect(context.schema_version).toBe('rs-ai-context.v1');
+
+  const openApiRes = await request.get('/openapi.json');
+  expect(openApiRes.status()).toBe(200);
+  const openApi = await openApiRes.json();
+  expect(openApi.openapi).toBe('3.1.0');
+  expect(Object.keys(openApi.paths)).toContain('/api/v1/manifest');
+  expect(Object.keys(openApi.paths)).toContain('/api/v1/calculator');
+  expect(Object.keys(openApi.paths)).toContain('/api/v1/research/context');
+});

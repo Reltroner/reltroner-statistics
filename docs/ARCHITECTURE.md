@@ -20,6 +20,7 @@ Earlier, a Windows workstation reported 0 identical files where CI found 393: `c
 - `src/domain` is pure TypeScript (no Node, React or Astro). `graph.ts` traversal is shared with the browser.
 - `src/engine` depends on domain only; `src/adapters` performs I/O.
 - `src/export` is isomorphic: the build and the browser Report Center use the same renderers.
+- `src/api` provides one read-only operation registry (`rs-intelligence.v1`) over the deployed build artifacts (`env.ASSETS.fetch`) and pure domain evaluators (`calculator.ts`, `graph.ts`, `decision-intelligence/evaluate.ts`), shared by `functions/api/v1/[[path]].ts` (`/api/v1/*`), `functions/mcp.ts` (`/mcp` stateless Streamable HTTP MCP), and the static discovery routes (`/llms.txt`, `/ai/manifest.json`, `/ai/context.json`, `/openapi.json`).
 - Pages read validated artifacts at build time (`src/lib/data.ts`); islands receive compact props or fetch `/data/*.json`.
 - Python reads `observations.json`, validates it against the generated JSON Schema, and emits `analytics.json` plus SVG figures validated the same way.
 

@@ -81,6 +81,9 @@ const exists = (urlPath: string) => {
   return fs.existsSync(p) && (fs.statSync(p).isFile() || fs.existsSync(path.join(p, 'index.html')));
 };
 for (const r of ROUTES) if (!exists(r.path)) errors.push(`Route missing: ${r.path}`);
+for (const ai of ['/llms.txt', '/ai/manifest.json', '/ai/context.json', '/openapi.json']) {
+  if (!exists(ai)) errors.push(`AI discovery file missing: ${ai}`);
+}
 if (!fs.existsSync(path.join(dist, '404.html'))) errors.push('404.html missing');
 const audit = JSON.parse(fs.readFileSync(path.join(ROOT, 'artifacts', 'audit.json'), 'utf8')) as { findings: Array<{ id: string }> };
 const pdfIndexPath = path.join(dist, 'reports', 'pdf', 'index.json');
