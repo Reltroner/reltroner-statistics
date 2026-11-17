@@ -130,9 +130,15 @@ export function assertLegacyCompatible(baseline, actual, path = 'schema') {
   // Runtime REST/MCP negative calls must separately prove strict unknown-key rejection.
   if (baseline.additionalProperties !== undefined) {
     const published = actual.additionalProperties;
-    assert.ok(published === baseline.additionalProperties
-      || (baseline.additionalProperties === false && published === undefined),
-      path + ': additionalProperties was loosened');
+    // Objects here are themselves JSON Schema (e.g. z.record), not booleans.
+    if (typeof baseline.additionalProperties === 'object' && baseline.additionalProperties !== null) {
+      assert.ok(object(published), path + ': record value schema disappeared');
+      assertLegacyCompatible(baseline.additionalProperties, published, path + '.additionalProperties');
+    } else {
+      assert.ok(published === baseline.additionalProperties
+        || (baseline.additionalProperties === false && published === undefined),
+        path + ': additionalProperties was loosened');
+    }
   }
 
   if (baseline.required !== undefined || actual.required !== undefined) {
