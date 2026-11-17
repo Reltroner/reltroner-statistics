@@ -209,8 +209,13 @@ export function assertPageToolInput(name, schema) {
     assert.equal(schema.properties.source_policy.default, 'as_published');
   }
   if (schema.properties.include_sections) {
-    assert.equal(schema.properties.include_sections.type, 'boolean');
-    assert.equal(schema.properties.include_sections.default, true);
+    assert.equal(schema.properties.include_sections.type, 'boolean', name + ': include_sections must be boolean');
+    // The MCP SDK may omit a Zod default in tools/list while the server still
+    // applies it during input parsing. Reject a contradictory advertised default;
+    // verify the omitted-vs-explicit true/false behavior against live MCP+REST.
+    assert.ok(schema.properties.include_sections.default === undefined
+      || schema.properties.include_sections.default === true,
+    name + ': include_sections default must be true or omitted by the MCP SDK (live behavior must be tested)');
   }
   if (schema.properties.cursor) {
     assert.equal(schema.properties.cursor.type, 'string');
