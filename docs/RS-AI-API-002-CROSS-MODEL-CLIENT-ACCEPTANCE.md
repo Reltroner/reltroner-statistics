@@ -1,6 +1,6 @@
 # RS-AI-API-002 — Cross-Model Client Acceptance
 
-**Status:** PARTIAL ACCEPTANCE — G1 remote protocol PASS; ChatGPT actual tool execution and a three-hypothesis source-grounded synthesis demonstrated; cross-model reported result parity PASS; Claude/Gemini raw tool traces and independent creative responses outstanding  
+**Status:** PARTIAL ACCEPTANCE — G1 remote protocol PASS; ChatGPT tool execution and basic three-hypothesis synthesis demonstrated; reported three-model numeric parity PASS; Gemini G4 raw Event Log (14 calls: 13 OK, 1 recoverable validation error) and Claude G4 native UI tool activity VERIFIED; final Claude/Gemini H1–H3 creative responses outstanding  
 **Record date:** 2026-11-17 (Asia/Jakarta)  
 **Scope:** ChatGPT, Claude, and Gemini consumption of the existing read-only RS-AI-API-001 gateway. No new source facts, formulas, canon ratification, or changes to Statistics production routing.
 
@@ -198,6 +198,16 @@ A standalone, identical, copy-paste-ready prompt and evidence-collection runbook
 
 No login session for Claude or Gemini is available through the GitHub connector, so no third-party chat execution or Event log export was performed by this repository update.
 
+## 6E. Fresh G4 execution evidence: Gemini native Event Log + Claude native tool UI (2026-11-17)
+
+See the sanitized, per-call audit at [RS-AI-API-002-G4-CLAUDE-GEMINI-EVIDENCE-AUDIT-2026-11-17.md](RS-AI-API-002-G4-CLAUDE-GEMINI-EVIDENCE-AUDIT-2026-11-17.md).
+
+**Gemini:** The owner supplied a Developer Mode `Event Log Export v1.0.0`. This was parsed directly: 14 named MCP tool calls, **13 successful** with identical Statistics SHA, production/remodeling SHA and semantic digest; **1 `trace_evidence` invalid-identifier-characters argument failure**, corrected by another call with six of six objects found. All five required G4 research tools (`get_statistics_manifest`, `build_research_context`, `discover_opportunities`, `audit_consistency`, `evaluate_decision_tree`) executed successfully. The standard-detail production-only research pack returned 40 evidence items and marked 53 further citations omitted. These results prove **native Gemini tool execution**, not Gemini's final creative answer.
+
+**Claude:** The owner's native chat screenshot shows connected **Sonnet 5.5 Medium** actively using Reltroner Statistics manifest, research context, opportunities, consistency audit, decision tree, search and narrative impact tools. This upgrades Claude's G2 from model-reported-only to **native tool-activity evidence** for the visible operations; argument/response JSON and the final creative H1–H3 output have not been independently inspected. The supplied public Claude share URL could not be fetched from the reviewer environment.
+
+**Updated G4 decision:** Gemini tool gate PASS (13/14 calls succeeded; corrected malformed input), Claude tool gate PASS for visible native activity (detail-level trace remains partial). Neither model's final three-hypothesis answer was included in the screenshot/Event Log, so **G4 creativity scoring is PENDING for both**. Do not mark full cross-model acceptance complete merely from successful tool calls. No raw session identifier or full private telemetry was committed.
+
 ## 7. Release and local 1:1 safety
 
 This milestone is authored on a feature branch. **Do not change GitHub main or infer local main parity from a remote commit.** No force-push, hard reset, branch overwrite, DNS/nameserver/Cloudflare changes, or unrelated domain edits.
@@ -212,4 +222,4 @@ A successful publish CI establishes Statistics release SHA; it does not establis
 
 ## 8. Acceptance decision
 
-**RS-AI-API-002 remains OPEN (partial acceptance).** G1 production protocol PASS; ChatGPT's four direct MCP invocations PASS; reported cross-model numeric/source/status parity PASS from owner-supplied Claude/Gemini responses. Provider-side tool execution telemetry for Claude/Gemini and their creative three-hypothesis benchmarks remain outstanding. ChatGPT demonstrated three source-grounded unratified hypotheses in the conversation; it is not a quality/novelty benchmark across models. Preserve distinction between reported model answers and independently inspected tool-call logs. Do not call full G4 acceptance or auto-merge until those gates have verifiable evidence.
+**RS-AI-API-002 remains OPEN (partial acceptance).** G1 production protocol PASS; ChatGPT's connected MCP and basic creative synthesis demonstrated; three-model reported result parity PASS; **Gemini G4 raw tool-call log independently inspected** (13 OK, 1 recoverable input validation error); **Claude native G4 tool-use screenshot inspected** (named tools visible, full request/response unavailable). G4 creative grading remains blocked by the missing final H1–H3 Claude and Gemini responses. Do not call full G4 acceptance or merge without the remaining evidence and explicit owner approval.
