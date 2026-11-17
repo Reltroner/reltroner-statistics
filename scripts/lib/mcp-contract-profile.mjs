@@ -107,8 +107,8 @@ export function assertLegacyCompatible(baseline, actual, path = 'schema') {
   // from RS-CREATIVE-QUALITY-003; arbitrary pattern changes are not accepted.
   if (actual.pattern !== baseline.pattern) {
     const allowed = path === 'trace_evidence.ids.items'
-      && baseline.pattern === '^[A-Za-z0-9:_.\\\\-/[\\\\]]+$'
-      && actual.pattern === '^[A-Za-z0-9:_.\\\\-/[\\\\]#@]+$';
+      && baseline.pattern === '^[A-Za-z0-9:_.\\-/[\\]]+$'
+      && actual.pattern === '^[A-Za-z0-9:_.\\-/[\\]#@]+$';
     assert.ok(allowed, path + ': input pattern changed without reviewed compatibility waiver');
   }
 
