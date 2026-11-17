@@ -1,0 +1,20 @@
+name: RS-AI-PAGE-004 — production MCP regression (temporary branch-only)
+on:
+  push:
+    branches:
+      - fix/rs-ai-page-004-live-mcp-schema-defaults
+permissions:
+  contents: read
+jobs:
+  verify_live_page_tools:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Reproduce full 16-tool live acceptance on already-deployed immutable SHA
+        run: node scripts/verify-remote-mcp.mjs --expected-sha 1dbca25ff3b8e12b1919038967bbfb23f8a4bfce --profile page-aware-v1
