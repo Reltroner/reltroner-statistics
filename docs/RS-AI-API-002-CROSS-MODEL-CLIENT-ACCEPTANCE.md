@@ -106,6 +106,38 @@ Allowed statuses: NOT_RUN, PASS, FAIL, CLIENT_CAPABILITY_BLOCKED, ACCOUNT_SETUP_
 
 Collect only real, redacted evidence: exact model/client version, time, accessible tool names, sanitized call parameters, tool outputs (source SHAs + digest), final user-visible analysis and whether evidence citations resolve. Suggested record names: chatgpt-YYYYMMDD.md, claude-YYYYMMDD.md, gemini-cli-YYYYMMDD.md, protocol-YYYYMMDD.json. Do not commit API keys, cookies, session IDs, private ideation or screenshots showing account identifiers.
 
+## 6A. 2026-11-17 hosted-client evidence update (account screenshots + ChatGPT tools)
+
+**Screenshot evidence supplied by owner:**
+- ChatGPT: Reltroner Statistics custom app appears installed with `Try in chat`; this is connector registration proof.
+- Claude: Reltroner Statistics plugin displays `Added`, `Connected`, `No sign-in required`, and source `statistics.reltroner.com/mcp`. This is connection proof only. No tool invocation output yet.
+- Gemini web Developer Mode (not Gemini CLI): `Live schema 13 / 13 tools`, including `get_statistics_manifest`, `search_asthortera`, and `get_entity_context`, marked read-only. This proves native Gemini-web schema discovery, **not** tool execution.
+
+**Actual ChatGPT MCP calls performed in the acceptance conversation via the connected Reltroner Statistics app (not web browsing):**
+- `get_statistics_manifest` returned `OK`, 13 advertised MCP tools, and pinned source identity.
+- `calculate_scenario` for `country:reltronland`, population, `projectScenario`, 1% annually over 100 years returned `OK`; baseline 855 billion sentients, calculated conditional result **2312.6158241554067 billion sentients**, `SCENARIO`; empirical forecast declared `INSUFFICIENT_DATA`.
+- `build_research_context` for `Reltronland Depcutland cooperation` with `source_policy=production_only` returned `OK`, 20 evidence citations; output reported limited coverage, not exhaustive.
+- `query_statistics` for nonexistent entity Atlantis, indicator population, returned `NOT_FOUND`, zero rows, no silent fallback.
+
+**Returned snapshot:** Statistics SHA `fc37812b6cad68cfb707fdcdd07d7a0e417825df`; production source SHA `ad895e6d9184f09281a7cc14ccd7867c47acd29e`; remodeling source SHA `0c80fdb05f5f338241c58663b87a01aa0e1748b2`; semantic digest `a24ccb3c5e585950ec746fb8b3936d4e35a3d4f5982dcaddbd1171fcb134aec2`; Studio deployment still `DEPLOYMENT_UNVERIFIED`.
+
+**Important limits:** This transcript demonstrates **ChatGPT actual MCP execution for four tools**; it is not proof the full 13 tools have been invoked. Exact REST/MCP parity was independently checked by G1 GitHub Actions, not re-compared manually in the account conversation. The full human-visible three-hypothesis ChatGPT benchmark, Claude tool execution, Gemini-web tool execution, and cross-model same-input parity are still pending. Owner screenshots are not uploaded to GitHub and no hidden account data was committed.
+
+**Partial provider status after this update:**
+
+| Gate | ChatGPT | Claude web | Gemini web Developer Mode |
+|---|---|---|---|
+| Connector installed / connected | PASS | PASS | PASS (schema visible) |
+| Schema or tools discovered | PASS (manifest advertises 13) | NOT_RUN | PASS (13/13 read-only) |
+| Actual `get_statistics_manifest` call | PASS | NOT_RUN | NOT_RUN |
+| Actual `calculate_scenario` call | PASS | NOT_RUN | NOT_RUN |
+| Actual `build_research_context` call | PASS | NOT_RUN | NOT_RUN |
+| Unknown entity rejected in tool call | PASS | NOT_RUN | NOT_RUN |
+| Creative three-hypothesis in-chat response | NOT_RUN | NOT_RUN | NOT_RUN |
+| Full cross-client parity | NOT_RUN | NOT_RUN | NOT_RUN |
+
+Preserve the original Gemini CLI setup instructions as an additional optional client. The current screenshot instead proves a different client: **Gemini web Developer Mode**.
+
 ## 7. Release and local 1:1 safety
 
 This milestone is authored on a feature branch. **Do not change GitHub main or infer local main parity from a remote commit.** No force-push, hard reset, branch overwrite, DNS/nameserver/Cloudflare changes, or unrelated domain edits.
