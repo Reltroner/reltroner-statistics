@@ -6,6 +6,7 @@
  */
 import { z } from 'zod';
 import { FORMULAS, LIMITS as CALC_LIMITS, RUBRIC } from '../domain/calculator.ts';
+import { PAGE_REGISTRY_PATH, mirrorJson, mirrorMarkdown } from '../domain/page-url.ts';
 import { EPISTEMIC_DESCRIPTIONS } from '../domain/status.ts';
 import { API_LIMITS, API_SCHEMA, INPUTS, MCP_INSTRUCTIONS, MCP_SERVER_INFO, MCP_TOOLS, OPERATIONS, type OperationDef } from './contract.ts';
 
@@ -24,10 +25,19 @@ export interface Coverage {
 }
 
 const MODES = [
-  { mode: 'BROWSE', what: 'An AI client that can open web pages reads this site, /llms.txt and the JSON files under /data. No tool is executed.' },
+  { mode: 'BROWSE', what: 'An AI client that can open web pages reads this site, /llms.txt, the JSON files under /data and the page mirrors under /ai/pages. No tool is executed, and success depends on that client\'s own browser.' },
   { mode: 'REST', what: 'A client that can make HTTP requests calls the read-only routes under /api/v1 described by /openapi.json.' },
   { mode: 'MCP', what: 'A client with this server connected as a custom MCP connector calls the tools at /mcp. Pasting a link into a chat does not connect it; the user or workspace must add the connector.' },
 ];
+/** RS-AI-PAGE-004: every public page has a machine-readable mirror built from the same output. */
+export const PAGE_MIRRORS = Object.freeze({
+  registry: PAGE_REGISTRY_PATH,
+  rule: `Page /a/b/ → /ai/pages/a/b.json and /ai/pages/a/b.md; the home page / → ${mirrorJson('/')} and ${mirrorMarkdown('/')}; a file page /reports/all/x.html → /ai/pages/reports/all/x.html.json.`,
+  example: { page: '/statistics/spatial/', json: mirrorJson('/statistics/spatial/'), markdown: mirrorMarkdown('/statistics/spatial/') },
+  tools: ['resolve_statistics_page', 'read_statistics_page', 'read_statistics_section'],
+  note: 'A pasted page URL is a locator. With the MCP connector, resolve_statistics_page maps it to exactly one page by offline lookup; nothing is fetched and no other page is substituted. Without a connector, an AI client may read the mirrors directly if its browser can.',
+  prompt: 'Analyze https://statistics.reltroner.com/statistics/spatial/ using connected Reltroner Statistics MCP. Resolve the exact page, read the semantic page and sections, trace evidence, then evaluate individual AI-agent-driven housing/hardware production as HYPOTHESIS, not canon. Separate production facts, remodeling proposals, assumptions, and missing data.',
+});
 const AUTHORITY = [
   'Reltroner/reltroner-studio main is the authoritative published source (canon). Reltroner/reltroner-studio-remodeling main is a proposal workspace (PROPOSED).',
   'Three identities are kept apart: the Statistics application commit, the pinned source commits, and the live Studio deployment, which is DEPLOYMENT_UNVERIFIED unless proven.',
@@ -41,7 +51,8 @@ export function aiManifest(coverage: Coverage) {
     site: SITE,
     api: { schema_version: API_SCHEMA, base: '/api/v1', openapi: '/openapi.json', read_only: true, authentication: 'none', build_identity: '/build-info.json' },
     mcp: { endpoint: '/mcp', transport: 'Streamable HTTP, stateless', protocol: '2026-07-28, with stateless handling of 2025 clients', server: MCP_SERVER_INFO, tools: MCP_TOOLS.map((t) => t.name), read_only: true },
-    discovery: { llms_txt: '/llms.txt', context: '/ai/context.json', manifest: '/ai/manifest.json' },
+    discovery: { llms_txt: '/llms.txt', context: '/ai/context.json', manifest: '/ai/manifest.json', pages: PAGE_REGISTRY_PATH },
+    page_mirrors: PAGE_MIRRORS,
     access_modes: MODES,
     source_authority: AUTHORITY,
     statuses: EPISTEMIC_DESCRIPTIONS,
@@ -83,13 +94,20 @@ export function aiContext(coverage: Coverage) {
       { ask: 'Evidence for a story about Reltronland and Depcutland', rest: 'POST /api/v1/research/context {"query":"Reltronland Depcutland cooperation"}', tool: 'build_research_context' },
       { ask: 'Which source-grounded points about Henchoway could be developed together?', rest: 'GET /api/v1/creative/opportunities?view=explorations&entity=nar:faction:henchoway', tool: 'discover_opportunities' },
       { ask: 'Show the exact passage behind one finding', rest: 'GET /api/v1/evidence?ids=<finding id>%231', tool: 'trace_evidence' },
+      { ask: 'What does https://statistics.reltroner.com/statistics/spatial/ show?', rest: 'GET /api/v1/pages/resolve?url=https%3A%2F%2Fstatistics.reltroner.com%2Fstatistics%2Fspatial%2F', tool: 'resolve_statistics_page' },
+      { ask: 'Read the habitat table of the spatial page', rest: 'GET /api/v1/pages/section?path=%2Fstatistics%2Fspatial%2F&section=data-spatial-home-habitat', tool: 'read_statistics_section' },
     ],
     research_playbook: RESEARCH_PLAYBOOK,
   };
 }
 
 export function llmsTxt(coverage: Coverage): string {
-  const line = (o: OperationDef) => `- ${o.method} ${SITE}/api/v1${o.path} — ${o.description.split('. ')[0]}.`;
+  // llms.txt is discovery, not the full contract. OpenAPI keeps complete descriptions.
+  const concise = (description: string) => {
+    const firstSentence = description.split('. ')[0]!;
+    return firstSentence.length <= 144 ? firstSentence : `${firstSentence.slice(0, 140).trimEnd()}…`;
+  };
+  const line = (o: OperationDef) => `- ${o.method} ${SITE}/api/v1${o.path} — ${concise(o.description)}.`;
   return `# Reltroner Statistics — Asthortera Intelligence
 
 > Source-pinned statistics, drift forensics, a knowledge graph, narrative audits, decision trees and a deterministic calculator for Asthortera, the fictional world of Reltroner Studio. Everything here is read-only and deterministic; no language model produces any value.
@@ -112,10 +130,16 @@ export function llmsTxt(coverage: Coverage): string {
 
 ${RESEARCH_PLAYBOOK.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
+## Pages: a pasted page URL
+
+Every public page has two machine-readable mirrors built from the same output as the page: ${SITE}/ai/pages/<path>.json and .md (home page: ${SITE}${mirrorJson('/')}). The page registry is ${SITE}${PAGE_REGISTRY_PATH}. Example: ${SITE}${mirrorJson('/statistics/spatial/')}.
+With the MCP connector, resolve_statistics_page maps a pasted ${SITE} URL to exactly one page (offline lookup, nothing fetched, no substitute), then read_statistics_page and read_statistics_section read it. A browser that cannot open a page is not fixed by a tool call; they are different modes.
+
 ## Discovery
 
 - ${SITE}/ai/manifest.json — entry points, tools, policies, coverage
 - ${SITE}/ai/context.json — short capability overview with examples
+- ${SITE}${PAGE_REGISTRY_PATH} — every public page with its mirror links and coverage
 - ${SITE}/openapi.json — REST contract
 - ${SITE}/build-info.json — commit of this build and the pinned source commits
 
@@ -125,7 +149,7 @@ ${OPERATIONS.map(line).join('\n')}
 
 ## MCP tools at ${SITE}/mcp
 
-${MCP_TOOLS.map((t) => `- ${t.name} — ${t.description.split('. ')[0]}.`).join('\n')}
+${MCP_TOOLS.map((t) => `- ${t.name} — ${concise(t.description)}.`).join('\n')}
 
 ## Published data files
 

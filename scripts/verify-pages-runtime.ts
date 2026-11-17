@@ -5,6 +5,7 @@
  *  2. Boots `wrangler pages dev dist` (actual Cloudflare workerd runtime) on loopback.
  *  3. Verifies static routes, `_headers` CSP/nosniff, existing `/api/assistant` fail-closed behavior,
  *     new `/api/v1/*` REST routes, and `/mcp` stateless Streamable HTTP with `@modelcontextprotocol/client`.
+ *  4. RS-AI-PAGE-004: page mirror fidelity and determinism on the build, then the page operations in workerd.
  */
 import { spawn, spawnSync } from 'node:child_process';
 import assert from 'node:assert/strict';
@@ -13,11 +14,15 @@ import path from 'node:path';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { MCP_TOOLS, OPERATIONS } from '../src/api/contract.ts';
 import { ROOT } from './lib/context.ts';
+import { verifyPageBuild, verifyPageRuntime } from './lib/verify-page-mirrors.ts';
 
 const dist = path.join(ROOT, 'dist');
 if (!fs.existsSync(path.join(dist, 'index.html')) || !fs.existsSync(path.join(dist, 'build-info.json'))) {
   throw new Error('Run npm run build (or node scripts/build.ts --skip-pdf) before scripts/verify-pages-runtime.ts');
 }
+
+// RS-AI-PAGE-004: page mirrors are checked against the build before workerd starts serving it.
+const pageBuild = verifyPageBuild(dist, ROOT);
 
 const isWin = process.platform === 'win32';
 const outDir = '.cache/wrangler-functions-check';
@@ -203,9 +208,10 @@ try {
   const mcpPack = (await client.callTool({ name: 'build_research_context', arguments: { query: 'Reltronland Depcutland cooperation' } })).structuredContent as { result_status: string };
   assert.equal(mcpPack.result_status, 'OK');
   assert.equal(JSON.stringify(mcpPack), JSON.stringify(packBody), 'REST and MCP return the same pack for the same input and snapshot');
-  assert.equal(tools.length, 13, 'the tool list is unchanged');
+  assert.equal(tools.length, 16, '13 original tools plus 3 PAGE-004 tools must be present');
   const mcpTrace = (await client.callTool({ name: 'trace_evidence', arguments: { ids: ids.slice(0, 20) } })).structuredContent as { data: { found: number; requested: number } };
   assert.equal(mcpTrace.data.found, mcpTrace.data.requested);
+  const pageRuntime = await verifyPageRuntime(BASE, client, dist);
   await client.close();
 
   process.stdout.write(`${JSON.stringify({
@@ -216,6 +222,7 @@ try {
     production_source_sha: buildInfo.sources.production,
     remodeling_source_sha: buildInfo.sources.remodeling,
     semantic_digest: buildInfo.semantic_digest,
+    page_mirrors: { ...pageBuild, ...pageRuntime },
   })}\n`);
 } finally {
   proc.stdout?.destroy();

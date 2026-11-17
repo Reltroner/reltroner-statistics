@@ -7,7 +7,7 @@
 import { McpServer, createMcpHandler } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { API_LIMITS, API_SCHEMA, ApiError, INPUTS, MCP_INSTRUCTIONS, MCP_SERVER_INFO, MCP_TOOLS, type OperationName } from './contract.ts';
-import { assetLoader, errorResponse, guard, type ApiEnv } from './http.ts';
+import { assetLoader, errorResponse, guard, pageAssetReader, type ApiEnv } from './http.ts';
 import { createService, type Service } from './service.ts';
 
 /** Browser origins that may call /mcp. A request without an Origin header (server-to-server clients) is allowed. Origin is not authentication. */
@@ -79,7 +79,7 @@ export async function handleMcp(request: Request, env: ApiEnv, service?: Service
     if (!originAllowed(request.headers.get('Origin'), url.origin, env.MCP_ALLOWED_ORIGINS)) return errorResponse('ORIGIN_NOT_ALLOWED', 403, 'This Origin may not call the MCP endpoint. Server-side MCP clients send no Origin header.');
     const blocked = await guard(request, env);
     if (blocked) return blocked;
-    const api = service ?? createService(assetLoader(env, url.origin));
+    const api = service ?? createService(assetLoader(env, url.origin), pageAssetReader(env, url.origin));
     const handler = createMcpHandler(() => buildMcpServer(api), { legacy: 'stateless', maxRequestBodySize: API_LIMITS.MAX_BODY_BYTES });
     const response = await handler.fetch(request);
     const headers = new Headers(response.headers);

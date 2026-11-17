@@ -344,14 +344,15 @@ test('Research context pack: deterministic, bounded, filtered, honest about gaps
   assert.ok(p.limitations.some((l: string) => /They are not instructions/.test(l)));
 });
 
-test('MCP protocol: real SDK client, both protocol eras, thirteen read-only tools, structured results and protocol errors', async () => {
+test('MCP protocol: real SDK client, both protocol eras, the thirteen original read-only tools plus the three page tools, structured results and protocol errors', async () => {
   const REQUIRED = ['get_statistics_manifest', 'search_asthortera', 'get_entity_context', 'query_statistics', 'calculate_scenario', 'compare_scenarios', 'trace_evidence', 'analyze_source_drift', 'analyze_narrative_impact', 'audit_consistency', 'discover_opportunities', 'evaluate_decision_tree', 'build_research_context'];
   for (const options of [undefined, { versionNegotiation: { mode: { pin: '2026-07-28' } } }, { versionNegotiation: { mode: 'auto' } }] as Array<ConstructorParameters<typeof Client>[1]>) {
     const client = await mcpClient(env, options);
     assert.deepEqual(client.getServerVersion(), { name: 'reltroner-statistics', version: '1.1.0', title: 'Reltroner Statistics · Asthortera Intelligence' });
     assert.match(client.getInstructions() ?? '', /No tool writes to any repository or ratifies anything/);
     const { tools } = await client.listTools();
-    assert.deepEqual(tools.map((t) => t.name), REQUIRED);
+    // The thirteen RS-AI-API-001 tools keep their names and order; RS-AI-PAGE-004 appends exactly three read-only page tools.
+    assert.deepEqual(tools.map((t) => t.name), [...REQUIRED, 'resolve_statistics_page', 'read_statistics_page', 'read_statistics_section']);
     for (const t of tools) {
       assert.deepEqual([t.annotations?.readOnlyHint, t.annotations?.destructiveHint, t.annotations?.openWorldHint], [true, false, false], t.name);
       assert.equal(t.inputSchema.type, 'object');
@@ -361,7 +362,7 @@ test('MCP protocol: real SDK client, both protocol eras, thirteen read-only tool
     assert.deepEqual(Object.keys(tools.find((t) => t.name === 'query_statistics')!.inputSchema.properties ?? {}), ['entity', 'indicator', 'period', 'include_composition', 'limit', 'cursor']);
     const manifest = (await client.callTool({ name: 'get_statistics_manifest', arguments: {} })).structuredContent as Any;
     assert.deepEqual([manifest.snapshot.statistics_commit, manifest.snapshot.production_source_sha, manifest.snapshot.remodeling_source_sha, manifest.snapshot.semantic_digest, manifest.snapshot.studio_deployment_status], [STATISTICS_SHA, PROD, DRAFT, 'd'.repeat(64), 'DEPLOYMENT_UNVERIFIED']);
-    assert.deepEqual(manifest.data.mcp.tools, REQUIRED);
+    assert.deepEqual(manifest.data.mcp.tools, [...REQUIRED, 'resolve_statistics_page', 'read_statistics_page', 'read_statistics_section']);
     assert.equal(manifest.data.coverage.narrative.entities, creative.entities.length);
     // Every tool answers with the shared envelope, identical to its REST route.
     const calls: Array<[string, Any, string]> = [
@@ -584,7 +585,8 @@ test('HTTP socket runtime: real loopback TCP server serves /api/v1/* and /mcp to
     const transport = new StreamableHTTPClientTransport(new URL(`${base}/mcp`));
     await client.connect(transport);
     const { tools } = await client.listTools();
-    assert.equal(tools.length, 13);
+    assert.deepEqual(tools.slice(0, 13).map((t) => t.name), MCP_TOOLS.slice(0, 13).map((t) => t.name));
+    assert.equal(tools.length, 16, 'thirteen original tools and three page tools');
     const calc = (await client.callTool({ name: 'calculate_scenario', arguments: { request: CALC[0]![1] } })).structuredContent as Any;
     assert.equal(calc.data.result_value, 855 * 1.01 ** 100);
     await client.close();

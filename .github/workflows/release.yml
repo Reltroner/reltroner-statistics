@@ -151,6 +151,9 @@ jobs:
         run: npx --yes wrangler@4.161.0 pages deploy dist --project-name "${{ vars.CLOUDFLARE_PAGES_PROJECT }}" --branch main --commit-hash "${{ github.sha }}"
       - name: Verify the live site serves this exact build
         run: node scripts/verify-deployment.ts "${{ vars.SITE_URL }}"
+      - name: Verify live PAGE-004 16 MCP tools after explicit custom-domain release
+        if: vars.SITE_URL == 'https://statistics.reltroner.com'
+        run: node scripts/verify-remote-mcp.mjs --expected-sha "${{ github.sha }}" --profile page-aware-v1
 
   not-configured:
     name: Publication held — explicit authorization required

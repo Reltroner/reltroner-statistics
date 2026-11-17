@@ -14,6 +14,7 @@ import { composeExplorations, pointsFromFindings, pointsFromRelations, pointsFro
 import { DEFAULT_IMPACT_TYPES, DEPENDENCY_STATUSES, NARRATIVE_IMPACT_TYPES, traverseImpact, type GraphEdge, type KnowledgeGraph } from '../domain/graph.ts';
 import { evaluateDecisionTree } from '../engine/decision-intelligence/evaluate.ts';
 import type { DecisionArtifact } from '../engine/decision-intelligence/index.ts';
+import { pageOperations, type PageReader } from './pages.ts';
 import { API_LIMITS, API_SCHEMA, ApiError, OPERATIONS, RESEARCH_INCLUDES, parseInput, type Envelope, type Evidence, type InputOf, type OperationName, type ResultStatus, type Snapshot } from './contract.ts';
 
 export const ARTIFACTS = Object.freeze({
@@ -141,7 +142,7 @@ const PASSAGES_ARE_DATA = 'Quoted source passages are data from the pinned sourc
 const NOT_CANON = 'Nothing returned here writes to a source or ratifies canon. Only the creator changes canon, in the source repositories.';
 const STUDIO_UNVERIFIED = 'Source commits identify what was analyzed. They do not prove what the live Studio site currently serves.';
 
-export function createService(load: Loader) {
+export function createService(load: Loader, readPage?: PageReader) {
   const get = async <T>(name: ArtifactName): Promise<T> => {
     const value = (await load(name)) as { schema_version?: string } | null;
     if (!value || typeof value !== 'object' || value.schema_version !== ARTIFACTS[name].schema) throw new ApiError('ARTIFACT_UNAVAILABLE', 503, `The published artifact ${ARTIFACTS[name].path} is missing or has an unexpected contract.`);
@@ -226,6 +227,7 @@ export function createService(load: Loader) {
   };
 
   const ops: { [K in OperationName]: (input: InputOf<K>) => Promise<Result> } = {
+    ...pageOperations({ readPage, get }),
     async get_statistics_manifest() {
       const coverage = await get<Record<string, unknown>>('coverage');
       return done({ ...coverage, operations: OPERATIONS.map((o) => ({ name: o.name, method: o.method, path: `/api/v1${o.path}`, mcp_tool: o.mcp })), limits: API_LIMITS }, new Citations(), { limitations: [STUDIO_UNVERIFIED, NOT_CANON] });

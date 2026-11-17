@@ -5,6 +5,8 @@
  * asset binding and never fetches a caller-supplied URL.
  */
 import { API_LIMITS, API_SCHEMA, ApiError, OPERATIONS, type Envelope, type ErrorBody, type OperationDef, type OperationName } from './contract.ts';
+import { isMirrorJsonPath, PAGE_REGISTRY_PATH } from '../domain/page-url.ts';
+import type { PageReader } from './pages.ts';
 import { ARTIFACTS, createService, type ArtifactName, type Loader, type Service } from './service.ts';
 
 export interface ApiEnv {
@@ -46,6 +48,37 @@ export function assetLoader(env: ApiEnv, origin: string): Loader {
       // A failed read is not cached, so a later request can succeed.
       pending.catch(() => map.delete(name));
       map.set(name, pending);
+    }
+    return pending;
+  };
+}
+
+/**
+ * Page registry, registry chunks and page mirrors of this deployment. Only fixed build paths are
+ * accepted (the service derives them from registry entries); a missing file reads as null. The
+ * registry and its chunks are cached like the artifacts; mirrors in a small cache that is cleared
+ * when full, so memory stays bounded.
+ */
+const pageCache = new WeakMap<object, { fixed: Map<string, Promise<unknown>>; mirrors: Map<string, Promise<unknown>> }>();
+const MIRROR_CACHE_ENTRIES = 64;
+export function pageAssetReader(env: ApiEnv, origin: string): PageReader {
+  let store = pageCache.get(env.ASSETS);
+  if (!store) pageCache.set(env.ASSETS, (store = { fixed: new Map(), mirrors: new Map() }));
+  const { fixed, mirrors } = store;
+  return (path) => {
+    if (path !== PAGE_REGISTRY_PATH && !isMirrorJsonPath(path)) return Promise.reject(new ApiError('INTERNAL_ERROR', 500, 'The request could not be completed.'));
+    const map = path === PAGE_REGISTRY_PATH || path.startsWith('/ai/pages/_registry/') ? fixed : mirrors;
+    let pending = map.get(path);
+    if (!pending) {
+      if (map === mirrors && mirrors.size >= MIRROR_CACHE_ENTRIES) mirrors.clear();
+      pending = env.ASSETS.fetch(new Request(new URL(path, origin))).then(async (response) => {
+        if (response.status === 404) return null;
+        if (!response.ok) throw new ApiError('ARTIFACT_UNAVAILABLE', 503, `The published page file ${path} is not available.`);
+        return response.json() as Promise<unknown>;
+      });
+      // A failed read is not cached, so a later request can succeed.
+      pending.catch(() => map.delete(path));
+      map.set(path, pending);
     }
     return pending;
   };
@@ -113,7 +146,7 @@ export async function handleRest(request: Request, env: ApiEnv, service?: Servic
     if (request.method !== op.method) return errorResponse('METHOD_NOT_ALLOWED', 405, `${op.path} accepts ${op.method} only.`, op.name, { ...CORS, Allow: `${op.method}, OPTIONS` });
     if (url.search.length > 2048) throw new ApiError('INVALID_INPUT', 414, 'The query string is too long.');
     const input = op.method === 'GET' ? { ...queryInput(url), ...params } : await readJsonBody(request);
-    const api = service ?? createService(assetLoader(env, url.origin));
+    const api = service ?? createService(assetLoader(env, url.origin), pageAssetReader(env, url.origin));
     const envelope = await api.run(op.name, input);
     // Answers change only with a new build; calculations depend on the body and are not shared-cached.
     return jsonResponse(envelope, statusOf(envelope), { ...CORS, 'Cache-Control': op.method === 'GET' ? 'public, max-age=300, must-revalidate' : 'no-store' });
