@@ -407,12 +407,16 @@ test('Evidence drill-down: sub-ids resolve to exactly one passage, parents to al
   assert.deepEqual(legacy.data.items.map((i: Any) => [i.kind, i.found]), [['audit_finding', true], ['relation', true], ['narrative_entity', true]]);
 });
 
-test('Client compatibility: the same thirteen tools, read-only, with every earlier input still accepted', async () => {
+test('Client compatibility: thirteen unchanged legacy tools plus exactly three read-only PAGE-004 additions', async () => {
   const names = ['get_statistics_manifest', 'search_asthortera', 'get_entity_context', 'query_statistics', 'calculate_scenario', 'compare_scenarios', 'trace_evidence', 'analyze_source_drift', 'analyze_narrative_impact', 'audit_consistency', 'discover_opportunities', 'evaluate_decision_tree', 'build_research_context'];
-  assert.deepEqual(MCP_TOOLS.map((t) => t.name), names);
+  const additions = ['resolve_statistics_page', 'read_statistics_page', 'read_statistics_section'];
+  assert.deepEqual(MCP_TOOLS.slice(0, 13).map((t) => t.name), names, 'all thirteen legacy names and their order are preserved');
+  assert.deepEqual(MCP_TOOLS.slice(13).map((t) => t.name), additions, 'exactly three PAGE-004 tools are appended');
   const client = await mcp();
   const { tools } = await client.listTools();
-  assert.deepEqual(tools.map((t) => t.name), names);
+  assert.equal(tools.length, 16, 'all legacy and PAGE-004 tools are present without extras');
+  assert.deepEqual(tools.slice(0, 13).map((t) => t.name), names);
+  assert.deepEqual(tools.slice(13).map((t) => t.name), additions);
   for (const t of tools) assert.deepEqual([t.annotations?.readOnlyHint, t.annotations?.destructiveHint, t.annotations?.openWorldHint], [true, false, false], t.name);
   const schema = (name: string) => tools.find((t) => t.name === name)!.inputSchema as Any;
   assert.deepEqual(schema('build_research_context').required, ['query'], 'no new required argument');
