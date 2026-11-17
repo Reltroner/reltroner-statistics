@@ -1,6 +1,6 @@
 # RS-AI-API-002 — Cross-Model Client Acceptance
 
-**Status:** IN PROGRESS — HOSTED CLIENT ACCEPTANCE NOT YET VERIFIED  
+**Status:** PARTIAL ACCEPTANCE — G1 remote protocol PASS; ChatGPT actual tool execution PASS; cross-model reported result parity PASS; Claude/Gemini raw tool traces and three-hypothesis creative benchmark outstanding  
 **Record date:** 2026-11-17 (Asia/Jakarta)  
 **Scope:** ChatGPT, Claude, and Gemini consumption of the existing read-only RS-AI-API-001 gateway. No new source facts, formulas, canon ratification, or changes to Statistics production routing.
 
@@ -9,7 +9,7 @@
 - **GitHub evidence:** [RS-AI-API-001 PR #6](https://github.com/Reltroner/reltroner-statistics/pull/6) was merged as Statistics SHA fc37812b6cad68cfb707fdcdd07d7a0e417825df. [Main CI/publish #43882166165](https://github.com/Reltroner/reltroner-statistics/actions/runs/43882166165) completed successfully, including deployment identity verification.
 - **Repository implementation:** src/api/contract.ts defines 13 read-only MCP tools; scripts/verify-pages-runtime.ts already exercises the official SDK against Cloudflare workerd in a local simulation.
 - **Fresh independent network verification:** **PASS on 2026-11-17** from [GitHub Actions remote protocol run #44003607623](https://github.com/Reltroner/reltroner-statistics/actions/runs/44003607623), executed against the live production site using the official MCP client. The reviewer runtime itself still could not resolve the public hostname, but the separate GitHub-hosted verification succeeded. This is protocol acceptance, not proof of model account access.
-- **Logged-in model connections:** NOT_RUN. No authenticated ChatGPT, Claude, or Gemini session has been connected or operated by this audit. Never mark one PASS without captured tool invocation.
+- **Logged-in model connections:** ChatGPT's connected app was invoked successfully from the assistant conversation. Owner supplied screenshots of Claude Connected and Gemini web 13/13 schema discovery; subsequently supplied text responses from Claude Sonnet Medium and Gemini Hydrogen High claiming the same four MCP operations. Those model-generated reports provide result parity evidence but not raw tool-call telemetry; do not upgrade their execution trace to independently audited PASS without the event log.
 - **Local Windows workspace:** NOT_INSPECTED. The owner/agent previously reported local-main/GitHub parity for RS-AI-API-001; this review cannot inspect C:\Projects\reltroner-statistics or claim current parity.
 
 ## 2. Existing endpoints and invariants
@@ -138,6 +138,38 @@ Collect only real, redacted evidence: exact model/client version, time, accessib
 
 Preserve the original Gemini CLI setup instructions as an additional optional client. The current screenshot instead proves a different client: **Gemini web Developer Mode**.
 
+## 6B. Claude Sonnet Medium + Gemini Hydrogen High: model-reported parity (2026-11-17)
+
+**Evidence classification:** Responses supplied by the owner in conversation (Claude Sonnet Medium and Gemini Hydrogen High). No authenticated raw MCP event-log export or native structuredContent dump from either provider was attached. The observed *reported outputs* match the ChatGPT MCP results and the independent GitHub Actions protocol baseline. Do not mislabel this as independently inspected provider-side invocation telemetry.
+
+| Field | ChatGPT (direct MCP invocation) | Claude Sonnet Medium (owner-supplied response) | Gemini Hydrogen High (owner-supplied response) |
+|---|---|---|---|
+| Statistics application commit | `fc37812b6cad68cfb707fdcdd07d7a0e417825df` | MATCH | MATCH |
+| Production source | `ad895e6d9184f09281a7cc14ccd7867c47acd29e` | MATCH | MATCH |
+| Remodeling source | `0c80fdb05f5f338241c58663b87a01aa0e1748b2` | MATCH | MATCH |
+| Semantic digest | `a24ccb3c5e585950ec746fb8b3936d4e35a3d4f5982dcaddbd1171fcb134aec2` | MATCH | MATCH |
+| Rules / generation / Studio deployment | `P0R-2.0.0` / `2026-11-16T14:08:01.661Z` / `DEPLOYMENT_UNVERIFIED` | MATCH | MATCH |
+| Conditional population result | `2312.6158241554067` billion sentients | EXACT MATCH | EXACT MATCH |
+| Calculation ID | `calc-36cdf967` | MATCH | MATCH |
+| Scenario status | `SCENARIO`; empirical forecast `INSUFFICIENT_DATA` | MATCH | MATCH |
+| Research evidence | 20 returned, 3 omitted | MATCH | MATCH |
+| Atlantis population query | `NOT_FOUND`, zero rows | MATCH | MATCH |
+
+**Additional source-aware observations from both owner-supplied model answers:** baseline Reltronland population 855 billion sentients (Year 0, `CANON_OBSERVED`); change +1457.6158241554067 billion / +170.48138294215283%; 2 observed points vs 8 required for empirical forecast; research pack contains zero verified relationships between matched entities and 63 unverified candidate links (not causes). Claude also noted 39 matching drift findings and five shown; Gemini reported one consistency finding and one opportunity. They correctly did not silently create a new observation for Atlantis.
+
+**Granular decision:**
+- G1 independent production REST/MCP protocol: **PASS** (GitHub Actions).
+- G2 ChatGPT real tool invocation (the four required functions): **PASS**, observed directly through connected tool. Claude and Gemini connection/schema are observed, and their four-operation *result summaries* have been received; **actual per-model tool-call traces: PENDING**.
+- G3 **cross-model response result parity: PASS** for the common four-operation input/snapshot. The evidence is exact matching reported values, not a packet-level trace parity audit.
+- G4 **full creative acceptance: NOT_RUN** — the same three source-anchored, diverse, unratified hypotheses were not generated and assessed across all three chats. Need specific real tool traces plus in-chat creative reasoning benchmark.
+- Do not infer that all 13 MCP tools have each been exercised by any given client. No private account identifiers or unredacted data are stored here.
+
+### Next provider evidence gates
+
+1. Save redacted Claude tool-execution trace and Gemini Developer Mode event log showing actual `get_statistics_manifest`, `calculate_scenario`, `build_research_context`, and `query_statistics` call/response pairs, including request parameters.
+2. Run the shared three-hypothesis creative acceptance prompt in each chat. Judge **evidence accuracy, grounded constraints, epistemic labeling, usefulness of novel opportunities, and absence of canon mutation**, not identical story prose.
+3. Record model/client version and whether each relevant tool was actually called. Preserve all 1:1 Git safety checks before any subsequent merge.
+
 ## 7. Release and local 1:1 safety
 
 This milestone is authored on a feature branch. **Do not change GitHub main or infer local main parity from a remote commit.** No force-push, hard reset, branch overwrite, DNS/nameserver/Cloudflare changes, or unrelated domain edits.
@@ -152,4 +184,4 @@ A successful publish CI establishes Statistics release SHA; it does not establis
 
 ## 8. Acceptance decision
 
-**RS-AI-API-002 remains OPEN (partial acceptance only).** G1 remote protocol gate is PASS with linked CI evidence. G2/G3/G4 requiring actual ChatGPT, Claude and Gemini client-side invocations remain NOT_RUN. Do not convert protocol PASS into cross-model PASS. Close only after actual redacted model-client evidence exists, or explicitly ratify a partial acceptance naming blocked clients.
+**RS-AI-API-002 remains OPEN (partial acceptance).** G1 production protocol PASS; ChatGPT's four direct MCP invocations PASS; reported cross-model numeric/source/status parity PASS from owner-supplied Claude/Gemini responses. Provider-side tool execution telemetry for Claude/Gemini and the creative three-hypothesis benchmark remain outstanding. Preserve distinction between reported model answers and independently inspected tool-call logs. Do not call full G4 acceptance or auto-merge until those gates have verifiable evidence.
