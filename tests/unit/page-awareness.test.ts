@@ -469,6 +469,24 @@ test('REST and MCP return the same JSON for the page tools; the thirteen origina
     const viaRest = (await rest(path)).body;
     assert.equal(JSON.stringify(viaMcp.structuredContent), JSON.stringify(viaRest), name);
   }
+  // The SDK may omit the runtime default from tools/list: verify actual behavior.
+  const pageName = 'read_statistics_page';
+  const listSchema = tools.find((t) => t.name === pageName)!.inputSchema as Any;
+  assert.ok(listSchema.properties.include_sections.default === undefined
+    || listSchema.properties.include_sections.default === true);
+  const implicit = (await client.callTool({
+    name: pageName, arguments: { path: '/statistics/spatial/' },
+  })).structuredContent as Any;
+  const explicitTrue = (await client.callTool({
+    name: pageName, arguments: { path: '/statistics/spatial/', include_sections: true, source_policy: 'as_published' },
+  })).structuredContent as Any;
+  assert.deepEqual(implicit.data, explicitTrue.data, 'omitted MCP defaults must behave like explicit true/as_published');
+  const explicitFalse = (await client.callTool({
+    name: pageName, arguments: { path: '/statistics/spatial/', include_sections: false },
+  })).structuredContent as Any;
+  assert.deepEqual(explicitFalse.data, (await context_('/statistics/spatial/', '&include_sections=false')).body.data);
+  assert.ok(explicitFalse.data.sections.every((entry: Any) => entry.blocks === null),
+    'explicit false must exclude section content');
   await client.close();
   // Strictly pin the original 13-tool input contract. Only the reviewed additive
   // RS-CREATIVE-QUALITY-003 schema improvements are normalized for comparison.

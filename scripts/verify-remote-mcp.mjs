@@ -164,6 +164,34 @@ try {
     }
     ok('PAGE_CONTEXT_PROVENANCE_AND_TWO_DENOMINATORS');
 
+    // Some MCP SDK tools/list serializers omit the Zod default of the
+    // preprocessed boolean include_sections (the runtime default is true).
+    // Acceptance must prove behavior, rather than trusting metadata alone.
+    const explicitDefault = envelope(await client.callTool({
+      name: 'read_statistics_page',
+      arguments: { path, source_policy: 'as_published', include_sections: true },
+    }), 'read_statistics_page');
+    assert.deepEqual(context.data, explicitDefault.data,
+      'Omitting include_sections or source_policy must behave like explicit true/as_published');
+    assert.equal(context.data.source_policy, 'as_published',
+      'Omitted source_policy must not silently withhold remodeling data');
+
+    const noInline = envelope(await client.callTool({
+      name: 'read_statistics_page', arguments: { path, include_sections: false },
+    }), 'read_statistics_page');
+    assert.equal(noInline.result_status, 'OK');
+    assert.equal(noInline.data.source_policy, 'as_published');
+    assert.ok(Array.isArray(noInline.data.sections) && noInline.data.sections.length > 0);
+    assert.ok(noInline.data.sections.every((section) => section.blocks === null),
+      'include_sections=false must exclude all inline section bodies');
+    assert.ok(context.data.sections.some((section) => Array.isArray(section.blocks) && section.blocks.length > 0),
+      'This published spatial page must exercise inline sections when include_sections defaults to true');
+    const noInlineRest = await http('/api/v1/pages/context?path=' + encodeURIComponent(path) + '&include_sections=false');
+    assert.equal(noInlineRest.status, 200);
+    assert.deepEqual(noInline.data, noInlineRest.body.data,
+      'Explicit include_sections=false must return the same data through MCP and REST');
+    ok('PAGE_MCP_DEFAULT_TRUE_AND_EXPLICIT_FALSE_RUNTIME_PARITY');
+
     for (const section of ['data-spatial-home-habitat', 'data-spatial-surface-footprint']) {
       const r = await get('/api/v1/pages/section?path=' + encodeURIComponent(path)
         + '&section=' + encodeURIComponent(section),
