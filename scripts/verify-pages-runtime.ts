@@ -149,9 +149,34 @@ try {
     body: JSON.stringify({ query: 'Reltronland Depcutland cooperation' }),
   });
   assert.equal(packRes.status, 200);
-  const packBody = (await packRes.json()) as { result_status: string; evidence: unknown[] };
+  const packBody = (await packRes.json()) as { result_status: string; evidence: Array<{ id: string }>; data: { coverage: { exhaustive: boolean; sections: Record<string, { matched: number; returned: number; omitted: number }>; evidence: { returned: number; omitted: number; omitted_ids: string[] } }; exploration_candidates: { status: string; candidates: Array<{ status: string; anchors: Array<{ evidence_id: string }>; mechanism_steps: Array<{ role: string; evidence_status: string }> }> } } };
   assert.equal(packBody.result_status, 'OK');
   assert.ok(packBody.evidence.length > 0);
+  // RS-CREATIVE-QUALITY-003: the pack states its own scope, and exploration candidates never verify their own pairing.
+  assert.equal(packBody.data.coverage.exhaustive, false);
+  assert.equal(packBody.data.coverage.evidence.returned, packBody.evidence.length);
+  assert.ok(Object.values(packBody.data.coverage.sections).every((s) => s.omitted === Math.max(0, s.matched - s.returned)));
+  assert.equal(packBody.data.exploration_candidates.status, 'HYPOTHETICAL_UNRATIFIED');
+  for (const candidate of packBody.data.exploration_candidates.candidates) {
+    assert.equal(candidate.status, 'HYPOTHETICAL_UNRATIFIED');
+    assert.ok(candidate.mechanism_steps.filter((s) => s.role !== 'PRECONDITION').every((s) => s.evidence_status === 'ASSUMED' || s.evidence_status === 'UNKNOWN'));
+  }
+  // Evidence drill-down: every id the pack returns, omits or anchors resolves again, sub-ids included; forged ids do not.
+  const ids = [...new Set([...packBody.evidence.map((e) => e.id), ...packBody.data.coverage.evidence.omitted_ids, ...packBody.data.exploration_candidates.candidates.flatMap((c) => c.anchors.map((a) => a.evidence_id))])];
+  let traced = 0;
+  for (let i = 0; i < ids.length; i += 20) {
+    const res = await fetch(`${BASE}/api/v1/evidence?ids=${ids.slice(i, i + 20).map(encodeURIComponent).join(',')}`);
+    assert.equal(res.status, 200, `trace ${ids.slice(i, i + 20).join(' ')} -> ${res.status}`);
+    const body = (await res.json()) as { data: { found: number; requested: number } };
+    assert.equal(body.data.found, body.data.requested);
+    traced += body.data.found;
+  }
+  assert.equal(traced, ids.length);
+  const forged = await fetch(`${BASE}/api/v1/evidence?ids=${encodeURIComponent('NAF-000000000000#1')}`);
+  assert.equal(forged.status, 404);
+  assert.equal((await fetch(`${BASE}/api/v1/evidence?ids=${encodeURIComponent('NAF-✓#1')}`)).status, 422);
+  const explorations = await fetch(`${BASE}/api/v1/creative/opportunities?view=explorations&limit=2`);
+  assert.equal(explorations.status, 200);
 
   // 4. Stateless MCP gateway (/mcp) in workerd with real MCP SDK client.
   const mcpGet = await fetch(`${BASE}/mcp`, { headers: { Accept: 'text/event-stream' } });
@@ -177,6 +202,10 @@ try {
 
   const mcpPack = (await client.callTool({ name: 'build_research_context', arguments: { query: 'Reltronland Depcutland cooperation' } })).structuredContent as { result_status: string };
   assert.equal(mcpPack.result_status, 'OK');
+  assert.equal(JSON.stringify(mcpPack), JSON.stringify(packBody), 'REST and MCP return the same pack for the same input and snapshot');
+  assert.equal(tools.length, 13, 'the tool list is unchanged');
+  const mcpTrace = (await client.callTool({ name: 'trace_evidence', arguments: { ids: ids.slice(0, 20) } })).structuredContent as { data: { found: number; requested: number } };
+  assert.equal(mcpTrace.data.found, mcpTrace.data.requested);
   await client.close();
 
   process.stdout.write(`${JSON.stringify({
