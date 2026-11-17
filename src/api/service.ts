@@ -10,6 +10,7 @@ import type { AgentFact, AgentIndex, AgentNarrative, AgentRelation } from '../do
 import { formatBac } from '../domain/calendar.ts';
 import { evaluate, type CalcRequest, type SourceAnchor } from '../domain/calculator.ts';
 import type { CreativeArtifact } from '../domain/creative.ts';
+import { composeExplorations, pointsFromFindings, pointsFromRelations, pointsFromStatistics, type ExplorationAnchor, type ExplorationResult } from '../domain/exploration.ts';
 import { DEFAULT_IMPACT_TYPES, DEPENDENCY_STATUSES, NARRATIVE_IMPACT_TYPES, traverseImpact, type GraphEdge, type KnowledgeGraph } from '../domain/graph.ts';
 import { evaluateDecisionTree } from '../engine/decision-intelligence/evaluate.ts';
 import type { DecisionArtifact } from '../engine/decision-intelligence/index.ts';
@@ -43,8 +44,29 @@ export type Result<T = unknown> = Omit<Envelope<T>, 'schema_version' | 'operatio
 const blob = (repository: string, commit: string, path: string, line?: number | null) => `https://github.com/${repository}/blob/${commit}/${path}${line ? `#L${line}` : ''}`;
 const clip = (s: string | null | undefined, max: number = API_LIMITS.MAX_QUOTE_CHARS) => (s == null ? null : s.length > max ? `${s.slice(0, max)}…` : s);
 const lower = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '');
-const tokens = (q: string) => [...new Set(lower(q).match(/[\p{L}\p{N}]{2,}/gu) ?? [])];
+/** Function words carry no topic. Without this, "and" matches every name ending in "land". */
+const STOPWORDS = new Set(['a', 'an', 'and', 'are', 'as', 'at', 'be', 'between', 'by', 'did', 'do', 'does', 'for', 'from', 'how', 'in', 'is', 'it', 'its', 'may', 'of', 'on', 'or', 'that', 'the', 'their', 'this', 'through', 'to', 'vs', 'was', 'were', 'what', 'when', 'which', 'who', 'why', 'with']);
+const tokens = (q: string) => {
+  const all = [...new Set(lower(q).match(/[\p{L}\p{N}]{2,}/gu) ?? [])];
+  const topical = all.filter((w) => !STOPWORDS.has(w));
+  // A query made only of function words is matched as typed.
+  return topical.length ? topical : all;
+};
 const slugOf = (id: string) => id.split(':').pop() ?? id;
+/** The words of a text, each preceded by a space, so that " word" finds a word that starts with it. */
+const wordsOf = (text: string) => ` ${lower(text).split(/[^\p{L}\p{N}]+/u).join(' ')}`;
+
+/**
+ * Read-only views derived from a parsed artifact, kept as long as that artifact object lives in
+ * the isolate. They hold published data only, never anything of a request or a client.
+ */
+const derived = new WeakMap<object, Map<string, unknown>>();
+function memo<T>(owner: object, key: string, make: () => T): T {
+  let views = derived.get(owner);
+  if (!views) derived.set(owner, (views = new Map()));
+  if (!views.has(key)) views.set(key, make());
+  return views.get(key) as T;
+}
 
 function paginate<T>(items: readonly T[], limit: number, cursor: string | undefined): { page: T[]; next_cursor: string | null; truncated: boolean; total: number } {
   const offset = cursor ? Number(cursor.slice(2)) : 0;
@@ -56,18 +78,44 @@ function paginate<T>(items: readonly T[], limit: number, cursor: string | undefi
 
 /** Collects citations once each, in first-use order, up to a budget. */
 class Citations {
-  readonly items: Evidence[] = [];
+  items: Evidence[] = [];
   private readonly seen = new Set<string>();
+  private readonly sectionOf = new Map<string, string>();
+  private section = '';
   dropped = 0;
+  /** Citations left out by share(): still resolvable through trace_evidence. */
+  omitted: Array<{ id: string; section: string }> = [];
   private readonly max: number;
   constructor(max = 200) { this.max = max; }
+  /** Names the section the following citations belong to. */
+  within(section: string): this { this.section = section; return this; }
   add(e: Evidence): string {
     if (!this.seen.has(e.id)) {
       if (this.items.length >= this.max) { this.dropped++; return e.id; }
       this.seen.add(e.id);
+      this.sectionOf.set(e.id, this.section);
       this.items.push(e);
     }
     return e.id;
+  }
+  /**
+   * Keeps at most `max` citations, taking turns between sections so that one long section cannot
+   * push every citation of another out. Kept citations stay in first-use order; the rest are
+   * listed in `omitted`, never dropped silently.
+   */
+  share(max: number): void {
+    const queues = new Map<string, Evidence[]>();
+    for (const e of this.items) { const s = this.sectionOf.get(e.id) ?? ''; queues.set(s, [...(queues.get(s) ?? []), e]); }
+    const keep = new Set<string>();
+    for (let round = 0; keep.size < max && [...queues.values()].some((q) => q.length > round); round++) {
+      for (const q of queues.values()) if (q[round] && keep.size < max) keep.add(q[round]!.id);
+    }
+    this.omitted = this.items.filter((e) => !keep.has(e.id)).map((e) => ({ id: e.id, section: this.sectionOf.get(e.id) ?? '' }));
+    this.items = this.items.filter((e) => keep.has(e.id));
+    this.dropped = this.omitted.length;
+  }
+  anchor(a: ExplorationAnchor): string {
+    return this.add({ id: a.evidence_id, kind: a.evidence_class === 'SOURCE_VALUE' ? 'SOURCE_VALUE' : a.evidence_class === 'RELATION_STATEMENT' ? 'RELATION' : 'SOURCE_PASSAGE', status: a.epistemic_status, repository: a.repository, commit_sha: a.source_commit, path: a.path, pointer: a.pointer, line: a.line, quote: a.quote, url: blob(a.repository, a.source_commit, a.path, a.line) });
   }
   fact(f: AgentFact | SourceAnchor, period = 'Year 0'): string {
     const line = 'line' in f.source ? f.source.line ?? null : null;
@@ -136,6 +184,46 @@ export function createService(load: Loader, readPage?: PageReader) {
         unassigned_geometry: s.geometry.filter((g) => g.status === 'UNASSIGNED').map((g) => g.label),
       },
     };
+  };
+
+  /** The narrative entity that stands for a statistical nation, or the statistical id when the index has none. */
+  const narrativeIdOf = (ix: AgentIndex, statId: string) => { const id = `nar:${statId.startsWith('planet:') ? 'world' : 'nation'}:${slugOf(statId)}`; return /^(country|planet):/.test(statId) && ix.narrative.some((n) => n.id === id) ? id : statId; };
+  /**
+   * Exploration candidates for the entities of a question, composed by the domain module from the
+   * published relationships, audit findings and Year 0 values. Candidate links are counted, never used.
+   */
+  const explore = (ix: AgentIndex, creative: CreativeArtifact, focus: readonly string[] | null, nations: ReadonlyArray<{ id: string; name: string; kind: string }>, proposed: boolean, limit: number, ideationTree: string | null): ExplorationResult => {
+    const base = memo(ix, 'exploration', () => {
+      const narrative = new Map(ix.narrative.map((n) => [n.id, n]));
+      const stat = new Map(statEntities(ix).map((e) => [e.id, e]));
+      const nameOf = (id: string) => narrative.get(id)?.name ?? stat.get(id)?.name ?? id;
+      const neighbors = new Map<string, string[]>();
+      for (const r of ix.relations) {
+        if (r.verification !== 'VERIFIED_SOURCE_GROUNDED' || r.causal_class === 'CO_OCCURRENCE_ONLY' || r.causal_class === 'THEMATIC_ONLY') continue;
+        for (const [x, y] of [[r.source_id, r.target_id], [r.target_id, r.source_id]] as const) if (!neighbors.get(x)?.includes(y)) neighbors.set(x, [...(neighbors.get(x) ?? []), y].sort());
+      }
+      return { narrative, stat, nameOf, neighbors, points: pointsFromRelations(ix.relations, nameOf) };
+    });
+    const fromCreative = memo(creative, 'exploration', () => {
+      const findings = new Map<string, string[]>();
+      for (const f of creative.audit_findings) for (const e of f.affected_entities) findings.set(e, [...(findings.get(e) ?? []), f.id]);
+      return { findings, points: pointsFromFindings(creative.audit_findings), cards: creative.opportunities.map((o) => ({ id: o.id, entities: o.affected_entities, anchor_keys: o.canon_anchors.map((x) => `${x.path}:${x.line ?? ''}`) })) };
+    });
+    const { narrative, stat, nameOf, neighbors } = base;
+    const points = [
+      ...base.points,
+      ...fromCreative.points,
+      ...pointsFromStatistics(ix.facts, nations.filter((n) => n.kind === 'country').map((n) => ({ id: narrativeIdOf(ix, n.id), stat_id: n.id, name: n.name })), ix.indicators),
+    ];
+    return composeExplorations(points, {
+      focus, include_proposed: proposed, limit,
+      cards: fromCreative.cards,
+      nameOf, kindOf: (id) => narrative.get(id)?.kind ?? stat.get(id)?.kind ?? null,
+      verifiedNeighbors: (id) => neighbors.get(id) ?? [],
+      candidateLinks: (id) => ix.candidate_counts[id] ?? 0,
+      findingsAbout: (id) => fromCreative.findings.get(id) ?? [],
+      ideation_tree_id: ideationTree,
+    });
   };
 
   const ops: { [K in OperationName]: (input: InputOf<K>) => Promise<Result> } = {
@@ -281,26 +369,66 @@ export function createService(load: Loader, readPage?: PageReader) {
       const needs = (prefix: RegExp) => input.ids.some((x) => prefix.test(x));
       const creative = needs(/^(NAF|OPP)-/) ? await get<CreativeArtifact>('creative') : null;
       const drift = needs(/^CRD-/) ? (await get<FindingsArtifact>('findings')).findings : null;
+      const decisions = needs(/^DT-[A-Z0-9]+:/) ? await get<DecisionArtifact>('decisions') : null;
+      // evidence_class says what a citation is: a value read from the dataset, a passage quoted from a
+      // document, or a relationship the source states. None of them is an inference or a causal finding.
+      const hit = (id: string, kind: string, evidence_class: 'SOURCE_VALUE' | 'SOURCE_QUOTATION' | 'RELATION_STATEMENT', evidence_ids: string[], extra: Record<string, unknown> = {}) => ({ id, found: true, kind: kind as string | null, evidence_class: evidence_class as string | null, evidence_ids, ...extra });
+      const miss = (id: string, reason: string) => ({ id, found: false, kind: null as string | null, evidence_class: null as string | null, evidence_ids: [] as string[], reason });
       const items = input.ids.map((id) => {
         const n = ix.narrative.find((x) => x.id === id);
-        if (n) return { id, found: true, kind: 'narrative_entity', evidence_ids: [c.entity(n)] };
+        if (n) return hit(id, 'narrative_entity', 'SOURCE_QUOTATION', [c.entity(n)]);
         const r = ix.relations.find((x) => x.id === id);
-        if (r) return { id, found: true, kind: 'relation', evidence_ids: [c.relation(r)] };
-        if (id.startsWith('fact:')) {
-          const [, entityKind, entitySlug, ...rest] = id.split(':');
-          const f = ix.facts.find((x) => x.entity_id === `${entityKind}:${entitySlug}` && x.indicator === rest.join(':'));
-          if (f) return { id, found: true, kind: 'source_value', evidence_ids: [c.fact(f)] };
+        if (r) return hit(id, 'relation', 'RELATION_STATEMENT', [c.relation(r)], { verification: r.verification, causal_class: r.causal_class, is_causal_claim: false });
+        const fact = /^fact:([^:@#]+:[^:@#]+):([^@#]+)(?:@([^@#]+))?$/.exec(id);
+        if (fact) {
+          const [, entityId, indicator, period] = fact;
+          if (period === undefined) {
+            const f = ix.facts.find((x) => x.entity_id === entityId && x.indicator === indicator);
+            if (f) return hit(id, 'source_value', 'SOURCE_VALUE', [c.fact(f)], { period: 'Year 0' });
+          } else {
+            const a = (ix.anchors ?? []).find((x) => x.entity_id === entityId && x.indicator === indicator && formatBac(x.year_bac).replace(/\s/g, '') === period);
+            if (a) return hit(id, 'source_value', 'SOURCE_VALUE', [c.fact(a, formatBac(a.year_bac))], { period: formatBac(a.year_bac) });
+          }
         }
-        const a = creative?.audit_findings.find((x) => x.id === id);
-        if (a) return { id, found: true, kind: 'audit_finding', evidence_ids: a.passages.map((p, i) => c.passage(`${a.id}#${i + 1}`, a.classification, p, p.repository)) };
-        const o = creative?.opportunities.find((x) => x.id === id);
-        if (o) return { id, found: true, kind: 'opportunity', evidence_ids: o.canon_anchors.map((p, i) => c.passage(`${o.id}#${i + 1}`, 'CANON_ANCHOR', p, PROD_REPO)) };
+        const composition = /^composition:(.+):(?:ancestry|spatial)$/.exec(id);
+        if (composition) {
+          const own = new Citations();
+          compositionOf(ix, composition[1]!, own);
+          const e = own.items.find((x) => x.id === id);
+          if (e) return hit(id, 'composition', 'SOURCE_VALUE', [c.add(e)]);
+        }
+        // A passage of a finding or an anchor of an opportunity: <parent id>#<position>, exactly as other operations return it.
+        const sub = /^((?:NAF|OPP)-[A-Z0-9]+)#([1-9]\d{0,2})$/.exec(id);
+        const parent = sub ? sub[1]! : id;
+        const position = sub ? Number(sub[2]) : null;
+        const a = creative?.audit_findings.find((x) => x.id === parent);
+        if (a) {
+          const picked = a.passages.map((p, i) => ({ p, i })).filter((x) => position === null || x.i === position - 1);
+          if (picked.length) return hit(id, position === null ? 'audit_finding' : 'audit_passage', 'SOURCE_QUOTATION', picked.map(({ p, i }) => c.passage(`${a.id}#${i + 1}`, a.classification, p, p.repository)), { ...(position === null ? {} : { parent_id: a.id }), classification: a.classification, is_defect: a.is_defect });
+          return miss(id, `${a.id} has ${a.passages.length} passage(s); position ${position} does not exist.`);
+        }
+        const o = creative?.opportunities.find((x) => x.id === parent);
+        if (o) {
+          const picked = o.canon_anchors.map((p, i) => ({ p, i })).filter((x) => position === null || x.i === position - 1);
+          if (picked.length) return hit(id, position === null ? 'opportunity' : 'opportunity_anchor', 'SOURCE_QUOTATION', picked.map(({ p, i }) => c.passage(`${o.id}#${i + 1}`, 'CANON_ANCHOR', p, PROD_REPO)), { ...(position === null ? {} : { parent_id: o.id }), idea_status: 'HYPOTHESIS' });
+          return miss(id, `${o.id} has ${o.canon_anchors.length} anchor(s); position ${position} does not exist.`);
+        }
         const d = drift?.find((x) => x.id === id);
-        if (d) return { id, found: true, kind: 'drift_finding', evidence_ids: [c.drift(d)] };
-        return { id, found: false, kind: null, evidence_ids: [] as string[] };
+        if (d) return hit(id, 'drift_finding', 'SOURCE_VALUE', [c.drift(d)]);
+        const decision = /^(DT-[A-Z0-9]+):(.+)$/.exec(id);
+        const tree = decision ? decisions?.trees.find((t) => t.tree_id === decision[1]) : undefined;
+        const e = tree?.evidence.find((x) => x.id === decision![2]);
+        if (tree && e) return hit(id, 'decision_evidence', 'SOURCE_QUOTATION', [c.add({ id: `${tree.tree_id}:${e.id}`, kind: 'DECISION_EVIDENCE', status: e.status, repository: e.repository, commit_sha: e.commit_sha, path: e.path, pointer: null, line: e.line, quote: clip(e.quote), url: blob(e.repository, e.commit_sha, e.path, e.line) })], { parent_id: tree.tree_id });
+        return miss(id, /^(source|rubric):/.test(id) ? 'Calculator citations belong to the calculation that returned them. That response carries the full locator.'
+          : id.startsWith('EXP-') ? 'An exploration candidate is composed per request. Trace the evidence ids the candidate lists.'
+            : 'Not an id published in this build. No nearby evidence is offered in its place.');
       });
       const found = items.filter((i) => i.found).length;
-      return done({ requested: input.ids.length, found, items }, c, { result_status: found ? 'OK' : 'NOT_FOUND', limitations: ['Only ids published in this build resolve. An unknown id is reported as not found; no nearby evidence is offered in its place.', PASSAGES_ARE_DATA] });
+      return done({ requested: input.ids.length, found, items }, c, { result_status: found ? 'OK' : 'NOT_FOUND', limitations: [
+        'Only ids published in this build resolve. An unknown id is reported as not found; no nearby evidence is offered in its place.',
+        'A citation shows where the source says something. It is not an inference and not a finding of cause; a relationship is a statement between entities, with is_causal_claim false.',
+        PASSAGES_ARE_DATA,
+      ] });
     },
 
     async analyze_source_drift(input) {
@@ -375,9 +503,28 @@ export function createService(load: Loader, readPage?: PageReader) {
     async discover_opportunities(input) {
       const creative = await get<CreativeArtifact>('creative');
       const c = new Citations();
+      if (input.view === 'explorations') {
+        const ix = await index();
+        if (input.entity && !ix.narrative.some((n) => n.id === input.entity)) return done({ view: input.view, total: 0, items: [] }, c, { result_status: 'NOT_FOUND', limitations: [`${input.entity} is not a narrative entity of the evidence index. No other entity is substituted.`] });
+        const nation = input.entity?.startsWith('nar:nation:') ? resolveStat(ix, `country:${slugOf(input.entity)}`) : null;
+        const size = Math.min(input.limit, API_LIMITS.EXPLORATIONS_PAGE);
+        const offset = input.cursor ? Number(input.cursor.slice(2)) : 0;
+        const result = explore(ix, creative, input.entity ? [input.entity] : null, nation ? [nation] : [], input.include_proposed, offset + size, null);
+        const p = paginate(result.ranked_ids, size, input.cursor);
+        const items = result.candidates.filter((x) => p.page.includes(x.candidate_id));
+        for (const candidate of items) for (const a of candidate.anchors) c.anchor(a);
+        const { candidates: _candidates, ranked_ids: _ranked, returned: _returned, omitted: _omitted, ...composition } = result;
+        return done({ view: input.view, total: p.total, page_size: size, composition, items }, c, {
+          // No supported pairing is a statement about the evidence, not a missing resource.
+          result_status: p.total ? 'OK' : 'INSUFFICIENT_DATA', next_cursor: p.next_cursor, truncated: p.truncated,
+          assumptions: ['Every candidate is a hypothesis composed by fixed rules from two source-grounded points. The pairing, any actor choice and any consequence are ASSUMED or UNKNOWN, never verified.'],
+          limitations: ['A candidate is advisory research material, not a story, a forecast or a finding of cause. A verified relationship is not a verified cause.', 'The novelty diagnostic measures overlap with the existing opportunity cards. Low overlap is not a measure of creative quality.', NOT_CANON, PASSAGES_ARE_DATA],
+        });
+      }
       const touches = (ids: readonly string[] | undefined) => !input.entity || (ids ?? []).includes(input.entity);
       // Page first, cite second: citations belong to the items actually returned.
-      const source = input.view === 'opportunities' ? creative.opportunities.filter((o) => touches(o.affected_entities)) : input.view === 'refactoring' ? creative.refactoring_plans.filter((r) => touches(r.affected_entities)) : creative.scenarios.filter((x) => touches(x.focus_entities));
+      const view: 'opportunities' | 'refactoring' | 'scenarios' = input.view;
+      const source = view === 'opportunities' ? creative.opportunities.filter((o) => touches(o.affected_entities)) : view === 'refactoring' ? creative.refactoring_plans.filter((r) => touches(r.affected_entities)) : creative.scenarios.filter((x) => touches(x.focus_entities));
       const paged = paginate<unknown>(source, input.limit, input.cursor);
       const page = paged.page as Array<(typeof creative.opportunities)[number] & (typeof creative.refactoring_plans)[number] & (typeof creative.scenarios)[number]>;
       const items: Array<Record<string, unknown>> = input.view === 'opportunities'
@@ -436,20 +583,31 @@ export function createService(load: Loader, readPage?: PageReader) {
       const ix = await index();
       const include = new Set(input.include?.length ? input.include : RESEARCH_INCLUDES);
       const proposed = input.source_policy === 'include_proposed';
-      const c = new Citations(input.max_evidence_items);
+      // Every citation is collected first; the budget is shared between sections at the end.
+      const c = new Citations(Number.MAX_SAFE_INTEGER);
       const words = tokens(input.query);
       const missing: string[] = [];
       const perSection = input.detail === 'compact' ? 5 : 10;
+      const sections: Record<string, { matched: number; returned: number; omitted: number } & Record<string, unknown>> = {};
+      const count = (name: string, matched: number, returned: number, extra: Record<string, unknown> = {}) => { sections[name] = { matched, returned, omitted: Math.max(0, matched - returned), ...extra }; };
       // 1. Rank entities: text relevance, then verified connectivity as the tie-break.
-      const degree = (id: string) => ix.relations.filter((r) => r.verification === 'VERIFIED_SOURCE_GROUNDED' && (r.source_id === id || r.target_id === id)).length;
-      const relevance = (name: string, summary: string) => words.reduce((n, w) => n + (lower(name).includes(w) ? 10 : 0) + (lower(summary).includes(w) ? 1 : 0), 0);
-      const ranked = ix.narrative.filter((n) => proposed || n.side !== 'remodeling').map((n) => ({ n, score: relevance(n.name, n.summary), degree: degree(n.id) })).filter((x) => x.score > 0)
-        .sort((a, b) => b.score - a.score || b.degree - a.degree || (a.n.id < b.n.id ? -1 : 1)).slice(0, perSection).map((x) => x.n);
-      const stats = statEntities(ix).filter((e) => words.some((w) => lower(e.name).includes(w)));
+      // A query word matches where a word of the text starts with it: "land" does not match "Reltronland", "Reltron" does.
+      const searchable = memo(ix, 'searchable', () => {
+        const degree = new Map<string, number>();
+        for (const r of ix.relations) if (r.verification === 'VERIFIED_SOURCE_GROUNDED') for (const id of [r.source_id, r.target_id]) degree.set(id, (degree.get(id) ?? 0) + 1);
+        return ix.narrative.map((n) => ({ n, name: wordsOf(n.name), summary: wordsOf(n.summary), degree: degree.get(n.id) ?? 0 }));
+      });
+      const nameHit = (name: string, w: string) => wordsOf(name).includes(` ${w}`);
+      const matchedEntities = searchable.filter((x) => proposed || x.n.side !== 'remodeling')
+        .map((x) => ({ n: x.n, degree: x.degree, score: words.reduce((sum, w) => sum + (x.name.includes(` ${w}`) ? 10 : 0) + (x.summary.includes(` ${w}`) ? 1 : 0), 0) })).filter((x) => x.score > 0)
+        .sort((a, b) => b.score - a.score || b.degree - a.degree || (a.n.id < b.n.id ? -1 : 1));
+      const ranked = matchedEntities.slice(0, perSection).map((x) => x.n);
+      const stats = statEntities(ix).filter((e) => words.some((w) => nameHit(e.name, w)));
+      let focusAdded = 0;
       for (const id of input.focus_entities ?? []) {
         const n = ix.narrative.find((x) => x.id === id);
         const s = resolveStat(ix, id);
-        if (n && !ranked.includes(n)) ranked.unshift(n);
+        if (n && !ranked.includes(n)) { ranked.unshift(n); focusAdded++; }
         if (s && !stats.some((x) => x.id === s.id)) stats.unshift(s);
         if (!n && !s) missing.push(`${id} is not an entity of the evidence index.`);
       }
@@ -459,53 +617,109 @@ export function createService(load: Loader, readPage?: PageReader) {
       const data: Record<string, unknown> = { query: input.query, source_policy: input.source_policy, sections_requested: [...include] };
 
       if (include.has('narrative')) {
+        c.within('narrative');
         data.entities = ranked.map((n) => ({ id: n.id, name: n.name, kind: n.kind, status: n.canon_status, source_side: n.side, summary: clip(n.summary, input.detail === 'compact' ? 240 : 600), evidence_id: c.entity(n) }));
+        count('entities', matchedEntities.length + focusAdded, ranked.length, { added_by_focus: focusAdded });
         if (!ranked.length) missing.push('No narrative entity of the index matches the query.');
       }
       if (include.has('statistics')) {
+        c.within('statistics');
         const key = input.detail === 'compact' ? ['population', 'sdi', 'gdp_usd', 'gdp_per_capita', 'land_area'] : null;
-        data.statistics = stats.slice(0, perSection).map((s) => ({ entity_id: s.id, entity: s.name, year0_values: ix.facts.filter((f) => f.entity_id === s.id && (!key || key.includes(f.indicator))).map((f) => factRow(f, c)) }));
+        const shown = stats.slice(0, perSection);
+        data.statistics = shown.map((s) => ({ entity_id: s.id, entity: s.name, year0_values: ix.facts.filter((f) => f.entity_id === s.id && (!key || key.includes(f.indicator))).map((f) => factRow(f, c)) }));
+        count('statistics', stats.length, shown.length, { indicators: key ? 'key indicators only' : 'all indexed indicators', values_omitted: shown.reduce((n, s) => n + (key ? ix.facts.filter((f) => f.entity_id === s.id && !key.includes(f.indicator)).length : 0), 0) });
         if (!stats.length) missing.push('No statistical entity (nation or planet) is named in the query, so no source values are included.');
       }
       if (include.has('relationships')) {
-        const rels = ix.relations.filter((r) => (ids.has(r.source_id) || ids.has(r.target_id)) && (proposed || r.verification === 'VERIFIED_SOURCE_GROUNDED'))
+        c.within('relationships');
+        const touching = ix.relations.filter((r) => ids.has(r.source_id) || ids.has(r.target_id));
+        const rels = touching.filter((r) => proposed || r.verification === 'VERIFIED_SOURCE_GROUNDED')
           .sort((a, b) => (a.verification === b.verification ? 0 : a.verification === 'VERIFIED_SOURCE_GROUNDED' ? -1 : 1) || Number(ids.has(b.source_id) && ids.has(b.target_id)) - Number(ids.has(a.source_id) && ids.has(a.target_id)) || (a.id < b.id ? -1 : 1));
-        data.relationships = rels.slice(0, perSection * 2).map((r) => relationRow(ix, r, c));
+        const shown = rels.slice(0, perSection * 2);
+        data.relationships = shown.map((r) => relationRow(ix, r, c));
         data.unverified_candidate_links = [...ids].reduce((n, id) => n + (ix.candidate_counts[id] ?? 0), 0);
+        count('relationships', rels.length, shown.length, { declared_excluded_by_source_policy: touching.length - rels.length, candidate_links_counted_not_listed: data.unverified_candidate_links });
         if (!rels.length && ranked.length) missing.push('No verified relationship between the matched entities is in the index.');
       }
-      const creative = include.has('consistency_findings') || include.has('creative_opportunities') || include.has('decision_trees') ? await get<CreativeArtifact>('creative') : null;
+      const creative = include.has('consistency_findings') || include.has('creative_opportunities') || include.has('decision_trees') || include.has('exploration_candidates') ? await get<CreativeArtifact>('creative') : null;
       const about = (affected: readonly string[], title: string) => affected.some((id) => ids.has(id)) || (words.length > 0 && words.every((w) => lower(title).includes(w)));
       const auditIds = new Set<string>();
       if (creative && include.has('consistency_findings')) {
-        const found = creative.audit_findings.filter((f) => about(f.affected_entities, f.title)).slice(0, perSection);
+        c.within('consistency_findings');
+        const matched = creative.audit_findings.filter((f) => about(f.affected_entities, f.title));
+        const found = matched.slice(0, perSection);
         data.consistency_findings = found.map((f) => { auditIds.add(f.id); return { id: f.id, title: f.title, classification: f.classification, is_defect: f.is_defect, kind: f.is_defect ? 'POTENTIAL_CONTRADICTION' : 'AMBIGUITY_OR_REVIEW_CANDIDATE', review_guidance: clip(f.review_guidance, 300), evidence_ids: f.passages.slice(0, 2).map((p, i) => c.passage(`${f.id}#${i + 1}`, f.classification, p, p.repository)) }; });
+        count('consistency_findings', matched.length, found.length, { passages_omitted: found.reduce((n, f) => n + Math.max(0, f.passages.length - 2), 0) });
       }
       if (creative && include.has('creative_opportunities')) {
-        const found = creative.opportunities.filter((o) => about(o.affected_entities, o.title)).slice(0, perSection);
+        c.within('creative_opportunities');
+        const matched = creative.opportunities.filter((o) => about(o.affected_entities, o.title));
+        const found = matched.slice(0, perSection);
         data.creative_opportunities = found.map((o) => { auditIds.add(o.id); return { id: o.id, title: o.title, status: 'HYPOTHESIS', narrative_question: clip(o.narrative_question, 300), consistency_risks: o.consistency_risks.slice(0, 3), evidence_ids: o.canon_anchors.slice(0, 2).map((a, i) => c.passage(`${o.id}#${i + 1}`, 'CANON_ANCHOR', a, PROD_REPO)) }; });
+        count('creative_opportunities', matched.length, found.length, { anchors_omitted: found.reduce((n, o) => n + Math.max(0, o.canon_anchors.length - 2), 0) });
       }
+      let ideationTree: string | null = null;
       if (include.has('decision_trees')) {
         const decisions = await get<DecisionArtifact>('decisions');
+        ideationTree = decisions.trees.find((t) => t.tree_type === 'NARRATIVE_IDEATION')?.tree_id ?? null;
         const cases = decisions.evaluations.filter((e) => auditIds.has(e.subject.id)).slice(0, perSection);
-        const trees = decisions.trees.filter((t) => cases.some((e) => e.tree_id === t.tree_id) || (words.length > 0 && words.some((w) => lower(`${t.title} ${t.question}`).includes(w)))).slice(0, perSection);
+        const matched = decisions.trees.filter((t) => cases.some((e) => e.tree_id === t.tree_id) || (words.length > 0 && words.some((w) => lower(`${t.title} ${t.question}`).includes(w))));
+        const trees = matched.slice(0, perSection);
         data.decision_trees = trees.map((t) => ({ tree_id: t.tree_id, tree_type: t.tree_type, title: t.title, question: t.question, cases: cases.filter((e) => e.tree_id === t.tree_id).map((e) => ({ subject: e.subject, status: e.result.status, outcome_class: e.result.outcome_class, recommended_action: e.result.recommended_action, unknown_conditions: e.result.unknown_conditions.length })) }));
+        count('decision_trees', matched.length, trees.length);
+      }
+      if (creative && include.has('exploration_candidates')) {
+        // The question's entities: ranked narrative entities, then the nations whose values are shown.
+        const focus = [...ids, ...stats.map((s) => narrativeIdOf(ix, s.id)).filter((id) => !ids.has(id))];
+        const result = explore(ix, creative, focus, stats, proposed, input.detail === 'compact' ? API_LIMITS.EXPLORATIONS_COMPACT : API_LIMITS.EXPLORATIONS_STANDARD, ideationTree);
+        // Candidate anchors carry their full citation inline, so they do not compete for the evidence budget.
+        const { ranked_ids: _ranked, ...section } = result;
+        data.exploration_candidates = section;
+        count('exploration_candidates', result.considered - result.withheld.near_duplicates_suppressed, result.returned, { pairings_considered: result.considered, near_duplicates_suppressed: result.withheld.near_duplicates_suppressed, proposed_points_excluded: result.withheld.proposed_points_excluded });
+        if (result.insufficient) missing.push(`Exploration candidates: ${result.insufficient}`);
       }
       if (include.has('drift')) {
+        c.within('drift');
         const drift = (await get<FindingsArtifact>('findings')).findings.filter((f) => f.review_status !== 'INFORMATIONAL' && names.some((n) => lower(`${f.entity?.name ?? ''} ${f.title}`).includes(n)))
           .sort((a, b) => (a.priority < b.priority ? -1 : a.priority > b.priority ? 1 : a.id < b.id ? -1 : 1));
-        data.drift = drift.slice(0, perSection).map((f) => ({ id: f.id, title: f.title, classification: f.classification, review_status: f.review_status, priority: f.priority, remodeling_status: 'PROPOSED', page: `/drift/${f.id}`, evidence_id: c.drift(f) }));
+        const shown = drift.slice(0, perSection);
+        data.drift = shown.map((f) => ({ id: f.id, title: f.title, classification: f.classification, review_status: f.review_status, priority: f.priority, remodeling_status: 'PROPOSED', page: `/drift/${f.id}`, evidence_id: c.drift(f) }));
         data.drift_total_matching = drift.length;
+        count('drift', drift.length, shown.length, { informational_excluded: true });
       }
       data.missing_data = missing;
+
+      // 2. Share the evidence budget between sections and say exactly what was left out.
+      const cited = c.items.length;
+      c.share(input.max_evidence_items);
+      const omittedBySection: Record<string, number> = {};
+      for (const o of c.omitted) omittedBySection[o.section] = (omittedBySection[o.section] ?? 0) + 1;
+      const traceable = c.omitted.map((o) => o.id);
+      const followUp: Array<{ reason: string; operation: string; arguments: Record<string, unknown> }> = [];
+      if (c.omitted.length) followUp.push({ reason: `${c.omitted.length} citations referenced by rows of this pack are not in evidence[]. Each id resolves through trace_evidence, ${API_LIMITS.MAX_IDS} per call.`, operation: 'trace_evidence', arguments: { ids: traceable.slice(0, API_LIMITS.MAX_IDS) } });
+      if (input.detail === 'compact' && Object.values(sections).some((s) => s.omitted > 0)) followUp.push({ reason: 'Sections were cut to the compact size.', operation: 'build_research_context', arguments: { query: input.query, ...(input.focus_entities?.length ? { focus_entities: input.focus_entities } : {}), source_policy: input.source_policy, detail: 'standard', max_evidence_items: API_LIMITS.MAX_EVIDENCE_ITEMS } });
+      if ((sections.relationships?.omitted ?? 0) > 0 && ranked[0]) followUp.push({ reason: 'More relationships exist than this pack lists. An entity profile lists up to 50 for one entity.', operation: 'get_entity_context', arguments: { id: ranked[0].id, include_proposed: proposed } });
+      if ((sections.entities?.omitted ?? 0) > 0) followUp.push({ reason: 'More entities match the query than this pack lists.', operation: 'search_asthortera', arguments: { q: input.query, kinds: ['narrative_entity'], limit: API_LIMITS.MAX_PAGE } });
+      if ((sections.exploration_candidates?.omitted ?? 0) > 0) followUp.push({ reason: 'More exploration candidates were composed than this pack lists.', operation: 'discover_opportunities', arguments: { view: 'explorations', ...(ranked[0] ? { entity: ranked[0].id } : {}) } });
+      if ((sections.drift?.omitted ?? 0) > 0) followUp.push({ reason: 'More drift findings match than this pack lists.', operation: 'analyze_source_drift', arguments: { q: stats[0]?.name ?? input.query } });
+      data.coverage = {
+        exhaustive: false,
+        note: 'This pack is a bounded selection. Counts say how much matched and how much is shown; an omitted item exists in the published artifacts and is reachable with the follow-up calls. A different detail level or evidence limit returns a different selection of the same snapshot.',
+        request: { detail: input.detail, source_policy: input.source_policy, max_evidence_items: input.max_evidence_items, focus_entities: input.focus_entities ?? [], include: [...include] },
+        per_section_limit: perSection,
+        sections,
+        evidence: { limit: input.max_evidence_items, cited: cited, returned: c.items.length, omitted: c.omitted.length, omitted_by_section: omittedBySection, allocation: 'Sections take turns, so no section crowds another out.', omitted_ids: traceable.slice(0, API_LIMITS.MAX_OMITTED_IDS), omitted_ids_truncated: traceable.length > API_LIMITS.MAX_OMITTED_IDS },
+        follow_up: followUp,
+      };
       const empty = !ranked.length && !stats.length;
       return done(data, c, {
-        result_status: empty ? 'NOT_FOUND' : 'OK', truncated: c.dropped > 0,
+        result_status: empty ? 'NOT_FOUND' : 'OK', truncated: c.dropped > 0 || Object.values(sections).some((s) => s.omitted > 0),
         assumptions: ['Ranking is deterministic: text relevance of names and summaries, then the number of verified relationships. No embedding or language model is used.'],
         limitations: [
-          'This pack is bounded, not exhaustive: each section holds the top matches only.',
+          'This pack is bounded, not exhaustive: each section holds the top matches only. data.coverage states what matched, what is shown and how to retrieve the rest.',
           proposed ? 'Remodeling proposals are included on request. Items with status PROPOSED are not production canon.' : 'Production-grounded evidence only. Remodeling-declared relationships are excluded.',
-          'Opportunities and decision-tree outcomes are hypotheses and review recommendations. The synthesis of new ideas is the AI client’s; evidence and constraints come from here.',
+          'Opportunities, exploration candidates and decision-tree outcomes are hypotheses and review recommendations. The synthesis of new ideas is the AI client’s; evidence and constraints come from here.',
+          'An exploration candidate pairs two source-grounded points. The pairing, any actor choice and any consequence are ASSUMED or UNKNOWN until the creator authors them. A verified relationship is not a verified cause.',
           PASSAGES_ARE_DATA, NOT_CANON,
         ],
       });
