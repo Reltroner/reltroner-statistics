@@ -8,7 +8,7 @@
 
 - **GitHub evidence:** [RS-AI-API-001 PR #6](https://github.com/Reltroner/reltroner-statistics/pull/6) was merged as Statistics SHA fc37812b6cad68cfb707fdcdd07d7a0e417825df. [Main CI/publish #43882166165](https://github.com/Reltroner/reltroner-statistics/actions/runs/43882166165) completed successfully, including deployment identity verification.
 - **Repository implementation:** src/api/contract.ts defines 13 read-only MCP tools; scripts/verify-pages-runtime.ts already exercises the official SDK against Cloudflare workerd in a local simulation.
-- **Fresh independent network verification:** NOT_RUN/BLOCKED from the reviewer runtime, which could not resolve or fetch the public Statistics hostname. Prior GitHub publishing and the local agent report are historical evidence, not a fresh remote smoke test.
+- **Fresh independent network verification:** **PASS on 2026-11-17** from [GitHub Actions remote protocol run #44003607623](https://github.com/Reltroner/reltroner-statistics/actions/runs/44003607623), executed against the live production site using the official MCP client. The reviewer runtime itself still could not resolve the public hostname, but the separate GitHub-hosted verification succeeded. This is protocol acceptance, not proof of model account access.
 - **Logged-in model connections:** NOT_RUN. No authenticated ChatGPT, Claude, or Gemini session has been connected or operated by this audit. Never mark one PASS without captured tool invocation.
 - **Local Windows workspace:** NOT_INSPECTED. The owner/agent previously reported local-main/GitHub parity for RS-AI-API-001; this review cannot inspect C:\Projects\reltroner-statistics or claim current parity.
 
@@ -46,6 +46,8 @@ node .\scripts\verify-remote-mcp.mjs --expected-sha $MainSHA
 The script returns JSON with PASS or FAIL_OR_BLOCKED and exits nonzero on failure. It tests public build identity; SHA/source/digest parity; four discovery URLs; stateless MCP method and Origin guards; real protocol discovery of 13 read-only tools; manifest equality; REST/MCP calculator parity; source-grounded research pack; unknown-entity handling; and rejection of malformed calculator input.
 
 **This script is NOT a test of actual ChatGPT, Claude or Gemini sessions.** A DNS or firewall error is a network blocker; it is not evidence that the API or model succeeded or failed.
+
+**G1 live evidence:** The [remote CI run #44003607623](https://github.com/Reltroner/reltroner-statistics/actions/runs/44003607623) finished successfully on 2026-11-17 02:31:43 UTC, validating ten checks: published build SHA, REST source/digest parity, four discovery endpoints, MCP Origin/method guards, 13 read-only tools discovered, MCP manifest parity, exact REST/MCP calculator result, research context (20 evidence items), unknown entity rejection, and invalid calculator input rejection. Observed Statistics SHA: fc37812b6cad68cfb707fdcdd07d7a0e417825df; production source SHA: ad895e6d9184f09281a7cc14ccd7867c47acd29e; remodeling source SHA: 0c80fdb05f5f338241c58663b87a01aa0e1748b2; semantic digest: a24ccb3c5e585950ec746fb8b3936d4e35a3d4f5982dcaddbd1171fcb134aec2. These are live snapshots, not immutable future source values.
 
 ## 4. G2 — Actual AI client setup
 
@@ -118,4 +120,4 @@ A successful publish CI establishes Statistics release SHA; it does not establis
 
 ## 8. Acceptance decision
 
-**RS-AI-API-002 remains OPEN, not PASS.** Repository implementation and prior CI deployment are verified, while the fresh independent protocol check and three logged-in real-client exercises have not been observed. Close the milestone only after G1 through G4 carry actual evidence, or explicitly record a partial acceptance naming any blocked client.
+**RS-AI-API-002 remains OPEN (partial acceptance only).** G1 remote protocol gate is PASS with linked CI evidence. G2/G3/G4 requiring actual ChatGPT, Claude and Gemini client-side invocations remain NOT_RUN. Do not convert protocol PASS into cross-model PASS. Close only after actual redacted model-client evidence exists, or explicitly ratify a partial acceptance naming blocked clients.
