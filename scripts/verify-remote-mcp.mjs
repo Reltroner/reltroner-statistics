@@ -13,7 +13,7 @@ const EXPECTED = [
   'analyze_source_drift', 'analyze_narrative_impact', 'audit_consistency',
   'discover_opportunities', 'evaluate_decision_tree', 'build_research_context',
 ];
-const report = { id: 'RS-AI-API-002', scope: 'PROTOCOL_ONLY_NOT_PROVIDER_CLIENT_ACCEPTANCE', status: 'BLOCKED', checks: [] };
+const report = { id: 'RS-AI-API-002', scope: 'PROTOCOL_ONLY_NOT_PROVIDER_CLIENT_ACCEPTANCE', status: 'FAIL_OR_BLOCKED', checks: [] };
 const ok = (name, value = null) => report.checks.push({ name, status: 'PASS', value });
 const args = process.argv.slice(2);
 let base = 'https://statistics.reltroner.com';
