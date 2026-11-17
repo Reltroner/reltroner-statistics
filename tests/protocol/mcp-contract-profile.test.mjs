@@ -113,6 +113,50 @@ test('documented additive legacy fields and enum expansions remain compatible', 
   extended.properties.include_proposed = { type: 'boolean', default: false };
   assert.doesNotThrow(() => assertLegacyCompatible(orig, extended, 'discover_opportunities'));
 });
+test('reviewed RS-CREATIVE-QUALITY-003 trace_evidence child-ID widening is allowed, arbitrary regex is refused', () => {
+  const old = fixture.input_schemas.trace_evidence;
+  const extended = structuredClone(old);
+  extended.properties.ids.items.pattern = old.properties.ids.items.pattern.replace(']+
+  for (const p of pages) assert.doesNotThrow(() => assertPageToolInput(p.name, p.inputSchema));
+  const missing = structuredClone(pageSchema.read_statistics_section);
+  missing.required.pop();
+  assert.throws(() => assertPageToolInput('read_statistics_section', missing));
+  const relaxed = structuredClone(pageSchema.resolve_statistics_page);
+  relaxed.additionalProperties = true;
+  assert.throws(() => assertPageToolInput('resolve_statistics_page', relaxed));
+  const expanded = structuredClone(pageSchema.read_statistics_page);
+  expanded.properties.source_policy.enum.push('unverified');
+  assert.throws(() => assertPageToolInput('read_statistics_page', expanded));
+});
+, '#@]+
+  for (const p of pages) assert.doesNotThrow(() => assertPageToolInput(p.name, p.inputSchema));
+  const missing = structuredClone(pageSchema.read_statistics_section);
+  missing.required.pop();
+  assert.throws(() => assertPageToolInput('read_statistics_section', missing));
+  const relaxed = structuredClone(pageSchema.resolve_statistics_page);
+  relaxed.additionalProperties = true;
+  assert.throws(() => assertPageToolInput('resolve_statistics_page', relaxed));
+  const expanded = structuredClone(pageSchema.read_statistics_page);
+  expanded.properties.source_policy.enum.push('unverified');
+  assert.throws(() => assertPageToolInput('read_statistics_page', expanded));
+});
+);
+  assert.doesNotThrow(() => assertLegacyCompatible(old, extended, 'trace_evidence'));
+  extended.properties.ids.items.pattern = '^.*
+  for (const p of pages) assert.doesNotThrow(() => assertPageToolInput(p.name, p.inputSchema));
+  const missing = structuredClone(pageSchema.read_statistics_section);
+  missing.required.pop();
+  assert.throws(() => assertPageToolInput('read_statistics_section', missing));
+  const relaxed = structuredClone(pageSchema.resolve_statistics_page);
+  relaxed.additionalProperties = true;
+  assert.throws(() => assertPageToolInput('resolve_statistics_page', relaxed));
+  const expanded = structuredClone(pageSchema.read_statistics_page);
+  expanded.properties.source_policy.enum.push('unverified');
+  assert.throws(() => assertPageToolInput('read_statistics_page', expanded));
+});
+;
+  assert.throws(() => assertLegacyCompatible(old, extended, 'trace_evidence'));
+});
 test('page tools enforce exact argument names, required keys, source policy and strict input', () => {
   for (const p of pages) assert.doesNotThrow(() => assertPageToolInput(p.name, p.inputSchema));
   const missing = structuredClone(pageSchema.read_statistics_section);
