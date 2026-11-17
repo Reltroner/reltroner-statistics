@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - 'scripts/verify-remote-mcp.mjs'
+      - 'scripts/lib/mcp-contract-profile.mjs'
+      - 'tests/fixtures/rs-ai-api-001-tool-inputs.json'
+      - 'tests/protocol/mcp-contract-profile.test.mjs'
       - 'docs/RS-AI-API-002-CROSS-MODEL-CLIENT-ACCEPTANCE.md'
       - '.github/workflows/rs-ai-api-002-protocol.yml'
   workflow_dispatch:
@@ -22,6 +25,8 @@ jobs:
           cache: npm
       - name: Install locked runtime dependencies
         run: npm ci
+      - name: Verify version-aware MCP profile invariants (no network)
+        run: node --test tests/protocol/mcp-contract-profile.test.mjs
       - name: Verify remote published main SHA and protocol
         shell: bash
         run: |
@@ -31,13 +36,14 @@ jobs:
             echo 'MAIN_SHA_UNAVAILABLE'
             exit 1
           fi
-          node scripts/verify-remote-mcp.mjs --expected-sha "$MAIN_SHA"
+          node scripts/verify-remote-mcp.mjs --expected-sha "$MAIN_SHA" --profile auto
       - name: Acceptance boundary reminder
         if: always()
         run: |
           {
             echo '### RS-AI-API-002'
             echo 'This workflow tests the public REST/MCP endpoint from GitHub-hosted infrastructure.'
+          echo 'The verifier fail-closes on inconsistent published capability signals, checks backward-compatibility of all 13 original MCP input schemas, and validates 3 additional page tools only if deployed.'
             echo 'It does NOT verify tool invocation from authenticated ChatGPT, Claude or Gemini client sessions.'
             echo 'Leave model-specific acceptance gates NOT_RUN until redacted account-side evidence exists.'
           } >> "$GITHUB_STEP_SUMMARY"
