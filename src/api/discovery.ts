@@ -102,7 +102,12 @@ export function aiContext(coverage: Coverage) {
 }
 
 export function llmsTxt(coverage: Coverage): string {
-  const line = (o: OperationDef) => `- ${o.method} ${SITE}/api/v1${o.path} — ${o.description.split('. ')[0]}.`;
+  // llms.txt is discovery, not the full contract. OpenAPI keeps complete descriptions.
+  const concise = (description: string) => {
+    const firstSentence = description.split('. ')[0]!;
+    return firstSentence.length <= 144 ? firstSentence : `${firstSentence.slice(0, 140).trimEnd()}…`;
+  };
+  const line = (o: OperationDef) => `- ${o.method} ${SITE}/api/v1${o.path} — ${concise(o.description)}.`;
   return `# Reltroner Statistics — Asthortera Intelligence
 
 > Source-pinned statistics, drift forensics, a knowledge graph, narrative audits, decision trees and a deterministic calculator for Asthortera, the fictional world of Reltroner Studio. Everything here is read-only and deterministic; no language model produces any value.
@@ -144,7 +149,7 @@ ${OPERATIONS.map(line).join('\n')}
 
 ## MCP tools at ${SITE}/mcp
 
-${MCP_TOOLS.map((t) => `- ${t.name} — ${t.description.split('. ')[0]}.`).join('\n')}
+${MCP_TOOLS.map((t) => `- ${t.name} — ${concise(t.description)}.`).join('\n')}
 
 ## Published data files
 
