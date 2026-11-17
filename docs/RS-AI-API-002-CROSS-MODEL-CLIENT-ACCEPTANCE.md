@@ -186,6 +186,18 @@ All are **HYPOTHESIS / UNRATIFIED**, not canon or empirically predictive model o
 - Gemini Hydrogen High (Gemini web Developer Mode): reported common-tool results MATCH; raw event-log trace and creative synthesis pending.
 - Full RS-AI-API-002 acceptance still OPEN. No automatic canon ratification, no merge, no deployed route changes.
 
+## 6D. G4 Claude/Gemini benchmark execution pack (prepared; provider runs pending)
+
+A standalone, identical, copy-paste-ready prompt and evidence-collection runbook now exists at [RS-AI-API-002-G4-CREATIVE-BENCHMARK-AND-LOG-COLLECTION.md](RS-AI-API-002-G4-CREATIVE-BENCHMARK-AND-LOG-COLLECTION.md).
+
+- **Claude Sonnet Medium:** gather expanded connector tool-use details/screenshots where the Claude UI exposes them; label summaries without native tool telemetry as MODEL_SELF_REPORT_ONLY.
+- **Gemini Hydrogen High WEB Developer Mode:** open Event log; inspect each Tool call/Tool result; Export telemetry; retain originals privately and share redacted excerpts only.
+- **Both:** run the *same* standalone prompt against `production_only` source data, request the manifest, research pack, opportunity list, consistency audit and decision trees, then produce three distinct source-grounded, HYPOTHESIS/UNRATIFIED developments.
+- **Scoring:** separate objective source/parity checks from qualitative creative scores (faithfulness 25, provenance 20, novelty 20, causal logic 15, actionability 10, creator-control 10).
+- **Current status:** benchmark pack authored, but no actual Claude/Gemini G4 tool-trace evidence or complete three-hypothesis benchmark responses has been received. This is NOT_RUN rather than PASS.
+
+No login session for Claude or Gemini is available through the GitHub connector, so no third-party chat execution or Event log export was performed by this repository update.
+
 ## 7. Release and local 1:1 safety
 
 This milestone is authored on a feature branch. **Do not change GitHub main or infer local main parity from a remote commit.** No force-push, hard reset, branch overwrite, DNS/nameserver/Cloudflare changes, or unrelated domain edits.
