@@ -51,6 +51,17 @@ export function aiManifest(coverage: Coverage) {
   };
 }
 
+/** How an AI client gets grounded, checkable ideas out of these tools. Guidance only: no tool can enforce how a client reasons. */
+export const RESEARCH_PLAYBOOK = Object.freeze([
+  'Retrieve: call build_research_context for the question. Read data.coverage first: it states what matched, what is shown and what was omitted. A pack is a bounded selection, never the whole canon.',
+  'Complete: run the calls in data.coverage.follow_up (trace_evidence for omitted citations, the standard detail level, entity profiles) before concluding that something is absent.',
+  'Verify: before relying on a claim, trace its evidence id with trace_evidence and cite repository, commit, path and line or pointer as returned. Do not cite from memory.',
+  'Compose: exploration candidates pair two source-grounded points. Steps 1 and 2 are VERIFIED, DECLARED or UNKNOWN as labeled; the bridge, the actor choice and the consequence are ASSUMED or UNKNOWN. Build ideas on the labeled steps and say which parts are yours.',
+  'Differentiate: prefer candidates whose novelty_diagnostic shows low overlap with the opportunity cards, and do not present a restated card as a new idea. Low overlap is not quality.',
+  'Test: for each idea state its alternatives, what would disconfirm it (disconfirmation_tests) and what the creator would have to decide (next_step). A verified relationship is not a verified cause.',
+  'Report: label every idea HYPOTHESIS / UNRATIFIED, keep PROPOSED and SCENARIO apart from canon, and list only the tool calls you actually made, with their arguments. If fewer than three ideas are supported, give fewer.',
+]);
+
 export function aiContext(coverage: Coverage) {
   return {
     schema_version: 'rs-ai-context.v1',
@@ -70,7 +81,10 @@ export function aiContext(coverage: Coverage) {
       { ask: 'If Reltronland grows 1% a year for 100 years?', rest: 'POST /api/v1/calculator {"request":{"operation":"projectScenario","entity_id":"country:reltronland","indicator":"population","annual_rate_pct":1,"horizon_years":100,"label":"Baseline assumption"}}', tool: 'calculate_scenario' },
       { ask: 'What does a change to Henchoway reach?', rest: 'GET /api/v1/graph?node=nar:faction:henchoway&depth=2', tool: 'analyze_narrative_impact' },
       { ask: 'Evidence for a story about Reltronland and Depcutland', rest: 'POST /api/v1/research/context {"query":"Reltronland Depcutland cooperation"}', tool: 'build_research_context' },
+      { ask: 'Which source-grounded points about Henchoway could be developed together?', rest: 'GET /api/v1/creative/opportunities?view=explorations&entity=nar:faction:henchoway', tool: 'discover_opportunities' },
+      { ask: 'Show the exact passage behind one finding', rest: 'GET /api/v1/evidence?ids=<finding id>%231', tool: 'trace_evidence' },
     ],
+    research_playbook: RESEARCH_PLAYBOOK,
   };
 }
 
@@ -93,6 +107,10 @@ export function llmsTxt(coverage: Coverage): string {
 - A null or missing value is unknown, not zero. A mention is not a cause. A scenario, backcast, opportunity or decision outcome is not canon.
 - Cite the pinned source (repository, commit, path) that each answer returns. The Statistics commit, the source commits and the live Studio deployment are three different identities.
 - Synthesis and new ideas are the AI client's own and must be labeled as such. Nothing here writes to a repository or ratifies anything.
+
+## Research playbook for ideas
+
+${RESEARCH_PLAYBOOK.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
 ## Discovery
 

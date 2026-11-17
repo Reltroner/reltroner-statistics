@@ -300,7 +300,7 @@ test('Research context pack: deterministic, bounded, filtered, honest about gaps
   const b = await post('/api/v1/research/context', structuredClone(body));
   assert.equal(JSON.stringify(a.body), JSON.stringify(b.body), 'same pinned artifacts, same pack');
   assert.deepEqual([a.status, a.body.result_status], [200, 'OK']);
-  assert.deepEqual(a.body.data.sections_requested, ['statistics', 'narrative', 'relationships', 'consistency_findings', 'creative_opportunities', 'decision_trees', 'drift']);
+  assert.deepEqual(a.body.data.sections_requested, ['statistics', 'narrative', 'relationships', 'consistency_findings', 'creative_opportunities', 'decision_trees', 'exploration_candidates', 'drift']);
   for (const key of ['entities', 'statistics', 'relationships', 'consistency_findings', 'creative_opportunities', 'decision_trees', 'drift', 'missing_data']) assert.ok(key in a.body.data, key);
   assert.ok(a.body.data.entities.some((e: Any) => e.id === 'nar:faction:henchoway'));
   assert.deepEqual(a.body.data.statistics.map((s: Any) => s.entity_id).sort(), [DEPCUTLAND, RELTRONLAND]);
@@ -318,7 +318,7 @@ test('Research context pack: deterministic, bounded, filtered, honest about gaps
   assert.ok(a.body.evidence.every((e: Any) => e.url === null || PINNED.test(e.url)), 'citations are immutable commit URLs');
   // Include filter and proposal policy.
   const narrow = (await post('/api/v1/research/context', { ...body, include: ['statistics'] })).body;
-  assert.deepEqual(Object.keys(narrow.data).sort(), ['missing_data', 'query', 'sections_requested', 'source_policy', 'statistics']);
+  assert.deepEqual(Object.keys(narrow.data).sort(), ['coverage', 'missing_data', 'query', 'sections_requested', 'source_policy', 'statistics']);
   assert.ok(narrow.evidence.every((e: Any) => e.kind === 'SOURCE_VALUE'));
   const wide = (await post('/api/v1/research/context', { ...body, source_policy: 'include_proposed', detail: 'standard', max_evidence_items: API_LIMITS.MAX_EVIDENCE_ITEMS })).body;
   assert.ok(wide.limitations.some((l: string) => /PROPOSED are not production canon/.test(l)));
@@ -348,7 +348,7 @@ test('MCP protocol: real SDK client, both protocol eras, thirteen read-only tool
   const REQUIRED = ['get_statistics_manifest', 'search_asthortera', 'get_entity_context', 'query_statistics', 'calculate_scenario', 'compare_scenarios', 'trace_evidence', 'analyze_source_drift', 'analyze_narrative_impact', 'audit_consistency', 'discover_opportunities', 'evaluate_decision_tree', 'build_research_context'];
   for (const options of [undefined, { versionNegotiation: { mode: { pin: '2026-07-28' } } }, { versionNegotiation: { mode: 'auto' } }] as Array<ConstructorParameters<typeof Client>[1]>) {
     const client = await mcpClient(env, options);
-    assert.deepEqual(client.getServerVersion(), { name: 'reltroner-statistics', version: '1.0.0', title: 'Reltroner Statistics · Asthortera Intelligence' });
+    assert.deepEqual(client.getServerVersion(), { name: 'reltroner-statistics', version: '1.1.0', title: 'Reltroner Statistics · Asthortera Intelligence' });
     assert.match(client.getInstructions() ?? '', /No tool writes to any repository or ratifies anything/);
     const { tools } = await client.listTools();
     assert.deepEqual(tools.map((t) => t.name), REQUIRED);
