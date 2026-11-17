@@ -43,7 +43,7 @@ jobs:
           {
             echo '### RS-AI-API-002'
             echo 'This workflow tests the public REST/MCP endpoint from GitHub-hosted infrastructure.'
-          echo 'The verifier fail-closes on inconsistent published capability signals, checks backward-compatibility of all 13 original MCP input schemas, and validates 3 additional page tools only if deployed.'
+            echo 'The verifier fail-closes on inconsistent published capability signals, checks all 13 legacy tool schemas, and tests the three PAGE-004 tools only if deployed.'
             echo 'It does NOT verify tool invocation from authenticated ChatGPT, Claude or Gemini client sessions.'
             echo 'Leave model-specific acceptance gates NOT_RUN until redacted account-side evidence exists.'
           } >> "$GITHUB_STEP_SUMMARY"
