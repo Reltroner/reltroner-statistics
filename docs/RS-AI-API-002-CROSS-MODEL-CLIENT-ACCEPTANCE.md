@@ -1,6 +1,6 @@
 # RS-AI-API-002 — Cross-Model Client Acceptance
 
-**Status:** PARTIAL ACCEPTANCE — G1 remote protocol PASS; ChatGPT actual tool execution PASS; cross-model reported result parity PASS; Claude/Gemini raw tool traces and three-hypothesis creative benchmark outstanding  
+**Status:** PARTIAL ACCEPTANCE — G1 remote protocol PASS; ChatGPT actual tool execution and a three-hypothesis source-grounded synthesis demonstrated; cross-model reported result parity PASS; Claude/Gemini raw tool traces and independent creative responses outstanding  
 **Record date:** 2026-11-17 (Asia/Jakarta)  
 **Scope:** ChatGPT, Claude, and Gemini consumption of the existing read-only RS-AI-API-001 gateway. No new source facts, formulas, canon ratification, or changes to Statistics production routing.
 
@@ -170,6 +170,22 @@ Preserve the original Gemini CLI setup instructions as an additional optional cl
 2. Run the shared three-hypothesis creative acceptance prompt in each chat. Judge **evidence accuracy, grounded constraints, epistemic labeling, usefulness of novel opportunities, and absence of canon mutation**, not identical story prose.
 3. Record model/client version and whether each relevant tool was actually called. Preserve all 1:1 Git safety checks before any subsequent merge.
 
+## 6C. ChatGPT in-chat Creative Intelligence benchmark (2026-11-17)
+
+The assistant invoked three further connected MCP operations directly: `discover_opportunities({view:"opportunities",limit:10})`, `audit_consistency({limit:15})`, and `evaluate_decision_tree({})`. Each returned `OK` with the same Statistics SHA as the earlier four operations. In the user-visible response, it developed three explicit unratified story directions anchored to the returned source passages:
+
+1. **Dual Custody Crisis:** a shared global threat forces coordination between Reltronland financial custody and Depcutland epistemic custody; the story tension is speed versus preservation of provenance. Canon source: `Reltroner/reltroner-studio@ad895e6d`, `content/factions/reltronland-vs-depcutland.md`, lines 438–442 and 461 (opportunity `OPP-5899EF941CF8`).
+2. **The Evidence Before the War:** explore the explicitly undecided historical question of whether Depcutland possessed authenticated invasion orders before firing its missiles; competing institutional testimony should stay attributed, not automatically treated as factual contradiction. Sources: bilateral dossier lines 531–541; audit `NAF-424DD7FB68E1` (opportunity `OPP-A94C7A02AFD4`).
+3. **The Adaptive Stillness Paradox:** Henchoway relies on skilled learning and correction in pursuit of a less independently transformable society. Investigate how this contradiction plays out without inventing historical continuity or automatically attributing all societal change to Henchoway. Source: `content/factions/henchoway.md` line 196 (opportunity `OPP-0296F531F526`; audit `NAF-246423B4E0C2`).
+
+All are **HYPOTHESIS / UNRATIFIED**, not canon or empirically predictive model outputs. This demonstrates a basic ChatGPT *source-grounded tool-to-synthesis* acceptance path. It does **not** independently prove high novelty, quality judged by other readers, or three-model creative reasoning parity.
+
+**Updated evidence states:**
+- ChatGPT: connected-app tool execution PASS; reported numeric/source parity PASS; basic in-chat three-hypothesis synthesis DEMONSTRATED.
+- Claude Sonnet Medium: reported common-tool results MATCH; raw tool trace and creative synthesis pending.
+- Gemini Hydrogen High (Gemini web Developer Mode): reported common-tool results MATCH; raw event-log trace and creative synthesis pending.
+- Full RS-AI-API-002 acceptance still OPEN. No automatic canon ratification, no merge, no deployed route changes.
+
 ## 7. Release and local 1:1 safety
 
 This milestone is authored on a feature branch. **Do not change GitHub main or infer local main parity from a remote commit.** No force-push, hard reset, branch overwrite, DNS/nameserver/Cloudflare changes, or unrelated domain edits.
@@ -184,4 +200,4 @@ A successful publish CI establishes Statistics release SHA; it does not establis
 
 ## 8. Acceptance decision
 
-**RS-AI-API-002 remains OPEN (partial acceptance).** G1 production protocol PASS; ChatGPT's four direct MCP invocations PASS; reported cross-model numeric/source/status parity PASS from owner-supplied Claude/Gemini responses. Provider-side tool execution telemetry for Claude/Gemini and the creative three-hypothesis benchmark remain outstanding. Preserve distinction between reported model answers and independently inspected tool-call logs. Do not call full G4 acceptance or auto-merge until those gates have verifiable evidence.
+**RS-AI-API-002 remains OPEN (partial acceptance).** G1 production protocol PASS; ChatGPT's four direct MCP invocations PASS; reported cross-model numeric/source/status parity PASS from owner-supplied Claude/Gemini responses. Provider-side tool execution telemetry for Claude/Gemini and their creative three-hypothesis benchmarks remain outstanding. ChatGPT demonstrated three source-grounded unratified hypotheses in the conversation; it is not a quality/novelty benchmark across models. Preserve distinction between reported model answers and independently inspected tool-call logs. Do not call full G4 acceptance or auto-merge until those gates have verifiable evidence.
