@@ -38,6 +38,8 @@ jobs:
         run: .\\tests\\windows\\git-native-stderr.ps1
       - name: Unit tests (deterministic fixtures)
         run: npm test
+      - name: Release-aware legacy and PAGE-004 MCP tool-contract regression tests
+        run: node --test tests/protocol/mcp-contract-profile.test.mjs
       - name: Contract drift check (Zod → JSON Schema)
         run: npm run schemas:check
       - name: Pinned source pair baseline (GitHub API, read-only)
@@ -192,3 +194,5 @@ jobs:
         run: npx --yes wrangler@4.161.0 pages deploy dist --project-name reltroner-statistics --branch main --commit-hash "${{ github.sha }}"
       - name: Verify deployed website matches this exact GitHub commit and source digest
         run: node scripts/verify-deployment.ts https://statistics.reltroner.com
+      - name: Verify live 16 MCP tools and exact PAGE-004 REST/MCP page operations
+        run: node scripts/verify-remote-mcp.mjs --expected-sha "${{ github.sha }}" --profile page-aware-v1
