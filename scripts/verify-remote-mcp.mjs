@@ -125,6 +125,12 @@ try {
   ok('UNKNOWN_ENTITY_NOT_SUBSTITUTED');
   assert.equal((await http('/api/v1/calculator', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ request: {} }) })).status, 422);
   ok('INVALID_CALC_REJECTED');
+  // The MCP SDK advertises an object shape and may omit additionalProperties:false.
+  // Verify strict unknown-key rejection through the REST contract, not JSON shape parity alone.
+  const extraLegacy = await http('/api/v1/search?q=Reltronland&unrecognized_client_flag=1');
+  assert.equal(extraLegacy.status, 422, 'Legacy REST search accepted an unknown key');
+  assert.equal(extraLegacy.body.error?.code, 'INVALID_INPUT');
+  ok('LEGACY_REST_UNKNOWN_KEY_REJECTED');
   if (profile.pageAware) {
     const path = '/statistics/spatial/';
     const url = base + path;
@@ -188,6 +194,11 @@ try {
     const foreign = await http('/api/v1/pages/resolve?url=' + encodeURIComponent('https://external.example/private'));
     assert.equal(foreign.status, 422);
     assert.equal(foreign.body.result_status, 'INVALID_INPUT');
+    const extraPage = await http('/api/v1/pages/resolve?url='
+      + encodeURIComponent(url) + '&unrecognized_client_flag=1');
+    assert.equal(extraPage.status, 422, 'Page REST resolver accepted an unknown key');
+    assert.equal(extraPage.body.error?.code, 'INVALID_INPUT');
+    ok('PAGE_REST_UNKNOWN_KEY_REJECTED');
     ok('PAGE_UNKNOWN_AND_FOREIGN_URL_REJECTED');
   }
   report.status = 'PASS';
