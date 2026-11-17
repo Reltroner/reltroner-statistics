@@ -56,6 +56,9 @@ const headers = `/*
   Cache-Control: public, max-age=300, must-revalidate
 /reports/*
   Cache-Control: public, max-age=300, must-revalidate
+/ai/pages/*
+  Cache-Control: public, max-age=300, must-revalidate
+  Access-Control-Allow-Origin: *
 `;
 fs.writeFileSync(path.join(dist, '_headers'), headers);
 
@@ -81,7 +84,7 @@ const exists = (urlPath: string) => {
   return fs.existsSync(p) && (fs.statSync(p).isFile() || fs.existsSync(path.join(p, 'index.html')));
 };
 for (const r of ROUTES) if (!exists(r.path)) errors.push(`Route missing: ${r.path}`);
-for (const ai of ['/llms.txt', '/ai/manifest.json', '/ai/context.json', '/openapi.json']) {
+for (const ai of ['/llms.txt', '/ai/manifest.json', '/ai/context.json', '/openapi.json', '/ai/pages/index.json']) {
   if (!exists(ai)) errors.push(`AI discovery file missing: ${ai}`);
 }
 if (!fs.existsSync(path.join(dist, '404.html'))) errors.push('404.html missing');
@@ -97,6 +100,30 @@ if (pdfIndex) {
     const bytes = fs.readFileSync(path.join(dist, entry.path));
     if (createHash('sha256').update(bytes).digest('hex') !== entry.sha256) errors.push(`PDF checksum mismatch: ${key}`);
     if (!bytes.subarray(0, 5).toString('latin1').startsWith('%PDF-')) errors.push(`Not a PDF: ${key}`);
+  }
+}
+
+// 3b. RS-AI-PAGE-004: every eligible page has both mirrors, every mirror belongs to the registry, and
+//     the registry and mirrors carry this build's identity.
+const registryPath = path.join(dist, 'ai', 'pages', 'index.json');
+if (fs.existsSync(registryPath)) {
+  const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8')) as { snapshot: Record<string, unknown>; census: { all_html: number; eligible: number; excluded: Array<{ path: string }> }; pages: Array<{ page_id: string; json: string; markdown: string }>; chunks: Array<{ href: string; count: number }> };
+  const chunkPages = registry.chunks.flatMap((c) => (JSON.parse(fs.readFileSync(path.join(dist, c.href), 'utf8')) as { pages: Array<{ page_id: string; json: string; markdown: string }> }).pages);
+  const entries = [...registry.pages, ...chunkPages];
+  const built = JSON.parse(fs.readFileSync(path.join(dist, 'build-info.json'), 'utf8')) as { statistics_commit: string | null; semantic_digest: string; sources: { production: string; remodeling: string } };
+  const s = registry.snapshot;
+  if (s.statistics_commit !== built.statistics_commit || s.semantic_digest !== built.semantic_digest || s.production_source_sha !== built.sources.production || s.remodeling_source_sha !== built.sources.remodeling) errors.push('Page registry snapshot differs from build-info.json');
+  if (registry.census.all_html !== htmlFiles.length) errors.push(`Page registry counted ${registry.census.all_html} HTML files; the build has ${htmlFiles.length}`);
+  if (entries.length !== registry.census.eligible || entries.length + registry.census.excluded.length !== htmlFiles.length) errors.push(`Page registry covers ${entries.length} pages and ${registry.census.excluded.length} exclusions for ${htmlFiles.length} HTML files`);
+  const expected = new Set<string>(['/ai/pages/index.json', ...registry.chunks.map((c) => c.href)]);
+  for (const e of entries) {
+    for (const p of [e.json, e.markdown]) { expected.add(p); if (!exists(p)) errors.push(`Page mirror missing: ${p}`); }
+  }
+  for (const f of files.filter((x) => rel(x).startsWith('/ai/pages/'))) if (!expected.has(rel(f))) errors.push(`Orphan page mirror file: ${rel(f)}`);
+  const sample = entries.find((e) => e.page_id === '/statistics/spatial/');
+  if (sample) {
+    const m = JSON.parse(fs.readFileSync(path.join(dist, sample.json), 'utf8')) as { snapshot: Record<string, unknown> };
+    if (JSON.stringify(m.snapshot) !== JSON.stringify(s)) errors.push('Page mirror snapshot differs from the registry snapshot');
   }
 }
 

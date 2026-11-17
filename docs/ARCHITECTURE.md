@@ -21,6 +21,7 @@ Earlier, a Windows workstation reported 0 identical files where CI found 393: `c
 - `src/engine` depends on domain only; `src/adapters` performs I/O.
 - `src/export` is isomorphic: the build and the browser Report Center use the same renderers.
 - `src/api` provides one read-only operation registry (`rs-intelligence.v1`) over the deployed build artifacts (`env.ASSETS.fetch`) and pure domain evaluators (`calculator.ts`, `graph.ts`, `decision-intelligence/evaluate.ts`), shared by `functions/api/v1/[[path]].ts` (`/api/v1/*`), `functions/mcp.ts` (`/mcp` stateless Streamable HTTP MCP), and the static discovery routes (`/llms.txt`, `/ai/manifest.json`, `/ai/context.json`, `/openapi.json`).
+- `src/domain/page-url.ts` and `src/engine/page-mirror/` (RS-AI-PAGE-004) turn every built HTML page into a page registry and JSON/Markdown mirrors under `/ai/pages/`, read from the same output and island props as the human page; `src/api/pages.ts` serves them as three read-only operations. See [RS-AI-PAGE-004 Architecture](RS-AI-PAGE-004-ARCHITECTURE.md).
 - Pages read validated artifacts at build time (`src/lib/data.ts`); islands receive compact props or fetch `/data/*.json`.
 - Python reads `observations.json`, validates it against the generated JSON Schema, and emits `analytics.json` plus SVG figures validated the same way.
 
@@ -30,7 +31,7 @@ Earlier, a Windows workstation reported 0 identical files where CI found 393: `c
 
 ## Build
 
-`scripts/build.ts`: verify artifact checksums → Astro static build (518 pages) → PDFs printed by Chromium from `renderHtml()` → `postbuild.ts` (CSP with inline-script hashes, security and cache headers in `_headers`, `build-info.json`, route/PDF/link validation).
+`scripts/build.ts`: verify artifact checksums → Astro static build (518 pages) → PDFs printed by Chromium from `renderHtml()` → `page-mirrors.ts` (page registry and mirrors under `/ai/pages/`) → `postbuild.ts` (CSP with inline-script hashes, security and cache headers in `_headers`, `build-info.json`, route/PDF/link validation, page registry parity and mirror identity).
 
 ## Epistemic rules
 

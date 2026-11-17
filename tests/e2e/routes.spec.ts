@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { ROUTES } from '../../src/lib/site.ts';
 import { expectNoHorizontalOverflow, setTheme, watchConsole } from './helpers.ts';
@@ -65,7 +66,9 @@ test('AI discovery documents (/llms.txt, /ai/manifest.json, /ai/context.json, /o
   const manifest = await manifestRes.json();
   expect(manifest.schema_version).toBe('rs-ai-manifest.v1');
   expect(manifest.mcp.endpoint).toBe('/mcp');
-  expect(manifest.mcp.tools.length).toBe(13);
+  // The thirteen RS-AI-API-001 tools, unchanged, followed by the three RS-AI-PAGE-004 page tools.
+  const original = (JSON.parse(fs.readFileSync('tests/fixtures/rs-ai-api-001-tool-inputs.json', 'utf8')) as { tools: string[] }).tools;
+  expect(manifest.mcp.tools).toEqual([...original, 'resolve_statistics_page', 'read_statistics_page', 'read_statistics_section']);
 
   const contextRes = await request.get('/ai/context.json');
   expect(contextRes.status()).toBe(200);
@@ -79,4 +82,5 @@ test('AI discovery documents (/llms.txt, /ai/manifest.json, /ai/context.json, /o
   expect(Object.keys(openApi.paths)).toContain('/api/v1/manifest');
   expect(Object.keys(openApi.paths)).toContain('/api/v1/calculator');
   expect(Object.keys(openApi.paths)).toContain('/api/v1/research/context');
+  for (const p of ['/api/v1/pages/resolve', '/api/v1/pages/context', '/api/v1/pages/section']) expect(Object.keys(openApi.paths)).toContain(p);
 });

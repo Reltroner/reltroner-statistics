@@ -66,7 +66,7 @@ npm test; npm run test:py; npm run test:e2e
 npm run preview                        # http://127.0.0.1:4173 with production headers (static only)
 ```
 
-`./scripts/audit-local.ps1` runs the gate, pipeline, tests and build in one step. See [RS-AI-API-001 Architecture](docs/RS-AI-API-001-ARCHITECTURE.md) and [MCP Client Setup](docs/RS-AI-API-001-MCP-CLIENT-SETUP.md) for `/llms.txt`, `/ai/manifest.json`, `/openapi.json`, `/api/v1/*`, and `/mcp`.
+`./scripts/audit-local.ps1` runs the gate, pipeline, tests and build in one step. See [RS-AI-API-001 Architecture](docs/RS-AI-API-001-ARCHITECTURE.md) and [MCP Client Setup](docs/RS-AI-API-001-MCP-CLIENT-SETUP.md) for `/llms.txt`, `/ai/manifest.json`, `/openapi.json`, `/api/v1/*`, and `/mcp`. Every public page also has a machine-readable mirror under `/ai/pages/` and three page tools (`resolve_statistics_page`, `read_statistics_page`, `read_statistics_section`); see [RS-AI-PAGE-004 Architecture](docs/RS-AI-PAGE-004-ARCHITECTURE.md) and [Contracts](docs/RS-AI-PAGE-004-CONTRACTS.md).
 
 ## Publication
 

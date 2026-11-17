@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Full static build: verified artifacts → Astro pages → PDFs printed from HTML → headers and validation. */
+/** Full static build: verified artifacts → Astro pages → PDFs printed from HTML → page mirrors → headers and validation. */
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { ROOT } from './lib/context.ts';
@@ -13,4 +13,5 @@ const run = (args: string[]) => {
 run([path.join('scripts', 'require-artifacts.ts')]);
 run([path.join('node_modules', 'astro', 'bin', 'astro.mjs'), 'build']);
 if (!skipPdf) run([path.join('scripts', 'render-pdf.ts')]);
+run([path.join('scripts', 'page-mirrors.ts')]);
 run([path.join('scripts', 'postbuild.ts')]);
