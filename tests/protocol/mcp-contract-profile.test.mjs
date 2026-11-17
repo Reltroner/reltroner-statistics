@@ -90,6 +90,25 @@ test('unknown, missing and write-capable tools are rejected', () => {
   changed[0].annotations.destructiveHint = true;
   assert.throws(() => assertToolInventory(changed, p, fixture));
 });
+test('MCP SDK-normalized PAGE-004 boolean default omission is allowed, but conflicting defaults and shape drift fail', () => {
+  const profile = choose(true);
+  const sdkPublished = structuredClone([...legacy, ...pages]);
+  const schema = sdkPublished.find((t) => t.name === 'read_statistics_page').inputSchema;
+  delete schema.properties.include_sections.default;
+  assert.doesNotThrow(() => assertToolInventory(sdkPublished, profile, fixture),
+    'SDK may strip the Zod runtime default from tools/list');
+  const wrong = structuredClone(sdkPublished);
+  wrong.find((t) => t.name === 'read_statistics_page').inputSchema.properties.include_sections.default = false;
+  assert.throws(() => assertToolInventory(wrong, profile, fixture),
+    /include_sections default must be true or omitted/);
+  const wrongType = structuredClone(sdkPublished);
+  wrongType.find((t) => t.name === 'read_statistics_page').inputSchema.properties.include_sections.type = 'string';
+  assert.throws(() => assertToolInventory(wrongType, profile, fixture), /include_sections must be boolean/);
+  const wrongKey = structuredClone(sdkPublished);
+  delete wrongKey.find((t) => t.name === 'read_statistics_page').inputSchema.properties.include_sections;
+  assert.throws(() => assertToolInventory(wrongKey, profile, fixture), /exact public arguments changed/);
+});
+
 test('legacy schema removals, extra required keys, narrowed ranges and stripped enum values fail', () => {
   const old = fixture.input_schemas.search_asthortera;
   const removed = structuredClone(old);
