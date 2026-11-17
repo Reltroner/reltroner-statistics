@@ -26,7 +26,7 @@ Status of each gate of the brief, with the evidence behind it. Locally executabl
 | G4 Evidence fidelity | PASS | Every mirror carries the build snapshot (checked for all 607). Declared source commits must equal the pinned ones. Production and remodeling stay separate (spatial `PROPOSED`, ancestry `CANON_OBSERVED`). Nulls stay null with a stated null policy. |
 | G5 REST/MCP | PASS | The three page operations run in workerd over REST and through the official MCP client, with byte-identical results. The 13 original tools keep their names, order and input schemas (snapshot from `main`). 15 → 18 REST operations, 13 → 16 MCP tools. |
 | G6 Non-functional | PASS, with the cost stated | 0 new client JS bytes; 0 new browser requests; existing API p50 within run-to-run noise; build +1.9 to +6.0 s; `dist` +12.6 MB. See [Regression and performance](RS-AI-PAGE-004-REGRESSION-AND-PERFORMANCE.md). |
-| G7 Full regression | Local: see the final gate run below. GitHub CI: see the PR. | |
+| G7 Full regression | Local PASS (run 2 below). GitHub CI: see PR #9. | All 12 local gates exit 0 on the committed tree. |
 | G8 Client fidelity | PENDING | Not run: no signed-in ChatGPT, Claude or Gemini session was available. Browser-only access was not tested either. Prepared tests are in [Security and operations](RS-AI-PAGE-004-SECURITY-AND-OPERATIONS.md) §4. |
 | G9 Creator control | PASS | No change to canon, Studio or Remodeling. No write tool. H1/H2/H3 remain HYPOTHESIS / UNRATIFIED. |
 | G10 Delivery | Draft PR, no merge, no deployment | See the PR. |
@@ -35,7 +35,24 @@ Status of each gate of the brief, with the evidence behind it. Locally executabl
 
 **Run 1** (uncommitted tree, 2026-11-17 12:10–12:25 UTC): gates 1–11 exit 0. Gate 12 (`npm run test:e2e`): 440 passed, 1 skipped, **1 failed**. The failure was an existing route test that hard-coded 13 MCP tools in `/ai/manifest.json`. The test now asserts the 13 original names unchanged plus exactly the three page tools, and that OpenAPI lists the page routes. The skipped test is the existing mobile-menu test, which is skipped on the desktop project by design.
 
-**Run 2** (final): recorded below after it completes.
+**Run 2** (final; committed tree `973a6f9`, clean, 2026-11-17 12:24–12:34 UTC): **all 12 gates exit 0.**
+
+| # | Command | Exit | Measurement |
+|---|---|---|---|
+| 1 | `node --version` | 0 | v22.23.1 |
+| 2 | `npm --version` | 0 | 10.9.8 |
+| 3 | `npm ci` | 0 | 26 s |
+| 4 | `npm run verify:baseline` | 0 | pinned source pair baseline |
+| 5 | `npm run schemas:check` | 0 | no drift (3 new page schemas included) |
+| 6 | `npm run typecheck` | 0 | 220 files, 0 errors, 0 warnings |
+| 7 | `npm test` | 0 | 129 passed, 0 failed, 0 skipped |
+| 8 | `npm run test:py` | 0 | 24 passed |
+| 9 | `npm run pipeline` | 0 | production `ad895e6`, remodeling `0c80fdb`, digest `a24ccb3c5e58…` |
+| 10 | `npm run build` | 0 | 608 pages, 615 PDFs, 36,213 internal links checked, 607 mirrors (598 FULL, 9 PARTIAL), `build-info.json` `973a6f9`, tree clean |
+| 11 | `npm run verify:runtime` | 0 | workerd: 18 REST operations, 16 MCP tools, 3 page tools, 617 mirror values equal to the data files, byte-identical regeneration |
+| 12 | `npm run test:e2e` | 0 | 441 passed, 1 skipped (the existing mobile-menu test, skipped on the desktop project by design) |
+
+The built stylesheet is byte-identical to the one the live site serves for `main`.
 
 ## What "PASS" does not mean
 
