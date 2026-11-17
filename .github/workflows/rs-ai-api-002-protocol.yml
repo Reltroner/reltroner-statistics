@@ -1,0 +1,49 @@
+name: RS-AI-API-002 — public remote MCP protocol acceptance
+on:
+  pull_request:
+    paths:
+      - 'scripts/verify-remote-mcp.mjs'
+      - 'scripts/lib/mcp-contract-profile.mjs'
+      - 'tests/fixtures/rs-ai-api-001-tool-inputs.json'
+      - 'tests/protocol/mcp-contract-profile.test.mjs'
+      - 'docs/RS-AI-API-002-CROSS-MODEL-CLIENT-ACCEPTANCE.md'
+      - '.github/workflows/rs-ai-api-002-protocol.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+
+jobs:
+  remote-protocol:
+    name: Live REST and stateless MCP verification (not hosted AI client)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked runtime dependencies
+        run: npm ci
+      - name: Verify version-aware MCP profile invariants (no network)
+        run: node --test tests/protocol/mcp-contract-profile.test.mjs
+      - name: Verify remote published main SHA and protocol
+        shell: bash
+        run: |
+          set -euo pipefail
+          MAIN_SHA="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          if ! printf '%s' "$MAIN_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo 'MAIN_SHA_UNAVAILABLE'
+            exit 1
+          fi
+          node scripts/verify-remote-mcp.mjs --expected-sha "$MAIN_SHA" --profile auto
+      - name: Acceptance boundary reminder
+        if: always()
+        run: |
+          {
+            echo '### RS-AI-API-002'
+            echo 'This workflow tests the public REST/MCP endpoint from GitHub-hosted infrastructure.'
+            echo 'The verifier fail-closes on inconsistent published capability signals, checks all 13 legacy tool schemas, and tests the three PAGE-004 tools only if deployed.'
+            echo 'It does NOT verify tool invocation from authenticated ChatGPT, Claude or Gemini client sessions.'
+            echo 'Leave model-specific acceptance gates NOT_RUN until redacted account-side evidence exists.'
+          } >> "$GITHUB_STEP_SUMMARY"

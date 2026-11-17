@@ -1,0 +1,1112 @@
+{
+  "source": "Reltroner/reltroner-statistics main fc37812b6cad68cfb707fdcdd07d7a0e417825df (RS-AI-API-001)",
+  "tools": [
+    "get_statistics_manifest",
+    "search_asthortera",
+    "get_entity_context",
+    "query_statistics",
+    "calculate_scenario",
+    "compare_scenarios",
+    "trace_evidence",
+    "analyze_source_drift",
+    "analyze_narrative_impact",
+    "audit_consistency",
+    "discover_opportunities",
+    "evaluate_decision_tree",
+    "build_research_context"
+  ],
+  "input_schemas": {
+    "get_statistics_manifest": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "search_asthortera": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "q": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Words to match in names, summaries and labels."
+        },
+        "kinds": {
+          "description": "Restrict to these result kinds.",
+          "maxItems": 4,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "nation",
+              "narrative_entity",
+              "indicator",
+              "page"
+            ]
+          }
+        },
+        "limit": {
+          "default": 20,
+          "description": "Items per page.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
+        "cursor": {
+          "description": "Opaque cursor from next_cursor of the previous page.",
+          "type": "string",
+          "pattern": "^o:\\d{1,5}$"
+        }
+      },
+      "required": [
+        "q"
+      ],
+      "additionalProperties": false
+    },
+    "get_entity_context": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9:_.\\-/[\\]]+$",
+          "description": "Entity id from search or list, for example country:reltronland or nar:faction:henchoway."
+        },
+        "include_proposed": {
+          "description": "Also return remodeling-declared relationships, labeled PROPOSED.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "query_statistics": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "entity": {
+          "description": "Entity id or exact name. Unknown names are reported, never substituted.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "indicator": {
+          "description": "Indicator id, for example population, sdi, gdp_usd.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "period": {
+          "default": "year0",
+          "description": "Year 0 values, the sparse earlier source values, or both.",
+          "type": "string",
+          "enum": [
+            "year0",
+            "historical",
+            "all"
+          ]
+        },
+        "include_composition": {
+          "description": "Add primary ancestry (production) and Spatial 3D (remodeling, PROPOSED) shares for the entity.",
+          "type": "boolean"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Items per page.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
+        "cursor": {
+          "description": "Opaque cursor from next_cursor of the previous page.",
+          "type": "string",
+          "pattern": "^o:\\d{1,5}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "calculate_scenario": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "request": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "operation": {
+                  "type": "string",
+                  "const": "calculate"
+                },
+                "formula": {
+                  "type": "string",
+                  "enum": [
+                    "population_x_ancestry_share",
+                    "population_x_habitat_share",
+                    "land_area_x_footprint_share"
+                  ]
+                },
+                "entity_id": {
+                  "type": "string",
+                  "pattern": "^[a-z_]+:[a-z0-9-]{1,80}$"
+                },
+                "category": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_]{1,64}$"
+                },
+                "share_pct": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "operation",
+                "formula",
+                "entity_id",
+                "category"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "operation": {
+                  "type": "string",
+                  "const": "calculate"
+                },
+                "formula": {
+                  "type": "string",
+                  "enum": [
+                    "gdp_per_capita",
+                    "share_of_planetary_gdp"
+                  ]
+                },
+                "entity_id": {
+                  "type": "string",
+                  "pattern": "^[a-z_]+:[a-z0-9-]{1,80}$"
+                }
+              },
+              "required": [
+                "operation",
+                "formula",
+                "entity_id"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "operation": {
+                  "type": "string",
+                  "const": "calculate"
+                },
+                "formula": {
+                  "type": "string",
+                  "const": "percent_change"
+                },
+                "base": {
+                  "type": "number"
+                },
+                "next": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "operation",
+                "formula",
+                "base",
+                "next"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "operation": {
+                  "type": "string",
+                  "const": "calculate"
+                },
+                "formula": {
+                  "type": "string",
+                  "const": "percentage_point_difference"
+                },
+                "old_pct": {
+                  "type": "number"
+                },
+                "new_pct": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "operation",
+                "formula",
+                "old_pct",
+                "new_pct"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "operation": {
+                  "type": "string",
+                  "const": "calculate"
+                },
+                "formula": {
+                  "type": "string",
+                  "const": "compound_growth"
+                },
+                "baseline": {
+                  "type": "number"
+                },
+                "annual_rate_pct": {
+                  "type": "number"
+                },
+                "years": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "operation",
+                "formula",
+                "baseline",
+                "annual_rate_pct",
+                "years"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "operation": {
+                  "type": "string",
+                  "const": "calculate"
+                },
+                "formula": {
+                  "type": "string",
+                  "const": "annualized_rate"
+                },
+                "initial": {
+                  "type": "number"
+                },
+                "final": {
+                  "type": "number"
+                },
+                "years": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "operation",
+                "formula",
+                "initial",
+                "final",
+                "years"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "operation": {
+                  "type": "string",
+                  "const": "calculate"
+                },
+                "formula": {
+                  "type": "string",
+                  "const": "conditional_backcast"
+                },
+                "anchor": {
+                  "type": "number"
+                },
+                "annual_rate_pct": {
+                  "type": "number"
+                },
+                "years": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "operation",
+                "formula",
+                "anchor",
+                "annual_rate_pct",
+                "years"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "operation": {
+                  "type": "string",
+                  "const": "calculate"
+                },
+                "formula": {
+                  "type": "string",
+                  "const": "weighted_composition"
+                },
+                "entity_id": {
+                  "type": "string",
+                  "pattern": "^[a-z_]+:[a-z0-9-]{1,80}$"
+                },
+                "dimension": {
+                  "type": "string",
+                  "enum": [
+                    "ancestry",
+                    "habitat",
+                    "surface"
+                  ]
+                },
+                "shares": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9_]{1,64}$"
+                  },
+                  "additionalProperties": {
+                    "type": "number"
+                  }
+                }
+              },
+              "required": [
+                "operation",
+                "formula",
+                "entity_id",
+                "dimension",
+                "shares"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "operation": {
+                  "type": "string",
+                  "const": "calculate"
+                },
+                "formula": {
+                  "type": "string",
+                  "const": "scenario_difference"
+                },
+                "a": {
+                  "type": "number"
+                },
+                "b": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "operation",
+                "formula",
+                "a",
+                "b"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "operation": {
+                  "type": "string",
+                  "const": "projectScenario"
+                },
+                "entity_id": {
+                  "type": "string",
+                  "pattern": "^[a-z_]+:[a-z0-9-]{1,80}$"
+                },
+                "indicator": {
+                  "type": "string",
+                  "enum": [
+                    "population",
+                    "gdp_usd",
+                    "gdp_per_capita"
+                  ]
+                },
+                "annual_rate_pct": {
+                  "type": "number"
+                },
+                "horizon_years": {
+                  "type": "number"
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 60
+                }
+              },
+              "required": [
+                "operation",
+                "entity_id",
+                "indicator",
+                "annual_rate_pct",
+                "horizon_years",
+                "label"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "operation": {
+                  "type": "string",
+                  "const": "reconstructScenario"
+                },
+                "entity_id": {
+                  "type": "string",
+                  "pattern": "^[a-z_]+:[a-z0-9-]{1,80}$"
+                },
+                "indicator": {
+                  "type": "string",
+                  "enum": [
+                    "population",
+                    "gdp_usd",
+                    "gdp_per_capita"
+                  ]
+                },
+                "target_bac": {
+                  "type": "number"
+                },
+                "annual_rate_pct": {
+                  "type": "number"
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 60
+                }
+              },
+              "required": [
+                "operation",
+                "entity_id",
+                "indicator",
+                "target_bac",
+                "annual_rate_pct",
+                "label"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "operation": {
+                  "type": "string",
+                  "const": "compareScenarios"
+                },
+                "entity_id": {
+                  "type": "string",
+                  "pattern": "^[a-z_]+:[a-z0-9-]{1,80}$"
+                },
+                "indicator": {
+                  "type": "string",
+                  "enum": [
+                    "population",
+                    "gdp_usd",
+                    "gdp_per_capita"
+                  ]
+                },
+                "horizon_years": {
+                  "type": "number"
+                },
+                "scenarios": {
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 60
+                      },
+                      "annual_rate_pct": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "label",
+                      "annual_rate_pct"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "operation",
+                "entity_id",
+                "indicator",
+                "horizon_years",
+                "scenarios"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "operation": {
+                  "type": "string",
+                  "const": "analyzeSensitivity"
+                },
+                "entity_id": {
+                  "type": "string",
+                  "pattern": "^[a-z_]+:[a-z0-9-]{1,80}$"
+                },
+                "indicator": {
+                  "type": "string",
+                  "enum": [
+                    "population",
+                    "gdp_usd",
+                    "gdp_per_capita"
+                  ]
+                },
+                "horizon_years": {
+                  "type": "number"
+                },
+                "rate_min_pct": {
+                  "type": "number"
+                },
+                "rate_max_pct": {
+                  "type": "number"
+                },
+                "steps": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "operation",
+                "entity_id",
+                "indicator",
+                "horizon_years",
+                "rate_min_pct",
+                "rate_max_pct",
+                "steps"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "operation": {
+                  "type": "string",
+                  "const": "evaluateQualitativeScenario"
+                },
+                "weights": {
+                  "type": "object",
+                  "properties": {
+                    "institutional_independence": {
+                      "type": "number"
+                    },
+                    "diplomatic_coordination": {
+                      "type": "number"
+                    },
+                    "domestic_tension": {
+                      "type": "number"
+                    },
+                    "historical_continuity": {
+                      "type": "number"
+                    },
+                    "canon_consistency": {
+                      "type": "number"
+                    },
+                    "narrative_consequences": {
+                      "type": "number"
+                    },
+                    "evidence_sufficiency": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "institutional_independence",
+                    "diplomatic_coordination",
+                    "domestic_tension",
+                    "historical_continuity",
+                    "canon_consistency",
+                    "narrative_consequences",
+                    "evidence_sufficiency"
+                  ],
+                  "additionalProperties": false
+                },
+                "scores": {
+                  "type": "object",
+                  "properties": {
+                    "A": {
+                      "type": "object",
+                      "properties": {
+                        "institutional_independence": {
+                          "type": "number"
+                        },
+                        "diplomatic_coordination": {
+                          "type": "number"
+                        },
+                        "domestic_tension": {
+                          "type": "number"
+                        },
+                        "historical_continuity": {
+                          "type": "number"
+                        },
+                        "canon_consistency": {
+                          "type": "number"
+                        },
+                        "narrative_consequences": {
+                          "type": "number"
+                        },
+                        "evidence_sufficiency": {
+                          "type": "number"
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "B": {
+                      "type": "object",
+                      "properties": {
+                        "institutional_independence": {
+                          "type": "number"
+                        },
+                        "diplomatic_coordination": {
+                          "type": "number"
+                        },
+                        "domestic_tension": {
+                          "type": "number"
+                        },
+                        "historical_continuity": {
+                          "type": "number"
+                        },
+                        "canon_consistency": {
+                          "type": "number"
+                        },
+                        "narrative_consequences": {
+                          "type": "number"
+                        },
+                        "evidence_sufficiency": {
+                          "type": "number"
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "C": {
+                      "type": "object",
+                      "properties": {
+                        "institutional_independence": {
+                          "type": "number"
+                        },
+                        "diplomatic_coordination": {
+                          "type": "number"
+                        },
+                        "domestic_tension": {
+                          "type": "number"
+                        },
+                        "historical_continuity": {
+                          "type": "number"
+                        },
+                        "canon_consistency": {
+                          "type": "number"
+                        },
+                        "narrative_consequences": {
+                          "type": "number"
+                        },
+                        "evidence_sufficiency": {
+                          "type": "number"
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "A",
+                    "B",
+                    "C"
+                  ],
+                  "additionalProperties": false
+                },
+                "note": {
+                  "type": "string",
+                  "maxLength": 500
+                }
+              },
+              "required": [
+                "operation",
+                "weights",
+                "scores"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "description": "A calculator request: calculate, projectScenario, reconstructScenario, compareScenarios, analyzeSensitivity or evaluateQualitativeScenario."
+        }
+      },
+      "required": [
+        "request"
+      ],
+      "additionalProperties": false
+    },
+    "compare_scenarios": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "entity_id": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9:_.\\-/[\\]]+$",
+          "description": "Entity id, for example country:reltronland."
+        },
+        "indicator": {
+          "type": "string",
+          "enum": [
+            "population",
+            "gdp_usd",
+            "gdp_per_capita"
+          ]
+        },
+        "horizon_years": {
+          "type": "number",
+          "description": "Whole years after Year 0, 1 to 1200."
+        },
+        "scenarios": {
+          "description": "Two or three named scenarios with a user-assumed annual rate each.",
+          "minItems": 2,
+          "maxItems": 3,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "annual_rate_pct": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "label",
+              "annual_rate_pct"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "sweep": {
+          "description": "A rate sweep with 2 to 101 evenly spaced samples.",
+          "type": "object",
+          "properties": {
+            "rate_min_pct": {
+              "type": "number"
+            },
+            "rate_max_pct": {
+              "type": "number"
+            },
+            "steps": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "rate_min_pct",
+            "rate_max_pct",
+            "steps"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "entity_id",
+        "indicator",
+        "horizon_years"
+      ],
+      "additionalProperties": false
+    },
+    "trace_evidence": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "ids": {
+          "description": "Ids returned by other operations: narrative entities (nar:…), relations (NREL-…), drift findings (CRD-…), audit findings (NAF-…), opportunities (OPP-…) or fact:<entity_id>:<indicator>.",
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9:_.\\-/[\\]]+$"
+          }
+        }
+      },
+      "required": [
+        "ids"
+      ],
+      "additionalProperties": false
+    },
+    "analyze_source_drift": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "q": {
+          "description": "Words to match in the title, file path or entity name.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "classification": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "change_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "review_status": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "file_kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "priority": {
+          "type": "string",
+          "enum": [
+            "P0",
+            "P1",
+            "P2",
+            "P3"
+          ]
+        },
+        "limit": {
+          "default": 20,
+          "description": "Items per page.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
+        "cursor": {
+          "description": "Opaque cursor from next_cursor of the previous page.",
+          "type": "string",
+          "pattern": "^o:\\d{1,5}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "analyze_narrative_impact": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "node": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9:_.\\-/[\\]]+$",
+          "description": "Graph node id, or an entity id (nar:… or country:…), which is resolved to its node."
+        },
+        "mode": {
+          "default": "impact",
+          "description": "impact: what a change to the node reaches. neighbors: its direct edges.",
+          "type": "string",
+          "enum": [
+            "impact",
+            "neighbors"
+          ]
+        },
+        "scope": {
+          "default": "narrative",
+          "description": "structural: definition and dependency edges only. narrative: also participation, location, order, motive and conflict.",
+          "type": "string",
+          "enum": [
+            "structural",
+            "narrative"
+          ]
+        },
+        "depth": {
+          "default": 2,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "include_candidates": {
+          "description": "Also follow CANDIDATE edges. They are review leads, never dependencies, and stay labeled.",
+          "type": "boolean"
+        },
+        "include_proposed": {
+          "description": "Also follow remodeling-only edges, labeled as proposals.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "node"
+      ],
+      "additionalProperties": false
+    },
+    "audit_consistency": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "entity": {
+          "description": "Only findings that affect this narrative entity id.",
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9:_.\\-/[\\]]+$"
+        },
+        "classification": {
+          "description": "For example INTENTIONAL_AMBIGUITY or POTENTIAL_INCONSISTENCY.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "limit": {
+          "default": 20,
+          "description": "Items per page.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
+        "cursor": {
+          "description": "Opaque cursor from next_cursor of the previous page.",
+          "type": "string",
+          "pattern": "^o:\\d{1,5}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "discover_opportunities": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "view": {
+          "default": "opportunities",
+          "type": "string",
+          "enum": [
+            "opportunities",
+            "refactoring",
+            "scenarios"
+          ]
+        },
+        "entity": {
+          "description": "Only items that involve this narrative entity id.",
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9:_.\\-/[\\]]+$"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Items per page.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
+        "cursor": {
+          "description": "Opaque cursor from next_cursor of the previous page.",
+          "type": "string",
+          "pattern": "^o:\\d{1,5}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evaluate_decision_tree": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "tree_id": {
+          "description": "Omit to list the available trees.",
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9:_.\\-/[\\]]+$"
+        },
+        "choices": {
+          "description": "Creator selections: decision node id to chosen branch id. Without them the walk stops at the first open choice.",
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9:_.\\-/[\\]]+$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9:_.\\-/[\\]]+$"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "build_research_context": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "The research question or topic."
+        },
+        "focus_entities": {
+          "description": "Entity ids to include whatever the ranking says.",
+          "maxItems": 5,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9:_.\\-/[\\]]+$"
+          }
+        },
+        "include": {
+          "description": "Sections to include. Default: all.",
+          "maxItems": 7,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "statistics",
+              "narrative",
+              "relationships",
+              "consistency_findings",
+              "creative_opportunities",
+              "decision_trees",
+              "drift"
+            ]
+          }
+        },
+        "source_policy": {
+          "default": "production_only",
+          "description": "Whether remodeling proposals may appear. They stay labeled PROPOSED.",
+          "type": "string",
+          "enum": [
+            "production_only",
+            "include_proposed"
+          ]
+        },
+        "max_evidence_items": {
+          "default": 20,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 40
+        },
+        "detail": {
+          "default": "compact",
+          "type": "string",
+          "enum": [
+            "compact",
+            "standard"
+          ]
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
