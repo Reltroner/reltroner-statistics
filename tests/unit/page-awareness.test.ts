@@ -496,7 +496,9 @@ test('REST and MCP return the same JSON for the page tools; the thirteen origina
     if (name === 'discover_opportunities') {
       const oldViews = baseline.properties.view.enum;
       assert.deepEqual(current.properties.view.enum, [...oldViews, 'explorations']);
-      assert.deepEqual(current.properties.include_proposed, { type: 'boolean', default: false });
+      assert.deepEqual(current.properties.include_proposed, { type: 'boolean' }, 'preprocessed boolean is represented without its runtime default');
+      assert.ok(!(current.required ?? []).includes('include_proposed'), 'legacy clients must not need a new required field');
+      assert.equal(INPUTS.discover_opportunities.parse({}).include_proposed, false, 'runtime default must stay false');
       current.properties.view.enum = oldViews;
       delete current.properties.include_proposed;
     }
