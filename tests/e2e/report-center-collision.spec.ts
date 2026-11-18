@@ -250,26 +250,35 @@ for (const [group, sizes] of [
     for (const [width, height] of sizes) for (const theme of ['dark', 'light'] as const) {
       await open(page, `/reports/?id=${REPORTED_ID}`, { width, height, theme });
       expect((await probe(page)).mode, `${width}px uses the ${group} layout`).toBe(group === 'two-column' ? 'columns' : 'stacked');
-      // At normal text size the scope options keep their design: one row of three from 640px, stacked below.
-      const rows = await page.locator('astro-island input[name="scope"]').evaluateAll((inputs) => new Set(inputs.map((i) => Math.round(i.closest('label')!.getBoundingClientRect().top))).size);
-      expect(rows, `${width}px scope option rows`).toBe(width >= 640 ? 1 : 3);
+      // At normal text size the option grids keep their design from 640px: scope options in one row of
+      // three, formats and bundle layouts two per row; below 640px, one per row.
+      const rowsOf = (selector: string) => page.locator(selector).evaluateAll((inputs) => new Set(inputs.map((i) => Math.round(i.closest('label')!.getBoundingClientRect().top))).size);
+      expect(await rowsOf('astro-island input[name="scope"]'), `${width}px scope option rows`).toBe(width >= 640 ? 1 : 3);
+      expect(await rowsOf('astro-island fieldset:nth-of-type(2) input[type="checkbox"]'), `${width}px format option rows`).toBe(width >= 640 ? 4 : 8);
       await sweep(page, `${theme} ${width}×${height}`, required(page));
+      await page.getByRole('radio', { name: 'Selected findings' }).check();
+      expect(await rowsOf('astro-island input[name="layout"]'), `${width}px bundle layout rows`).toBe(width >= 640 ? 1 : 2);
     }
     watch.expectClean();
   });
 }
 
 test('text scale 125 % and 150 %, wide fallback fonts and reduced motion keep the form and panel apart', async ({ page }) => {
-  test.setTimeout(240_000);
+  test.setTimeout(360_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   for (const [width, height] of [[1688, 864], [1024, 768], [375, 812], [320, 700]] as const) {
-    for (const textScale of [1.25, 1.5]) {
-      await open(page, `/reports/?id=${REPORTED_ID}`, { width, height, theme: textScale === 1.25 ? 'dark' : 'light', textScale });
+    // 150 % with wide fonts approximates CI's wider Linux fonts on a local Windows run.
+    for (const [textScale, wideFonts] of [[1.25, false], [1.5, false], [1.5, true]] as const) {
+      const label = `${width}×${height} text ${textScale * 100}%${wideFonts ? ' wide fonts' : ''}`;
+      await open(page, `/reports/?id=${REPORTED_ID}`, { width, height, theme: textScale === 1.25 ? 'dark' : 'light', textScale, wideFonts });
       // Enlarged text makes shared page chrome wider than the screen on every page (pre-existing,
       // outside the Report Center): the header's desktop navigation at 1688 px with Linux fonts, the
       // header and page intro on phones. Here the Report Center itself must still fit; at normal text
       // size, including the wide-font runs below, the whole page is checked.
-      await sweep(page, `${width}×${height} text ${textScale * 100}%`, {}, 'report-center');
+      await sweep(page, label, {}, 'report-center');
+      // "Selected findings" also shows the bundle layout options.
+      await page.getByRole('radio', { name: 'Selected findings' }).check();
+      await sweep(page, `${label}, selected`, {}, 'report-center');
     }
     await open(page, `/reports/?id=${REPORTED_ID}`, { width, height, theme: 'dark', wideFonts: true });
     expect(await page.evaluate(() => getComputedStyle(document.body).fontFamily), 'wide font override applied').toMatch(/^Verdana/);

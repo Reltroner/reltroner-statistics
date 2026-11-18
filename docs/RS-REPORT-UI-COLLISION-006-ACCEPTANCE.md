@@ -1,6 +1,6 @@
 # RS-REPORT-UI-COLLISION-006 — Report Center collision: acceptance
 
-The Report Center form at `/reports/?id=OPP-0296F531F526` ran under its own "Export plan" panel. The cause was measured, a five-class change in one component fixes it, and a new browser test that measures element rectangles and hit-tests control centres fails on the old code and passes on the new.
+The Report Center form at `/reports/?id=OPP-0296F531F526` ran under its own "Export plan" panel. The cause was measured, a few class changes in one component fix it, and a new browser test that measures element rectangles and hit-tests control centres fails on the old code and passes on the new.
 
 This is a draft change for owner review. It is not merged and not deployed.
 
@@ -43,14 +43,18 @@ The chain:
 4. **Why only with `?id=`.** The list exists only when the scope is not "all". `?id=`, `?family=` and `?selection=` set another scope; plain `/reports/` opens with scope "all", so the existing sweep, which loads `/reports/` only, never rendered the list.
 5. **Why the width does not change with the viewport.** The min-content width (1037.52 px) is fixed by the data, so the overlap grows as the track shrinks: 149.5 px at ≥ 1280 px, 304.5 px at 1125 px, 352 px (the whole card) at 1024 px. Below 1024 px the layout stacks, and the same fieldset makes the whole page overflow by 290–732 px.
 
-Two smaller causes appeared once the first was fixed, both only with enlarged text:
+Three smaller causes appeared once the first was fixed, all only with enlarged text:
 
 - **Search box minimum.** The "Find findings" label had a fixed 14rem minimum width. At 150 % text that is 336 px, wider than a 333 px phone column (375 px screen); at 320 px it would be 58 px too wide.
 - **Scope option columns.** Three fixed columns give each option about 124 px in the 388 px form column at 1024 px with 150 % text. The word "Selected" then crosses its own card border by 3.1 px (text to x 287.8, border at x 284.7).
+- **Format and bundle-layout columns.** Two fixed columns give each option about 188 px there. Found by CI on Linux, then measured locally:
+  - "Markdown" crosses its border by 2.8 px with Linux fonts in CI, and by 2.7 px locally with the wide-font simulation.
+  - "Consolidated" crosses by 5.3 px with Windows fonts, and by 36.5 px with wide fonts.
+  - The bundle layout shows only outside single scope, which is why the first version of the test missed it.
 
 ## 4. Change
 
-One file, `src/features/reports/ReportCenter.tsx`; five class changes and one comment:
+One file, `src/features/reports/ReportCenter.tsx`: class changes on eight elements, and two comments.
 
 | Where | Before | After | Why |
 |---|---|---|---|
@@ -58,6 +62,7 @@ One file, `src/features/reports/ReportCenter.tsx`; five class changes and one co
 | "Find findings" label | fixed 14rem minimum | `min-w-[min(14rem,100%)]` | Same 14rem minimum wherever the row is wider; never wider than the row. |
 | "Report family" label | fixed 11rem minimum | `min-w-[min(11rem,100%)]` | Same rule as the search box. **Preventive:** it did not overflow anywhere in the tested matrix. |
 | Scope option row | three fixed columns from 640 px (`sm:grid-cols-3`) | `sm:grid-cols-[repeat(auto-fit,minmax(min(100%,9rem),1fr))]` | Three columns whenever each can be at least 9rem wide, otherwise fewer. At 100 % text this is the same layout at every tested width: one row of three from 640 px (checked by the new test), one per row below. 9rem scales with the text, so the options wrap instead of squeezing. |
+| Format and bundle-layout option rows | two fixed columns from 640 px (`sm:grid-cols-2`) | `sm:grid-cols-[repeat(auto-fit,minmax(max(min(100%,12rem),34%),1fr))]` | Two columns while each can be at least 12rem wide, otherwise one. The 34 % minimum caps the eight formats at two columns, so at 100 % text this is the old layout at every tested width (checked by the new test). |
 
 Rejected alternatives:
 
@@ -119,9 +124,9 @@ Failure messages list coordinates. Coverage:
 |---|---|
 | Owner reproduction | 1688 × 864, both themes, five scroll positions, screenshot attached |
 | `@responsive` | project viewports 1440, 1024, 768 and the 375 px iPhone profile (touch, mobile viewport) |
-| Two-column sweep | 1920, 1440, 1280, 1350, 1125, 1024 px, both themes; also checks the scope options keep one row |
-| Stacked sweep | 1023 (just below the breakpoint), 768, 390, 375, 320 px, both themes |
-| Text and fonts | 125 % and 150 % text (Report Center fit, see §9), wide fallback fonts at normal size (Verdana, as CI's Linux fonts are wider; whole page), reduced motion, at 1688, 1024, 375 and 320 px |
+| Two-column sweep | 1920, 1440, 1280, 1350, 1125, 1024 px, both themes. Also checks that at normal text size the option grids keep their design: scope options in one row, formats and bundle layouts two per row. |
+| Stacked sweep | 1023 (just below the breakpoint), 768, 390, 375, 320 px, both themes, with the same design check (one option per row below 640 px) |
+| Text and fonts | At 1688, 1024, 375 and 320 px: <ul><li>125 % and 150 % text, plus 150 % with wide fonts, each in single and selected scope (so the bundle layout is measured); these check that the Report Center fits (§9)</li><li>wide fallback fonts at normal size (Verdana, as CI's Linux fonts are wider), checking the whole page</li><li>reduced motion</li></ul> |
 | Query hydration | `?id=OPP-0296F531F526` selects that finding (plan file `OPP-0296F531F526.json` after choosing JSON); an id the build does not publish leaves the default "all" view |
 | State changes, at 1024, 1688 and 390 px | single and selected scopes; the longest published title shown and picked; one format (direct file, downloaded); three formats with PDF; OPP preset; search; family selector; select all shown; consolidated and per-finding layouts; clear (plan error shown); a real ZIP download with its outcome; scope "all" |
 | Accessibility and keyboard (both themes) | axe WCAG 2.1 A/AA with no serious or critical issue; the fieldset group, the search box and the selector have accessible names; Tab through the radios, the 12 presets, the search box and the selector shows a focus ring on each, and nothing covers it |
@@ -139,8 +144,8 @@ Proof that the tests detect the defect, same final spec file, local Edge:
 - **Not touched:** `src/api/`, `functions/`, MCP and REST schemas, page mirrors, workflows, Cloudflare, DNS, secrets and canon. The runtime verifier still reports 18 REST operations and 16 MCP tools.
 - **Client assets compared with `main` (same pipeline output):**
   - 48 of 50 files under `/_astro/` are byte-identical.
-  - The stylesheet gains three rules and loses two (the two fixed minimum widths), +187 bytes (56,028 → 56,215).
-  - The Report Center script grows by 124 bytes (13,399 → 13,523).
+  - The stylesheet gains four rules and loses two (the two fixed minimum widths), +350 bytes (56,028 → 56,378). `sm:grid-cols-2` and `sm:grid-cols-3` stay, as other pages use them.
+  - The Report Center script grows by 232 bytes (13,399 → 13,631).
 
 ## 9. Known limitations
 
@@ -158,13 +163,13 @@ Proof that the tests detect the defect, same final spec file, local Edge:
 
 - `.vscode/settings.json`: SHA-256 `5515EB78…3CB649F09`, index `100644 c7c1623b…`.
 - `public/reltroner-statistics-logo.webp`: SHA-256 `B1FECD11…18AB868B0`, index `100644 e79c4806…`.
-- Both stayed staged and byte-identical from start to end. The commit was made from a separate temporary index, so the real index was never rewritten.
+- Both stayed staged and byte-identical from start to end. Every commit was made from a separate temporary index holding `HEAD` plus the exact files of that commit. Afterwards only those files were updated in the real index.
 - One checkout (`git worktree list` shows one entry); no worktree, clone or stash.
 - Draft PR only. No merge, no deployment, no Cloudflare change, no canon change.
 
 ## 11. Gate results
 
-Run on the committed tree `b3f9904` (code, test and this document), 2026-11-18 10:15–10:27 UTC, Windows PowerShell 5.1 host, in the single checkout. The only uncommitted state was the owner's two staged files, so `build-info.json` reports `statistics_tree_clean: false`, as on the `main` baseline build. Each command was run separately and its exit code checked.
+**Run 1** on the committed tree `b3f9904` (the first version of the change), 2026-11-18 10:15–10:27 UTC, Windows PowerShell 5.1 host, in the single checkout. The only uncommitted state was the owner's two staged files, so `build-info.json` reports `statistics_tree_clean: false`, as on the `main` baseline build. Each command was run separately and its exit code checked.
 
 | # | Command | Exit | Result |
 |---|---|---|---|
@@ -196,4 +201,9 @@ GitHub CI:
   - Every Report Center check in that state passed. The overflow is the site header's last navigation item with Linux fonts (§9).
   - The test now applies the Report Center–scoped check to every enlarged-text state, not only to phones.
   - The other jobs passed: determinism and Python on Ubuntu and Windows, and GitGuardian.
-- The result of the run on the corrected head is recorded in the pull request.
+- **Second run (head `c7b957f`): failed** — [run 44288381886](https://github.com/Reltroner/reltroner-statistics/actions/runs/44288381886).
+  - Same job: 454 passed, 1 failed. At 1024 px with 150 % text, "Markdown" crossed its format option's border by 2.8 px with Linux fonts.
+  - This was a real Report Center defect (§3, fourth cause). Local measurement found "Consolidated" in the bundle layout worse, which the test had not shown.
+  - Fixed in the next commit. The text-scale test now also runs in selected scope and with wide fonts at 150 %, and the sweeps check the format and bundle-layout grids.
+  - The other jobs passed again.
+- The run on the following head, and the local gate run on it, are recorded below and in the pull request.

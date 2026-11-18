@@ -239,7 +239,8 @@ export default function ReportCenter() {
         <fieldset className="min-w-0">
           <legend className="rs-h3 mb-1">2 · Formats</legend>
           <p className="mb-3 text-sm text-ink-3">All eight formats are equal choices; none is added for you.</p>
-          <div className="grid gap-2 sm:grid-cols-2">
+          {/* Two options per row while each can be 12rem wide (34 % caps it at two), otherwise one. */}
+          <div className="grid gap-2 sm:grid-cols-[repeat(auto-fit,minmax(max(min(100%,12rem),34%),1fr))]">
             {EXPORT_FORMATS.map((f) => {
               const unavailable = f === 'pdf' && !pdfReady;
               return (
@@ -256,7 +257,7 @@ export default function ReportCenter() {
         {scope !== 'single' && (
           <fieldset className="min-w-0">
             <legend className="rs-h3 mb-3">3 · Bundle layout</legend>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-2 sm:grid-cols-[repeat(auto-fit,minmax(max(min(100%,12rem),34%),1fr))]">
               {([['per-finding', 'Per finding', 'One folder per finding with each selected format.'], ['consolidated', 'Consolidated', 'One report per format covering every selected finding.']] as const).map(([v, l, d]) => (
                 <label key={v} className={`rs-card flex cursor-pointer items-start gap-3 p-3 ${layout === v ? '!border-[var(--accent)]' : ''}`}>
                   <input type="radio" name="layout" className="mt-1" checked={layout === v} onChange={() => setLayout(v)} />
