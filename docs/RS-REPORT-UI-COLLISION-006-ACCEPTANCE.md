@@ -160,4 +160,28 @@ Proof that the tests detect the defect, same final spec file, local Edge:
 
 ## 11. Gate results
 
-Filled in after the gate run on the committed tree.
+Run on the committed tree `b3f9904` (code, test and this document), 2026-11-18 10:15–10:27 UTC, Windows PowerShell 5.1 host, in the single checkout. The only uncommitted state was the owner's two staged files, so `build-info.json` reports `statistics_tree_clean: false`, as on the `main` baseline build. Each command was run separately and its exit code checked.
+
+| # | Command | Exit | Result |
+|---|---|---|---|
+| 1 | `node --version` | 0 | v22.23.1 |
+| 2 | `npm --version` | 0 | 10.9.8 |
+| 3 | `npm ci` | 0 | 32 s; `package-lock.json` unchanged (SHA-256 compared before and after) |
+| 4 | `npm run verify:baseline` | 0 | pinned source pair baseline, 0 misses |
+| 5 | `npm run schemas:check` | 0 | no schema drift |
+| 6 | `npm run typecheck` | 0 | 231 files, 0 errors, 0 warnings |
+| 7 | `npm test` | 0 | 180 passed, 0 failed, 0 skipped |
+| 8 | `node --test tests/protocol/mcp-contract-profile.test.mjs` | 0 | 9 passed |
+| 9 | `npm run test:py` | 0 | 24 passed |
+| 10 | `npm run pipeline` | 0 | production `d1625b2872ec…`, remodeling `6dd3491b59fb…`, digest `97fc997f6abe…` (same as the `main` baseline) |
+| 11 | `npm run build` | 0 | 568 pages, 575 PDFs, 33,898 internal links checked, 567 page mirrors |
+| 12 | `npm run verify:runtime` | 0 | workerd: 18 REST operations, 16 MCP tools, 3 page tools, 617 mirror values compared |
+| 13 | `npx playwright test tests/e2e/report-center-collision.spec.ts` | 0 | 14 passed |
+| 14 | `npm run test:e2e` | 0 | 455 passed, 1 skipped (the existing mobile-menu test, which is skipped in the desktop project by design). The 455 include the 14 new runs; the other 441 are existing tests. The full suite was not run separately on `main`. |
+
+Hygiene:
+- `git diff --check` is clean.
+- The commit contains exactly the three files above; neither owner path is in it.
+- The owner files' SHA-256 and index entries are equal at entry and exit (§10).
+- `git worktree list` shows one checkout.
+- The stylesheet built with this document present is byte-identical to the one built before the document existed, so the document adds no CSS.
