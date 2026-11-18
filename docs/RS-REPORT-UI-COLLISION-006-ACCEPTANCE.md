@@ -121,7 +121,7 @@ Failure messages list coordinates. Coverage:
 | `@responsive` | project viewports 1440, 1024, 768 and the 375 px iPhone profile (touch, mobile viewport) |
 | Two-column sweep | 1920, 1440, 1280, 1350, 1125, 1024 px, both themes; also checks the scope options keep one row |
 | Stacked sweep | 1023 (just below the breakpoint), 768, 390, 375, 320 px, both themes |
-| Text and fonts | 125 % and 150 % text, wide fallback fonts (Verdana, as CI's Linux fonts are wider), reduced motion, at 1688, 1024, 375 and 320 px |
+| Text and fonts | 125 % and 150 % text (Report Center fit, see §9), wide fallback fonts at normal size (Verdana, as CI's Linux fonts are wider; whole page), reduced motion, at 1688, 1024, 375 and 320 px |
 | Query hydration | `?id=OPP-0296F531F526` selects that finding (plan file `OPP-0296F531F526.json` after choosing JSON); an id the build does not publish leaves the default "all" view |
 | State changes, at 1024, 1688 and 390 px | single and selected scopes; the longest published title shown and picked; one format (direct file, downloaded); three formats with PDF; OPP preset; search; family selector; select all shown; consolidated and per-finding layouts; clear (plan error shown); a real ZIP download with its outcome; scope "all" |
 | Accessibility and keyboard (both themes) | axe WCAG 2.1 A/AA with no serious or critical issue; the fieldset group, the search box and the selector have accessible names; Tab through the radios, the 12 presets, the search box and the selector shows a focus ring on each, and nothing covers it |
@@ -144,7 +144,11 @@ Proof that the tests detect the defect, same final spec file, local Edge:
 
 ## 9. Known limitations
 
-- **Site header on phones with enlarged text.** At 320 px with 125 % text, or 375–320 px with 150 % text, the shared site header's control group is wider than the screen (12–67 px of page overflow). It happens on every page, for example `/` and `/methodology/`, and is outside this component. In those states the new test checks that the Report Center itself fits, not the whole page. A site-wide fix is a separate decision.
+- **Shared page chrome with enlarged text.** The site header is wider than the screen on every page (for example `/` and `/methodology/`) in these cases, all outside this component:
+  - phones with enlarged text: 320 px at 125 %, and 375–320 px at 150 % (12–67 px of page overflow; on 320 px the page intro's sub-navigation and illustration tag as well);
+  - 1688 px at 150 % text with Linux fonts: the last desktop navigation item, "Contact", ends at x 1737 in CI (x 1730 locally with the wide-font simulation).
+
+  With enlarged text, the new test therefore checks that the Report Center itself fits, not the whole page. At normal text size it checks the whole page, including with wide fonts. A site-wide fix is a separate decision.
 - **Finding ids in the list at 320 px with 150 % text.** The monospace line of id, priority and classification can run past the list's edge; it scrolls inside the list. Not changed.
 - **Opening a finding by link.** With `?id=` the finding is selected, but the list shows the first 250 findings of all families, which may not include it. This existing behaviour is not changed and does not affect the export.
 - **Approximations.** Browser zoom was approximated by the equivalent CSS viewport, and text scaling by the root font size. Local runs used Edge on Windows; CI uses Chromium on Linux.
@@ -185,3 +189,11 @@ Hygiene:
 - The owner files' SHA-256 and index entries are equal at entry and exit (§10).
 - `git worktree list` shows one checkout.
 - The stylesheet built with this document present is byte-identical to the one built before the document existed, so the document adds no CSS.
+
+GitHub CI:
+- **First run (head `5ac12cf`): failed** — [run 44285863332](https://github.com/Reltroner/reltroner-statistics/actions/runs/44285863332).
+  - "Pipeline, static build and browser tests": 454 passed, 1 failed. The failure was this change's own text-scale test, at 1688 px with 150 % text: page overflow 1737 > 1688 px.
+  - Every Report Center check in that state passed. The overflow is the site header's last navigation item with Linux fonts (§9).
+  - The test now applies the Report Center–scoped check to every enlarged-text state, not only to phones.
+  - The other jobs passed: determinism and Python on Ubuntu and Windows, and GitGuardian.
+- The result of the run on the corrected head is recorded in the pull request.

@@ -164,8 +164,8 @@ const fmt = (b: Box) => `[x ${b.left.toFixed(1)}–${b.right.toFixed(1)}, y ${b.
 /**
  * No form element leaves its track, nothing in the two tracks overlaps, and every visible control
  * centre is its own. `scope: 'report-center'` replaces the page-wide overflow check with "the Report
- * Center lies inside the viewport"; it is used only where the shared site header is known to
- * overflow (phone widths with enlarged text), which is outside this component.
+ * Center lies inside the viewport"; it is used only with enlarged text, where the shared site header
+ * is known to overflow on every page, which is outside this component.
  */
 function expectNoCollision(p: Probe, where: string, scope: 'page' | 'report-center' = 'page') {
   const problems: string[] = [];
@@ -265,9 +265,11 @@ test('text scale 125 % and 150 %, wide fallback fonts and reduced motion keep th
   for (const [width, height] of [[1688, 864], [1024, 768], [375, 812], [320, 700]] as const) {
     for (const textScale of [1.25, 1.5]) {
       await open(page, `/reports/?id=${REPORTED_ID}`, { width, height, theme: textScale === 1.25 ? 'dark' : 'light', textScale });
-      // On phones, enlarged text makes the shared site header wider than the screen on every page
-      // (pre-existing, outside the Report Center); there the Report Center itself must still fit.
-      await sweep(page, `${width}×${height} text ${textScale * 100}%`, {}, width < 480 ? 'report-center' : 'page');
+      // Enlarged text makes shared page chrome wider than the screen on every page (pre-existing,
+      // outside the Report Center): the header's desktop navigation at 1688 px with Linux fonts, the
+      // header and page intro on phones. Here the Report Center itself must still fit; at normal text
+      // size, including the wide-font runs below, the whole page is checked.
+      await sweep(page, `${width}×${height} text ${textScale * 100}%`, {}, 'report-center');
     }
     await open(page, `/reports/?id=${REPORTED_ID}`, { width, height, theme: 'dark', wideFonts: true });
     expect(await page.evaluate(() => getComputedStyle(document.body).fontFamily), 'wide font override applied').toMatch(/^Verdana/);
