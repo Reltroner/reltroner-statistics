@@ -139,9 +139,12 @@ export default function ReportCenter() {
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <div className="grid gap-8">
-        <fieldset>
+        {/* A fieldset is never narrower than its widest unbreakable line unless told otherwise, so a
+            long finding title once widened this column under the Export plan panel. min-w-0 keeps
+            each fieldset inside its grid track (RS-REPORT-UI-COLLISION-006). */}
+        <fieldset className="min-w-0">
           <legend className="rs-h3 mb-3">1 · What to export</legend>
-          <div className="grid gap-2 sm:grid-cols-3">
+          <div className="grid gap-2 sm:grid-cols-[repeat(auto-fit,minmax(min(100%,9rem),1fr))]">
             {([['single', 'One finding'], ['selected', 'Selected findings'], ['all', `All ${driftIds.length} findings`]] as const).map(([v, l]) => (
               <label key={v} className={`rs-card flex cursor-pointer items-center gap-2 p-3 text-sm font-semibold ${scope === v ? '!border-[var(--accent)]' : ''}`}>
                 <input type="radio" name="scope" checked={scope === v} onChange={() => { setScope(v); if (v === 'single') setPicked((p) => p.slice(0, 1)); }} />{l}
@@ -189,8 +192,8 @@ export default function ReportCenter() {
           {scope !== 'all' && (
             <div className="mt-4">
               <div className="flex flex-wrap items-end gap-3">
-                <label className="min-w-[14rem] flex-1"><span className="rs-label">Find findings</span><input className="rs-input w-full" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ID (CRD, DT, DTE, DTS, NAF, REF, SCN, IMP, OPP, PRP, STA), title or path" /></label>
-                <label className="min-w-[11rem]">
+                <label className="min-w-[min(14rem,100%)] flex-1"><span className="rs-label">Find findings</span><input className="rs-input w-full" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ID (CRD, DT, DTE, DTS, NAF, REF, SCN, IMP, OPP, PRP, STA), title or path" /></label>
+                <label className="min-w-[min(11rem,100%)]">
                   <span className="rs-label">Report family</span>
                   <select className="rs-input w-full" value={domainFilter} onChange={(e) => setDomainFilter(e.target.value as ReportDomainFilter)}>
                     <option value="ALL_UNIFIED">All families ({data.allFindings.length})</option>
@@ -233,7 +236,7 @@ export default function ReportCenter() {
           )}
         </fieldset>
 
-        <fieldset>
+        <fieldset className="min-w-0">
           <legend className="rs-h3 mb-1">2 · Formats</legend>
           <p className="mb-3 text-sm text-ink-3">All eight formats are equal choices; none is added for you.</p>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -251,7 +254,7 @@ export default function ReportCenter() {
         </fieldset>
 
         {scope !== 'single' && (
-          <fieldset>
+          <fieldset className="min-w-0">
             <legend className="rs-h3 mb-3">3 · Bundle layout</legend>
             <div className="grid gap-2 sm:grid-cols-2">
               {([['per-finding', 'Per finding', 'One folder per finding with each selected format.'], ['consolidated', 'Consolidated', 'One report per format covering every selected finding.']] as const).map(([v, l, d]) => (
