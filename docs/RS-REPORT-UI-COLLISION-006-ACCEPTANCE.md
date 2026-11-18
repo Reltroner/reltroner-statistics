@@ -206,4 +206,27 @@ GitHub CI:
   - This was a real Report Center defect (§3, fourth cause). Local measurement found "Consolidated" in the bundle layout worse, which the test had not shown.
   - Fixed in the next commit. The text-scale test now also runs in selected scope and with wide fonts at 150 %, and the sweeps check the format and bundle-layout grids.
   - The other jobs passed again.
-- The run on the following head, and the local gate run on it, are recorded below and in the pull request.
+- **Third run (head `3cb25a8`, the final code): success** — [run 44291397763](https://github.com/Reltroner/reltroner-statistics/actions/runs/44291397763).
+  - All jobs pass: determinism and Python on Ubuntu and Windows, the pipeline and static build (568 pages, 575 PDFs, 33,898 links), and workerd (18 REST operations, 16 MCP tools). Publishing is skipped, as for every pull request.
+  - Browser tests: 455 passed, 1 skipped, including all 14 collision runs.
+  - GitGuardian passes.
+
+**Run 2** on the committed tree `3cb25a8` (the final code), 2026-11-18 11:05–11:16 UTC, same host and procedure as run 1. **All 14 gates exit 0**, with the same results as run 1:
+
+| Gate | Result |
+|---|---|
+| `npm ci` | 30 s, lockfile unchanged |
+| `verify:baseline`, `schemas:check` | 0 misses, no drift |
+| `typecheck` | 231 files, 0 errors |
+| `npm test` | 180 passed |
+| MCP contract profile | 9 passed |
+| `test:py` | 24 passed |
+| `pipeline` | `d1625b2872ec…` / `6dd3491b59fb…`, digest `97fc997f6abe…` |
+| `build` | 568 pages, 575 PDFs, 33,898 links |
+| `verify:runtime` | 18 REST operations, 16 MCP tools, 3 page tools, 617 values |
+| Focused spec | 14 passed |
+| `test:e2e` | 455 passed, 1 skipped (the same existing skip) |
+
+The owner files' hashes and index entries were unchanged before and after the run.
+
+This record was added in a documentation-only commit on top of `3cb25a8`; the pull request shows its CI result.
