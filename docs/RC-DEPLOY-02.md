@@ -51,7 +51,7 @@ The `Reltroner Statistics — CI` workflow:
 3. Preserves screenshots and the exact output artifact `site-${{ github.sha }}`.
 4. **Only on an eligible main push** with exact Statistics-only repository variables, downloads that same artifact, checks the SHA is still current, and performs a Cloudflare **GET-only** project/domain preflight.
 5. Uses Wrangler to upload **only** `dist/` into project `reltroner-statistics`; it cannot invoke Cloudflare DNS/nameserver changes.
-6. Fetches `https://statistics.reltroner.com/build-info.json` and requires matching `statistics_commit`, `semantic_digest`, `rules_version`, and pinned source identities.
+6. Fetches `https://statistics.reltroner.com/build-info.json` and requires matching `statistics_commit`, `semantic_digest`, `rules_version`, and pinned source identities. Since RS-DEPLOY-SHA-005 it first verifies this run's unique Pages deployment URL, captured from Wrangler's output. It then polls the custom domain with bounded backoff until two consecutive reads match, failing closed at a 120 s deadline. It confirms `main` has not advanced and then runs the 16-tool remote MCP acceptance. See [RS-DEPLOY-SHA-005 architecture](RS-DEPLOY-SHA-005-ARCHITECTURE.md).
 
 The manual `Analysis release` workflow remains an explicit recovery/bootstrap path, not a scheduled auto-publisher. Scheduled and repository-dispatch events build without publishing.
 
@@ -62,7 +62,8 @@ The manual `Analysis release` workflow remains an explicit recovery/bootstrap pa
 - `CUSTOM_DOMAIN_ACTIVE`: Pages domain list includes **only** `statistics.reltroner.com` as active.
 - `STATISTICS_DEPLOYMENT_VERIFIED`: live custom domain returns matching verified build identity.
 - `DEPLOYMENT_HELD`: repo variables, tokens, Pages project, domain association, or authorizations incomplete.
-- `STALE_DEPLOY_BLOCKED`: a newer main commit superseded the release candidate.
+- `STALE_DEPLOY_BLOCKED`: a newer main commit superseded the release candidate (checked before the upload, and again by the verifier before and after convergence).
+- `STATISTICS_DEPLOYMENT_UNVERIFIED` with `reason` `TIMED_OUT`, `UNREACHABLE`, `MALFORMED`, `REDIRECT_REFUSED`, `DEPLOYMENT_ARTIFACT_MISMATCH` or `MAIN_REF_UNRESOLVED`: the upload happened but was not verified. Follow the persistent-mismatch runbook in [RS-DEPLOY-SHA-005 acceptance](RS-DEPLOY-SHA-005-ACCEPTANCE.md).
 - `SITE_SHA_DRIFT`: published SHA doesn't match GitHub main. Check latest successful GitHub Actions publish, restore credentials, review production environment approvals and re-run the current main release. Never force-push, reset, change unrelated DNS or bypass CI.
 
 **Manual Git synchronization is intentionally conservative:** dirty, diverged or locally ahead branches stop with an explanation instead of overwriting work.

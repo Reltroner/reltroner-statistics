@@ -1,31 +1,39 @@
 #!/usr/bin/env node
 /**
  * Verify that a published Reltroner Statistics site serves exactly the local build: the live
- * build-info.json must match dist/build-info.json (Statistics commit, semantic digest, source SHAs).
- * Uploading an artifact or running a deploy command is not evidence; only this check is.
+ * build-info.json must match dist/build-info.json (Statistics commit, semantic digest, rules version and
+ * source SHAs, all in ONE response). Uploading an artifact or running a deploy command is not evidence;
+ * only this check is.
  *
- *   node scripts/verify-deployment.ts https://<deployment-host>
+ * RS-DEPLOY-SHA-005: an HTTP 200 that still carries the previous build is PROPAGATING, not a verdict.
+ * The canonical origin is polled with bounded backoff until it serves the expected identity on consecutive
+ * reads, or a deadline fails closed. Logic and bounds: scripts/lib/statistics-deployment-verification.ts.
+ *
+ *   node scripts/verify-deployment.ts https://statistics.reltroner.com
+ *   node scripts/verify-deployment.ts https://statistics.reltroner.com --expected-sha <40-hex> \
+ *     --deployment-url https://<8-hex>.reltroner-statistics.pages.dev --require-current-main
+ *
+ * stdout: one JSON result (status, url, mismatches, live_commit + additive diagnostics). stderr: progress.
+ * Exit 0 verified, 1 unverified, 2 usage error.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { ROOT } from './lib/context.ts';
+import {
+  createFetchTransport,
+  createGitMainResolver,
+  runVerifyDeploymentCli,
+  systemClock,
+} from './lib/statistics-deployment-verification.ts';
 
-const base = process.argv[2];
-if (!base || !/^https:\/\/[A-Za-z0-9.-]+(:\d+)?\/?$/.test(base)) {
-  process.stderr.write('Usage: verify-deployment.ts https://<host>\n');
-  process.exit(2);
-}
-const local = JSON.parse(fs.readFileSync(path.join(ROOT, 'dist', 'build-info.json'), 'utf8')) as Record<string, unknown>;
-let live: Record<string, unknown> | null = null;
-for (let attempt = 0; attempt < 6 && !live; attempt++) {
-  try {
-    const res = await fetch(new URL('/build-info.json', base), { headers: { 'Cache-Control': 'no-cache' } });
-    if (res.ok) live = (await res.json()) as Record<string, unknown>;
-  } catch { /* propagation delay */ }
-  if (!live) await new Promise((r) => setTimeout(r, 10_000));
-}
-const keys = ['statistics_commit', 'semantic_digest', 'rules_version', 'sources'] as const;
-const mismatches = live ? keys.filter((k) => JSON.stringify(live![k]) !== JSON.stringify(local[k])) : ['unreachable'];
-const result = { status: mismatches.length ? 'STATISTICS_DEPLOYMENT_UNVERIFIED' : 'STATISTICS_DEPLOYMENT_VERIFIED', url: base, mismatches, live_commit: live?.statistics_commit ?? null };
-process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-process.exit(mismatches.length ? 1 : 0);
+const outcome = await runVerifyDeploymentCli(process.argv.slice(2), {
+  readExpected: () => JSON.parse(fs.readFileSync(path.join(ROOT, 'dist', 'build-info.json'), 'utf8')) as unknown,
+  transport: createFetchTransport(),
+  clock: systemClock,
+  resolveMainSha: createGitMainResolver(ROOT),
+  log: (line) => process.stderr.write(`${line}\n`),
+});
+if (outcome.stderr) process.stderr.write(outcome.stderr);
+// Exit only after the JSON result has flushed (pipes can be asynchronous); usage errors print nothing to stdout.
+if (outcome.stdout) process.stdout.write(outcome.stdout, () => process.exit(outcome.exitCode));
+else process.exitCode = outcome.exitCode;
