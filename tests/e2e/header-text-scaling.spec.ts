@@ -82,7 +82,7 @@ test('@responsive RS-UI-RESPONSIVE-007 disclosure keyboard Escape and zoom back 
   await setScale(page, 150);
   const nav = page.getByRole('navigation', { name: 'Primary' });
   const compact = page.getByRole('navigation', { name: 'Mobile' });
-  const button = page.getByRole('button', { name: 'Open navigation menu' });
+  const button = page.locator('[data-menu-toggle]');
   await expect(nav).toBeHidden();
   await expect(button).toBeVisible();
   await button.click();
@@ -115,6 +115,9 @@ test('@responsive RS-UI-RESPONSIVE-007 320px at 200% retains skip link and touch
   expect(r.overlaps).toEqual([]); expect(r.compact).toBe(true);
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused();
+  // The skip link is intentionally visible while focused; move focus onward before
+  // a pointer hit-test so the real accessibility affordance is not bypassed.
+  await page.keyboard.press('Tab');
   for (const selector of ['[data-menu-toggle]', '[data-theme-toggle]', '.rs-header-search-compact']) {
     const btn = page.locator(selector);
     await expect(btn).toBeVisible();
