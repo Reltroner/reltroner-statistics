@@ -77,7 +77,17 @@ function setupMenus() {
     const primaryNav = document.querySelector<HTMLElement>('[data-primary-nav]');
     const closeWhenWide = () => {
       if (menuBtn.getAttribute('aria-expanded') === 'true'
-        && primaryNav && getComputedStyle(primaryNav).display !== 'none') setOpen(false);
+        && primaryNav && getComputedStyle(primaryNav).display !== 'none') {
+        const focusWasInCompactMenu = menu.contains(document.activeElement)
+          || menuBtn === document.activeElement;
+        setOpen(false);
+        // When text size shrinks, the compact control itself disappears. Move keyboard
+        // focus to the equivalent visible navigation rather than leaving it hidden.
+        if (focusWasInCompactMenu) {
+          (primaryNav.querySelector<HTMLElement>('a[aria-current="page"]')
+            || primaryNav.querySelector<HTMLElement>('a'))?.focus();
+        }
+      }
     };
     window.addEventListener('resize', closeWhenWide);
     if (primaryNav && typeof ResizeObserver !== 'undefined') {
