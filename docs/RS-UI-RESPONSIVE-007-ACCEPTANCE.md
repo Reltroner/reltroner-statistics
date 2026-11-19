@@ -93,7 +93,7 @@ Authoritative WCAG reference: https://www.w3.org/TR/WCAG22/
 - CSS changes are local to the SiteHeader component. No CSS overflow hiding masks loss of navigation.
 - Preserve all existing 18 REST operations, 16 MCP tools, three PAGE-004 page tools, canonical and proposal classifications, source-digest parity, export functionality and Report Center collision fix.
 - Inspect compiled assets and tests for unexpected semantic mirror or Tailwind CSS changes. Generated-at timestamps and source-version changes must not be treated as application regressions without comparing pinned inputs.
-- Playwright test must be capable of failing against the old header. Do not weaken the test merely to make CI green; if unrelated site-wide zoom failures exist, isolate and report them accurately.
+- Playwright test must be capable of failing against the old header. Do not weaken the test merely to make CI green; if unrelated site-wide zoom failures exist, separate them out and report them accurately.
 
 ## 6. Release gate and production handoff
 
@@ -103,3 +103,25 @@ Authoritative WCAG reference: https://www.w3.org/TR/WCAG22/
 4. On explicit owner merge, inspect the real main-push build, Cloudflare SHA and strict live MCP protocol verifier, then validate header behavior on production at 320/375/1440/1688 px and text 100/150/200%. Until then, **PRODUCTION_ACCEPTANCE: PENDING**.
 
 **Status fields to fill only after CI:** FINAL_PR_HEAD; CI_RUN_URL; FULL_E2E_RESULT; HEADER_TEXT_SCALE_MATRIX; BROWSER_BUNDLE_DELTA; OWNER_LOCAL_FILES; MERGE; DEPLOYMENT; KNOWN_LIMITATIONS.
+
+### 6.1 Status after the font-metric fix (2026-11-19)
+
+| Field | Value |
+|---|---|
+| FINAL_PR_HEAD | Code `cce9574b6b9cf43a293f033ed913f8f7ed973ba7`; this record is a documentation-only commit on top of it, and its CI run is linked from the pull request |
+| CI_RUN_URL | [run 44560624060](https://github.com/Reltroner/reltroner-statistics/actions/runs/44560624060) on `cce9574`: **success**. Determinism and Python (Ubuntu and Windows), pipeline, static build (568 pages, 575 PDFs, 33,898 links), workerd (18 REST operations, 16 MCP tools, 3 page tools) and browser tests all pass; GitGuardian passes; publishing skipped, as for every pull request |
+| Earlier failing run | [run 44540075725](https://github.com/Reltroner/reltroner-statistics/actions/runs/44540075725) on `8ce99cf`: 464 passed, 7 skipped, 1 failed, the Contact centre hit-test explained in §3.1 |
+| FULL_E2E_RESULT | CI: 465 passed, 7 skipped, 0 failed, none flaky. Local (Windows, Edge 157): 465 passed, 7 skipped. The 7 skips are by design: the matrix and axe header tests run only in the desktop project (6), and the existing mobile-menu test does not run there (1) |
+| HEADER_TEXT_SCALE_MATRIX | 3 routes × 2 themes × 12 width/text cases (320–1920 px, 100–200 %) with wide fonts: pass in CI (Linux, DejaVu Sans) and locally (Verdana). A local copy of the spec with DejaVu Sans served same-origin as both the wide and the default font also passes, 10 of 10. Keyboard, Escape and text-resize focus handoff, 320 px at 200 % touch targets and skip link, and header axe at 150 % in both themes pass |
+| BROWSER_BUNDLE_DELTA | Against live `main` `f0c61dc` built from the same pinned sources: stylesheet +728 bytes (56,378 → 57,104). This change itself removes three link-spacing utilities and adds the chip rules. The header script is +304 bytes, from the earlier `header.ts` change; this fix does not touch the script |
+| Local gates on `cce9574` | All 14 exit 0: `npm ci` (lockfile unchanged), baseline, schemas, typecheck (232 files, 0 errors), unit 180, MCP contract profile 9, Python 24, pipeline (production `d1625b2`, remodeling `6dd3491`), build, `verify:runtime`, focused desktop header spec 4, full e2e 465/7 skipped |
+| OWNER_LOCAL_FILES | `.vscode/settings.json` (SHA-256 `5515EB78…3CB649F09`) and `public/reltroner-statistics-logo.webp` (`B1FECD11…18AB868B0`) are still staged, byte-identical, and in no commit. All commits were made from a separate temporary index in the single checkout |
+| MERGE | NOT_DONE |
+| DEPLOYMENT | NOT_DONE; PRODUCTION_ACCEPTANCE: PENDING |
+| KNOWN_LIMITATIONS | See below |
+
+KNOWN_LIMITATIONS:
+- **Font coverage.** The desktop row is sized for fonts up to DejaVu Sans width, with 35.9 px of room at the switch. A wider font, or user text-spacing overrides (WCAG 1.4.12), can still overrun at the 1232–1240 px shell. The em switch only reacts to text size, not to glyph width.
+- **Ctrl K chip.** The chip is no longer visible at 100 % text, where the shell is 77.5em. The shortcut still works and is announced through `aria-keyshortcuts`.
+- **Tailwind scan artefacts.** Two harmless unused rules come from this PR's text: a container-type rule from the literal at-rule name in the header's style block, and a visibility rule from a selector string in the header spec. No element uses either class. A third, from a word in this document, was removed by rewording.
+- **CI trace.** The trace of run 44540075725 could not be downloaded (`503 Egress is over the account limit`). The failure was reproduced locally instead.
