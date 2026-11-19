@@ -95,11 +95,13 @@ test('@responsive RS-UI-RESPONSIVE-007 disclosure keyboard Escape and zoom back 
   await expect(button).toBeFocused();
   await button.click();
   await expect(compact).toBeVisible();
+  await expect(compact.getByRole('link', { name: 'Observatory overview' })).toBeFocused();
   await setScale(page, 100, false); // no viewport resize
   await expect(nav).toBeVisible();
   await expect(button).toBeHidden();
   await expect(compact).toBeHidden();
   await expect(button).toHaveAttribute('aria-expanded', 'false');
+  await expect(nav.locator('a[aria-current="page"]')).toBeFocused();
   await expect(page.locator('body')).not.toHaveClass(/overflow-hidden/);
   await expect(page.locator('header[data-site-header] [data-palette-open]:visible')).toHaveCount(1);
 });
