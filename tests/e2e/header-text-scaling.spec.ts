@@ -60,8 +60,8 @@ test('@responsive RS-UI-RESPONSIVE-007 header reflow at 100–200% text, three r
   test.setTimeout(240_000);
   for (const route of ROUTES) for (const theme of ['dark', 'light'] as const) for (const [width, scale] of CASES) {
     await page.setViewportSize({ width, height: 900 });
-    await page.addInitScript(t => { try { localStorage.setItem('rs-theme', t); } catch { /* ignore */ } }, theme);
     await page.goto(route);
+    await page.evaluate(t => { document.documentElement.dataset.theme = t; try { localStorage.setItem('rs-theme', t); } catch { /* ignore */ } }, theme);
     await setScale(page, scale);
     const r = await measure(page);
     const scope = route + ' ' + theme + ' ' + width + 'px ' + scale + '%';
@@ -128,8 +128,8 @@ test('@responsive RS-UI-RESPONSIVE-007 320px at 200% retains skip link and touch
 test('@responsive RS-UI-RESPONSIVE-007 header axe at 150% text, both themes', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop-1440', 'Representative axe sweep');
   for (const theme of ['dark', 'light']) {
-    await page.addInitScript(t => { try { localStorage.setItem('rs-theme', t); } catch { /* ignore */ } }, theme);
     await page.goto('/statistics/spatial/');
+    await page.evaluate(t => { document.documentElement.dataset.theme = t; try { localStorage.setItem('rs-theme', t); } catch { /* ignore */ } }, theme);
     await setScale(page, 150);
     const r = await new AxeBuilder({ page }).include('header[data-site-header]')
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
