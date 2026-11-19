@@ -19,11 +19,11 @@ const active = sectionFor(pathname);
     </a>
 
     <nav aria-label="Primary" data-primary-nav class="rs-header-primary ml-1 min-w-0 xl:ml-3">
-      <ul class="flex items-center gap-0.5 xl:gap-1">
+      <ul class="flex items-center gap-0.5">
         {SECTIONS.map((s) => (
           <li>
             <a href={s.href} aria-current={active === s.id ? 'page' : undefined}
-              class:list={[' whitespace-nowrap rounded-lg px-2 py-1.5 text-[0.8125rem] font-semibold no-underline transition-colors xl:px-3 xl:py-2 xl:text-sm',
+              class:list={[' whitespace-nowrap rounded-lg px-2 py-1.5 text-[0.8125rem] font-semibold no-underline transition-colors xl:py-2',
                 active === s.id ? 'bg-accent-soft text-ink' : 'text-ink-2 hover:bg-accent-soft hover:text-ink']}>
               {s.label}
             </a>
@@ -31,7 +31,7 @@ const active = sectionFor(pathname);
         ))}
         <li>
           <a href="https://www.reltroner.com/contact" target="_blank" rel="noopener noreferrer" data-studio-contact-link
-            class="whitespace-nowrap rounded-lg px-2 py-1.5 text-[0.8125rem] font-semibold text-ink-2 no-underline transition-colors hover:bg-accent-soft hover:text-ink xl:px-3 xl:py-2 xl:text-sm">
+            class="whitespace-nowrap rounded-lg px-2 py-1.5 text-[0.8125rem] font-semibold text-ink-2 no-underline transition-colors hover:bg-accent-soft hover:text-ink xl:py-2">
             Contact<span class="rs-sr"> (opens in a new tab)</span>
           </a>
         </li>
@@ -142,6 +142,14 @@ const active = sectionFor(pathname);
     .rs-header-primary, .rs-header-ecosystem { display: block; }
     .rs-header-search-full { display: inline-flex; }
     .rs-header-search-compact, .rs-header-menu-toggle { display: none; }
+  }
+  /* The desktop row must fit the widest common UI font, not only Segoe UI. Measured at the 77em
+     switch (1232 px at 100 %), the larger link style and the shortcut chip need up to 1392 px with
+     DejaVu Sans (Inter and Arial ~1287 px), so the links overran the actions. Compact links and no
+     chip need at most 1196 px. The chip returns where the shell has room for it (81em). */
+  .rs-header-search-full kbd { display: none; }
+  @container (min-width: 81em) {
+    .rs-header-search-full kbd { display: inline-flex; }
   }
   @container (max-width: 21em) {
     [data-header-brand-label] { display: none; }

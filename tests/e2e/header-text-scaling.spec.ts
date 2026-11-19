@@ -47,6 +47,11 @@ async function measure(page: Page) {
     if (intersects(brand.getBoundingClientRect(), actions.getBoundingClientRect())) overlaps.push('brand/actions');
     if (shown(nav) && intersects(nav.getBoundingClientRect(), actions.getBoundingClientRect())) overlaps.push('nav/actions');
     if (shown(nav) && intersects(nav.getBoundingClientRect(), brand.getBoundingClientRect())) overlaps.push('nav/brand');
+    // The nav box may shrink (min-width: 0) while its one row of links runs on under the actions,
+    // so check every link as well; a shorter overrun would not cover the last link's centre.
+    if (shown(nav)) for (const link of nav.querySelectorAll<HTMLElement>('a')) {
+      if (intersects(link.getBoundingClientRect(), actions.getBoundingClientRect())) overlaps.push('nav link/actions: ' + (link.textContent ?? '').trim().slice(0, 24));
+    }
     return {
       shell: shell.clientWidth, scroll: shell.scrollWidth,
       wide: shown(nav), compact: shown(menu), fullSearch: shown(searchFull),

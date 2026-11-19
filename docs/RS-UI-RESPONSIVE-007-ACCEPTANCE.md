@@ -30,6 +30,40 @@ RS-REPORT-UI-COLLISION-006 (PR #12) repaired intrinsic-width overflow in the Rep
 
 At extreme effective widths (21 em or less), brand text is hidden visually but the home link keeps a stable accessible label. The header minimum height permits growth if content reflows. The compact menu continues to provide the full sections, contact and ecosystem destinations. A ResizeObserver on the desktop navigation closes a previously opened compact disclosure if that navigation becomes visible following a zoom/text-size change, preserving aria-expanded and scroll state.
 
+### 3.1 Desktop row width depends on the visitor's font (found by CI run 44540075725)
+
+CI on the earlier head `8ce99cf` failed one assertion. At `/`, dark, 1440 px, 100 % text (wide fallback fonts, which resolve to DejaVu Sans on the Linux runner), the centre of the desktop **Contact** link was not the link. Local reproduction (the trace artifact could not be downloaded: GitHub answered `503 Egress is over the account limit`):
+
+| Measured at 1440 px, 100 %, Verdana (the spec's wide font on Windows) | Value |
+|---|---|
+| Header shell | 1240 px (the site container cap, 77.5em) |
+| Primary nav box | 690.41 px (`min-width: 0` lets it shrink) |
+| Its single row of links | 837 px wide, so it overruns the box by 147 px |
+| Contact link | x 1030.0–1114.1 |
+| Actions group (Search, Ecosystem, theme) | starts at x 983.6 |
+| `elementFromPoint` at Contact's centre | the "Search" label inside the full Search button |
+
+This was a true collision, not a measurement artefact: the links ran under the actions. The nav-box overlap check could not see it because the box had shrunk; only the centre hit-test did.
+
+The cause is font metrics. The 77em switch (1232 px) admits the desktop row, but the row's natural width depends on the font the visitor's system supplies. The site loads no web font, so Inter, Segoe UI, `system-ui` or the fallbacks apply. Measured natural widths of the previous desktop row:
+
+| Font | Segoe UI Variable (Windows 11) | Segoe UI (classic) | Inter | Arial / Liberation Sans | Verdana | DejaVu Sans |
+|---|---:|---:|---:|---:|---:|---:|
+| Needed | 1232.7 px | 1236.7 px | 1286.6 px | 1287.1 px | 1386.5 px | 1391.7 px |
+
+Only Segoe UI Variable fit, by 0.7 px of the switch width. The same row and actions are on `main` (desktop from 1280 px), so this overrun predates this PR. The new hit-test exposed it, and it affects Mac and Linux visitors at 1272–1920 px.
+
+**Fix (CSS only, consistent with the container-query design):**
+- In desktop mode, the primary links keep the header's existing compact style: 8 px side padding, 13 px text and a 2 px gap. The larger desktop-only style (12 px, 14 px, 4 px) is dropped.
+- The "Ctrl K" chip in the Search button shows only where the shell is at least 81em wide. The button keeps its "Search" label, and `aria-keyshortcuts="Control+K"` keeps the shortcut announced.
+
+The widest measured font, DejaVu Sans, now needs 1196.1 px. That leaves 35.9 px of room at the 1232 px switch. With the chip it needs 1261.1 px at 16 px text; the chip only appears from 81em, at most 15.31 px text in the 1240 px shell, so at least 33 px of room remains there. Measured after the change at 1440 px: Contact ends at least 59.9 px before the actions (DejaVu), and its centre hit-tests as itself on all three routes and both themes. JavaScript measurement was considered and rejected:
+- it would flash the overlap on every page load for affected fonts;
+- it would not help without JavaScript;
+- it contradicts the no-size-guess rule below.
+
+A font-aware `ch` threshold was also rejected: Arial needs 144.8 ch while Segoe UI has only 143.8 ch available, so no threshold separates them safely.
+
 **Compatibility:** Astro component CSS container queries run in supported Chromium browsers. Avoid JavaScript size guesses, fixed CSS viewport hacks, clipping, horizontal-scroll navigation or hiding destinations without an accessible alternative.
 
 ## 4. Tests and measured acceptance
@@ -39,7 +73,7 @@ Automated browser test: tests/e2e/header-text-scaling.spec.ts. At least these ca
 | Gate | Required assertion |
 | --- | --- |
 | H0 Identity | Feature branch based on the verified GitHub main commit containing PR #12; owner primary checkout and two protected files untouched |
-| H1 Layout | Header shell scrollWidth <= clientWidth + 1 px, no visible link/button offscreen or blocked, brand/nav/action rectangles do not intersect |
+| H1 Layout | Header shell scrollWidth <= clientWidth + 1 px, no visible link/button offscreen or blocked, brand/nav/action rectangles do not intersect, and no visible desktop link intersects the actions group (checked per link, since the nav box can shrink below its links) |
 | H2 Reflow | 320, 375, 390, 768, 1024, 1280, 1440, 1688 and 1920 px representatives, 100–200% text with wide fallback fonts |
 | H3 Cross-page | Home, spatial Statistics and Reports routes; dark and light themes |
 | H4 Functional controls | Exactly one nav mode and one search mode; all destinations remain reachable; theme and palette controls remain present |
