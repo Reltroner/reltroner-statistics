@@ -19,7 +19,7 @@ const active = sectionFor(pathname);
     </a>
 
     <nav aria-label="Primary" data-primary-nav class="rs-header-primary ml-1 min-w-0 xl:ml-3">
-      <ul class="flex flex-wrap items-center gap-x-0.5 gap-y-1 xl:gap-x-1">
+      <ul class="flex items-center gap-0.5 xl:gap-1">
         {SECTIONS.map((s) => (
           <li>
             <a href={s.href} aria-current={active === s.id ? 'page' : undefined}
