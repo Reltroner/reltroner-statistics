@@ -71,7 +71,28 @@ function setupMenus() {
   const menu = document.getElementById('mobile-nav');
   if (menuBtn && menu) {
     const setOpen = setupDisclosure(menuBtn, menu, { focusFirst: true, onToggle: (open) => document.body.classList.toggle('overflow-hidden', open) });
-    window.matchMedia('(min-width: 1280px)').addEventListener('change', (e) => { if (e.matches) setOpen(false); });
+    // The compact/desktop boundary follows header font size and content width, not a
+    // fixed viewport media query. Close the disclosure if the primary nav becomes visible
+    // after resizing, browser zooming, or changing the user's text size.
+    const primaryNav = document.querySelector<HTMLElement>('[data-primary-nav]');
+    const closeWhenWide = () => {
+      if (menuBtn.getAttribute('aria-expanded') === 'true'
+        && primaryNav && getComputedStyle(primaryNav).display !== 'none') {
+        const focusWasInCompactMenu = menu.contains(document.activeElement)
+          || menuBtn === document.activeElement;
+        setOpen(false);
+        // When text size shrinks, the compact control itself disappears. Move keyboard
+        // focus to the equivalent visible navigation rather than leaving it hidden.
+        if (focusWasInCompactMenu) {
+          (primaryNav.querySelector<HTMLElement>('a[aria-current="page"]')
+            || primaryNav.querySelector<HTMLElement>('a'))?.focus();
+        }
+      }
+    };
+    window.addEventListener('resize', closeWhenWide);
+    if (primaryNav && typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(closeWhenWide).observe(primaryNav);
+    }
   }
   const ecoBtn = document.querySelector<HTMLButtonElement>('[data-ecosystem-toggle]');
   const eco = document.getElementById('ecosystem-menu');
