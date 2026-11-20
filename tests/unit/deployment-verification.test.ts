@@ -39,7 +39,7 @@ const CANONICAL = `https://${CUSTOM_HOST}`;
 const UNIQUE_HOST = '3b64e356.reltroner-statistics.pages.dev';
 const UNIQUE = `https://${UNIQUE_HOST}`;
 
-// Replayed incident evidence (docs/RS-DEPLOY-SHA-005-INCIDENT.md).
+// Replayed incident evidence (RS-DEPLOY-SHA-005 incident record, PR #11; the document itself is kept outside Git).
 const NEW_SHA = '92ad608e1d22193120a2fb9a0b42993271797a84';
 const OLD_SHA = '1dbca25ff3b8e12b1919038967bbfb23f8a4bfce';
 const DIGEST = '4119d30b2c2d7ea14b95fe08c2d53365de966acaeb343a2a772e26d42a28e08d';
