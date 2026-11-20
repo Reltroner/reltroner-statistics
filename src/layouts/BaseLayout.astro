@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import SiteHeader from '../components/SiteHeader.astro';
 import SiteFooter from '../components/SiteFooter.astro';
+import NewsletterPlacement from '../components/NewsletterPlacement.astro';
 import { mirrorBase } from '../domain/page-url.ts';
 
 interface Props {
@@ -39,6 +40,8 @@ const mirror = noindex ? null : mirrorBase(Astro.url.pathname === '/' ? '/' : As
     <main id="main" tabindex="-1">
       <slot />
     </main>
+    {/* RS-NEWSLETTER-BRANDING-EXPORT-008 R1: one shared Studio newsletter opt-in on every indexable page (not the 404 page). */}
+    {!noindex && <NewsletterPlacement />}
     <SiteFooter />
   </body>
 </html>

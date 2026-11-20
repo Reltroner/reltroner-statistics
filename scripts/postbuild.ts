@@ -34,7 +34,8 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self'",
-  "connect-src 'self'",
+  // RS-NEWSLETTER-BRANDING-EXPORT-008 R1: the shared newsletter form posts to Reltroner Studio's canonical API only.
+  "connect-src 'self' https://www.reltroner.com",
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
