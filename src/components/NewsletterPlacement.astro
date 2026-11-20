@@ -36,7 +36,8 @@ const external = { target: '_blank', rel: 'noopener noreferrer' };
         <span>I choose to receive Studio updates about creative practice, public knowledge, and engineering. Contact inquiries do not subscribe me.</span>
       </label>
       <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <button type="submit" data-newsletter-submit class="rs-button rs-button-primary" disabled>Subscribe to Studio updates</button>
+        {/* May wrap: with enlarged text and wide fonts the label is wider than a two-column cell. */}
+        <button type="submit" data-newsletter-submit class="rs-button rs-button-primary max-w-full whitespace-normal text-center" disabled>Subscribe to Studio updates</button>
         <a href={STUDIO_LINKS.signup} {...external} class="text-sm">Subscribe on Reltroner Studio<span class="rs-sr"> (opens in a new tab)</span></a>
       </div>
       {/* A polite live region without role="status": pages keep their own single status region. */}

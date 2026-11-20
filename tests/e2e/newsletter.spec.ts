@@ -17,6 +17,8 @@ const ADDRESS = 'synthetic.reader@example.test';
 const ROUTES = ['/', '/clustering/', '/reports/', '/statistics/spatial/', '/creative/', '/drift/', '/graph/', '/methodology/'];
 const LINKS = { 'Unsubscribe and preferences': 'https://www.reltroner.com/newsletter/unsubscribe', Privacy: 'https://www.reltroner.com/privacy', 'Subscribe on Reltroner Studio': 'https://www.reltroner.com/contact#newsletter' };
 const cors = { 'Access-Control-Allow-Origin': LIVE, 'Access-Control-Expose-Headers': 'Retry-After', Vary: 'Origin', 'Cache-Control': 'no-store' };
+// Wide fallback fonts (as in the other layout specs) so Windows runs measure Linux-like text widths.
+const WIDE_FONTS = ':root{--font-sans:Verdana,"DejaVu Sans",sans-serif!important;--font-display:Verdana,"DejaVu Sans",sans-serif!important}';
 const studioJson = (status: number, body: unknown, headers: Record<string, string> = {}) => async (route: Route) =>
   route.fulfill({ status, contentType: 'application/json', headers: { ...cors, ...headers }, body: JSON.stringify(body) });
 
@@ -209,11 +211,11 @@ for (const theme of ['dark', 'light'] as const) {
   test(`layout and accessibility (${theme}): 320–1440 px at 100–200 % text, no overflow or footer collision, axe clean`, async ({ page }) => {
     test.setTimeout(90_000);
     await setTheme(page, theme);
-    const cases: Array<[number, number]> = [[320, 100], [375, 125], [768, 150], [1024, 100], [1440, 200], [320, 200]];
+    const cases: Array<[number, number]> = [[320, 100], [375, 125], [768, 150], [800, 150], [1024, 100], [1024, 200], [1440, 200], [320, 200]];
     for (const [width, scale] of cases) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto('/statistics/spatial/');
-      if (scale !== 100) await page.addStyleTag({ content: `html{font-size:${scale}%!important}` });
+      await page.addStyleTag({ content: `html{font-size:${scale}%!important}${WIDE_FONTS}` });
       const box = await page.evaluate(() => {
         const el = document.querySelector('[data-newsletter-placement]')!;
         el.scrollIntoView();
