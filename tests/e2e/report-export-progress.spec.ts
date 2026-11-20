@@ -26,18 +26,39 @@ async function prepare(page: Page, formats: string[]) {
 }
 
 function trackPdfs(page: Page) {
-  const state = { started: 0, active: 0, peak: 0 };
-  page.on('request', (r) => { if (r.url().includes('/reports/pdf/') && r.url().endsWith('.pdf')) { state.started++; state.active++; state.peak = Math.max(state.peak, state.active); } });
-  const done = (r: { url: () => string }) => { if (r.url().includes('/reports/pdf/') && r.url().endsWith('.pdf')) state.active--; };
-  page.on('requestfinished', done);
-  page.on('requestfailed', done);
+  const state = { started: 0 };
+  page.on('request', (r) => { if (r.url().includes('/reports/pdf/') && r.url().endsWith('.pdf')) state.started++; });
   return state;
+}
+
+/**
+ * Peak number of PDF requests in flight, from Chromium's monotonic network timestamps (request sent to
+ * loading finished). Counting Playwright request/requestfinished events is racy (event delivery order), and
+ * request.timing() mixes time bases; both over-count. A page-side count agrees with this one (6).
+ */
+async function cdpPdfSpans(page: Page) {
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Network.enable');
+  const start = new Map<string, number>();
+  const spans: Array<[number, number]> = [];
+  cdp.on('Network.requestWillBeSent', (e) => { if (/\/reports\/pdf\/[^/]+\.pdf$/.test(e.request.url)) start.set(e.requestId, e.timestamp); });
+  cdp.on('Network.loadingFinished', (e) => { const s = start.get(e.requestId); if (s !== undefined) spans.push([s, e.timestamp]); });
+  return {
+    spans,
+    peak() {
+      const edges = spans.flatMap(([s, e]) => [[s, 1], [e, -1]] as const).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+      let current = 0, peak = 0;
+      for (const [, d] of edges) { current += d; peak = Math.max(peak, current); }
+      return peak;
+    },
+  };
 }
 
 test('full-scope HTML + PDF per-finding ZIP: staged progress, responsive page, bounded requests, Node-identical bytes', async ({ page }) => {
   test.setTimeout(150_000);
   const watch = watchConsole(page);
   const pdfs = trackPdfs(page);
+  const network = await cdpPdfSpans(page);
   // A little latency per PDF makes every stage observable without depending on the machine's speed.
   await page.route('**/reports/pdf/*.pdf', async (route) => { await new Promise((r) => setTimeout(r, 15)); await route.continue(); });
   const center = await prepare(page, ['HTML', 'PDF']);
@@ -62,8 +83,9 @@ test('full-scope HTML + PDF per-finding ZIP: staged progress, responsive page, b
   await expect(center.getByRole('button', { name: 'Download' })).toBeEnabled();
   await expect(center.getByRole('button', { name: 'Cancel export' })).toHaveCount(0);
   expect(pdfs.started).toBe(515);
-  expect(pdfs.peak, 'at most six PDF requests at once').toBeLessThanOrEqual(6);
-  expect(pdfs.peak).toBeGreaterThan(1);
+  expect(network.spans.length, 'every PDF request completed').toBe(515);
+  expect(network.peak(), 'at most six PDF requests at once').toBeLessThanOrEqual(6);
+  expect(network.peak(), 'requests do overlap').toBeGreaterThan(1);
   expect(await page.evaluate(() => (window as unknown as { __gap: number }).__gap), 'no long main-thread freeze').toBeLessThan(400);
 
   const bytes = new Uint8Array(fs.readFileSync(await download.path()));
