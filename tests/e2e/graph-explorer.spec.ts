@@ -114,7 +114,7 @@ for (const theme of ['dark', 'light'] as const) {
       const withLine = await page.screenshot({ clip });
       const hide = await page.addStyleTag({ content: '.react-flow__edges{visibility:hidden!important}' });
       const without = await page.screenshot({ clip });
-      await hide.evaluate((n) => n.remove());
+      await hide.evaluate((n) => (n as ChildNode).remove());
       expect(withLine.equals(without), `${dep.id} paints visible pixels at its midpoint`).toBe(false);
     }
     expect(fetches).toBe(1);
