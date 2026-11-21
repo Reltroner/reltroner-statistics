@@ -30,7 +30,10 @@ const mirror = noindex ? null : mirrorBase(Astro.url.pathname === '/' ? '/' : As
     {canonical && <link rel="canonical" href={canonical} />}
     {mirror && <link rel="alternate" type="application/json" href={`${mirror}.json`} title="Page mirror (rs-page-context.v1)" />}
     {mirror && <link rel="alternate" type="text/markdown" href={`${mirror}.md`} title="Page mirror (Markdown)" />}
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32" />
+    <link rel="icon" href="/favicon-48x48.png" type="image/png" sizes="48x48" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
     <script is:inline>(function(){try{var t=localStorage.getItem('rs-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.dataset.theme=t;}catch(e){}})();</script>
   </head>
   <body>
