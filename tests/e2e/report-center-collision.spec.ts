@@ -326,7 +326,8 @@ for (const [width, height] of [[1024, 768], [1688, 864], [390, 844]] as const) {
     await check('single, one format (direct file)');
     const [direct] = await Promise.all([page.waitForEvent('download'), download.click()]);
     expect(direct.suggestedFilename()).toBe(`${worst.id}.json`);
-    await expect(center.getByText(`Saved ${worst.id}.json`)).toBeVisible();
+    // RS-NEWSLETTER-BRANDING-EXPORT-008 R3: the outcome claims only that the download started.
+    await expect(center.getByText(`Download started: ${worst.id}.json`)).toBeVisible();
     await check('single, direct download outcome shown');
 
     await center.getByText('CSV', { exact: true }).click();

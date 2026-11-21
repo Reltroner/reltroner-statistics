@@ -3,6 +3,7 @@
  * visual template: the PDF is printed from exactly this HTML by headless Chromium.
  */
 import type { Finding } from '../domain/finding.ts';
+import { REPORT_BRAND_MARK_DATA_URI } from './brand-mark.ts';
 import { displayValue, pinnedUrl, typeLabel, type ReportDocument } from './model.ts';
 
 export function htmlEscape(s: unknown): string {
@@ -17,6 +18,7 @@ html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 body { margin: 0; color: var(--ink); background: #fff; font: 10.5pt/1.55 "Segoe UI", Inter, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif; }
 main { max-width: 820px; margin: 0 auto; padding: 28px 24px 40px; }
 .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); }
+.brand img.brand-mark { display: block; width: 26px; height: 26px; flex-shrink: 0; border-radius: 6px; object-fit: cover; }
 .brand b { letter-spacing: .16em; font-size: 9.5pt; }
 .brand span { letter-spacing: .26em; font-size: 7.5pt; color: #0e7f95; font-weight: 700; }
 h1 { font-size: 20pt; line-height: 1.2; margin: 18px 0 6px; letter-spacing: -.02em; }
@@ -57,7 +59,7 @@ footer { margin-top: 26px; padding-top: 10px; border-top: 1px solid var(--line);
 @media screen and (max-width: 640px) { .summary { grid-template-columns: repeat(2, 1fr); } main { padding: 18px 14px; } }
 `;
 
-const LOGO = '<svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12.5" fill="none" stroke="#1559e0" stroke-width="1.6"/><ellipse cx="16" cy="16" rx="12.5" ry="5" fill="none" stroke="#0e7f95" stroke-width="1.2" transform="rotate(-24 16 16)"/><circle cx="16" cy="16" r="3.2" fill="#1559e0"/><circle cx="26.2" cy="11.4" r="1.9" fill="#0e7f95"/></svg>';
+const LOGO = `<img class="brand-mark" src="${REPORT_BRAND_MARK_DATA_URI}" alt="" aria-hidden="true" width="26" height="26">`;
 
 function sideCell(f: Finding, side: 'production' | 'remodeling'): string {
   const v = f[side];

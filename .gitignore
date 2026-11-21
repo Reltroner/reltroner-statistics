@@ -23,3 +23,6 @@ playwright-report/
 .astro/
 blob-report/
 .wrangler/
+
+# Engineering documents stay local; reviewer-facing evidence lives in each pull request description.
+/docs/

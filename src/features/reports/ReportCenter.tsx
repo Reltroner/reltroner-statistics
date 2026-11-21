@@ -1,9 +1,21 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Finding } from '../../domain/finding.ts';
 import type { ReportContext } from '../../export/model.ts';
 import { EXPORT_FORMATS, makeExportPlan, type BundleLayout, type ExportFormat, type ExportScope } from '../../export/plan.ts';
-import type { BundleEntry } from '../../export/bundle.ts';
-import { humanBytes, pdfLoader, saveBytes, SELECTION_KEY } from './download.ts';
+import type { BundleEntry, ExportProgress, ExportStage } from '../../export/bundle.ts';
+import { EXPORT_DEADLINE_MS, humanBytes, PDF_CONCURRENCY, pdfLoader, saveBytes, SELECTION_KEY, zipInWorker } from './download.ts';
+
+// RS-NEWSLETTER-BRANDING-EXPORT-008 R3: what each export stage is doing, for the visible progress line.
+const STAGE_LABEL: Record<ExportStage, string> = {
+  render: 'Rendering reports',
+  pdf: 'Fetching precomputed PDFs',
+  checksum: 'Computing SHA-256 checksums',
+  compress: 'Compressing the ZIP',
+};
+const count = (n: number) => n.toLocaleString('en');
+const progressLine = (p: ExportProgress) => (p.stage === 'compress'
+  ? `${STAGE_LABEL.compress} (${humanBytes(p.bytes)})…`
+  : `${STAGE_LABEL[p.stage]}: ${count(p.done)} of ${count(p.total)}${p.stage === 'pdf' ? ` · ${humanBytes(p.bytes)}` : ''}`);
 
 const FORMAT_INFO: Record<ExportFormat, { label: string; detail: string }> = {
   json: { label: 'JSON', detail: 'Typed structured data with full provenance.' },
@@ -64,6 +76,24 @@ export default function ReportCenter() {
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const [progress, setProgress] = useState<ExportProgress | null>(null);
+  const [announcement, setAnnouncement] = useState('');
+  const running = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const downloadRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const focusToCancel = useRef(false);
+
+  // Leaving the page cancels an export in progress: no fetch, timer or worker outlives the component.
+  useEffect(() => () => abortRef.current?.abort(), []);
+  // Keyboard users keep a focus target: Cancel while building, Download again afterwards.
+  useEffect(() => {
+    if (busy && focusToCancel.current) cancelRef.current?.focus();
+    if (!busy && focusToCancel.current) {
+      focusToCancel.current = false;
+      if (!document.activeElement || document.activeElement === document.body) downloadRef.current?.focus();
+    }
+  }, [busy]);
 
   useEffect(() => {
     Promise.all([
@@ -121,16 +151,47 @@ export default function ReportCenter() {
   const togglePick = (id: string) => setPicked((p) => (scope === 'single' ? [id] : p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
   const download = async () => {
-    if (!data || !planResult || !('plan' in planResult) || !planResult.plan) return;
-    setBusy(true); setOutcome(null); setError(null);
+    if (running.current || !data || !planResult || !('plan' in planResult) || !planResult.plan) return;
+    running.current = true;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    let timedOut = false;
+    const deadline = setTimeout(() => { timedOut = true; controller.abort(); }, EXPORT_DEADLINE_MS);
+    focusToCancel.current = document.activeElement === downloadRef.current;
+    setBusy(true); setOutcome(null); setError(null); setProgress(null); setAnnouncement('Preparing the export…');
+    let stage: ExportStage | null = null;
+    let shownAt = 0;
+    const onProgress = (p: ExportProgress) => {
+      const now = performance.now();
+      if (p.stage !== stage) {
+        stage = p.stage;
+        setAnnouncement(p.stage === 'pdf' ? `Fetching ${count(p.total)} precomputed PDFs…` : `${STAGE_LABEL[p.stage]}…`);
+      } else if (p.done !== p.total && now - shownAt < 120) return;
+      shownAt = now;
+      setProgress(p);
+    };
     try {
       const { executeExport } = await import('../../export/bundle.ts');
-      const res = await executeExport({ plan: planResult.plan, findings: data.allFindings, context: data.context, loadPdf: pdfLoader, xsd: data.xsd ?? undefined });
+      const res = await executeExport({
+        plan: planResult.plan, findings: data.allFindings, context: data.context, loadPdf: pdfLoader, xsd: data.xsd ?? undefined,
+        onProgress, signal: controller.signal, pdfConcurrency: PDF_CONCURRENCY, zip: (files) => zipInWorker(files, controller.signal),
+      });
       saveBytes(res.bytes, res.filename, res.mime);
+      setAnnouncement('');
       setOutcome({ filename: res.filename, size: res.bytes.byteLength, entries: res.entries, notes: res.notes });
     } catch (e) {
-      setError((e as Error).message);
-    } finally { setBusy(false); }
+      const err = e as Error;
+      setAnnouncement('');
+      setError(err.name === 'AbortError'
+        ? (timedOut ? `The export stopped after ${EXPORT_DEADLINE_MS / 60_000} minutes without finishing. Nothing was downloaded; try fewer findings or formats.` : 'Export cancelled. Nothing was downloaded.')
+        : `${err.message.replace(/\.?$/, '.')} Nothing was downloaded.`);
+    } finally {
+      clearTimeout(deadline);
+      abortRef.current = null;
+      running.current = false;
+      setProgress(null);
+      setBusy(false);
+    }
   };
 
   if (error && !data) return <p className="rs-notice" data-tone="unavailable">{error}</p>;
@@ -280,12 +341,21 @@ export default function ReportCenter() {
               <div><dt className="text-ink-3">Findings · formats</dt><dd className="m-0">{plan.finding_ids.length} · {plan.formats.join(', ')}</dd></div>
             </dl>
           ) : <p className="mt-3 text-sm text-ink-3">{planResult && 'error' in planResult ? planResult.error : 'Choose findings and at least one format.'}</p>}
-          <button type="button" className="rs-button rs-button-primary mt-5 w-full" disabled={!plan || busy || (formats.has('pdf') && !pdfReady)} onClick={download}>{busy ? 'Building…' : 'Download'}</button>
+          <button ref={downloadRef} type="button" className="rs-button rs-button-primary mt-5 w-full" disabled={!plan || busy || (formats.has('pdf') && !pdfReady)} onClick={download}>{busy ? 'Building…' : 'Download'}</button>
+          {busy && (
+            <div className="mt-3 grid gap-2" data-export-progress={progress?.stage ?? 'starting'}>
+              <progress className="w-full" aria-label="Export progress" max={progress && progress.stage !== 'compress' ? progress.total || 1 : undefined} value={progress && progress.stage !== 'compress' ? progress.done : undefined} />
+              <p className="text-xs text-ink-2" data-export-progress-text>{progress ? progressLine(progress) : 'Preparing the export…'}</p>
+              <button ref={cancelRef} type="button" className="rs-button rs-button-secondary w-full" onClick={() => abortRef.current?.abort()}>Cancel export</button>
+            </div>
+          )}
+          {/* Stage changes only (not every count), politely, without a second role="status" on the page. */}
+          <p className="rs-sr" aria-live="polite">{announcement}</p>
           {formats.has('pdf') && !pdfReady && <p className="mt-2 text-xs text-ink-3">Deselect PDF or choose findings that have precomputed PDFs.</p>}
           {error && <p role="alert" className="mt-3 text-sm text-[var(--status-critical-text)]">{error}</p>}
           {outcome && (
             <div className="mt-4 border-t border-line pt-3 text-xs text-ink-2" aria-live="polite">
-              <p className="font-semibold text-ink">Saved {outcome.filename} ({humanBytes(outcome.size)})</p>
+              <p className="font-semibold text-ink">Download started: {outcome.filename} ({humanBytes(outcome.size)})</p>
               {outcome.entries && <p className="mt-1">{outcome.entries.length} entries checksummed. Verify with <code>sha256sum -c SHA256SUMS.txt</code>.</p>}
               {outcome.notes.map((n) => <p key={n} className="mt-1">{n}</p>)}
             </div>

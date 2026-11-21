@@ -378,11 +378,21 @@
 /* Knowledge graph nodes (React Flow). Border carries the source side; text carries the type. */
 .rs-gnode { display: flex; flex-direction: column; gap: 2px; padding: 7px 10px; border-radius: 10px; border: 1.5px solid var(--border-strong); background: var(--surface-1); color: var(--text); font-family: var(--font-sans); box-shadow: var(--shadow-card); transition: opacity var(--motion-graph) var(--ease-standard), box-shadow var(--motion-graph) var(--ease-standard); }
 .rs-gnode[data-dim] { opacity: 0.22; }
+/* RS-NEWSLETTER-BRANDING-EXPORT-008 R4: the focus of a neighbourhood view is marked (selection still wins). */
+.rs-gnode[data-focus] { box-shadow: 0 0 0 2px var(--accent), var(--shadow-card); }
 .rs-gnode[data-selected] { box-shadow: 0 0 0 3px var(--focus); }
 .rs-gnode-type { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
 .rs-gnode-label { font-size: 12px; font-weight: 600; line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .rs-ghandle { opacity: 0; width: 6px; height: 6px; }
 .react-flow { --xy-background-color: var(--surface-1); --xy-controls-button-background-color: var(--surface-2); --xy-controls-button-color: var(--text); --xy-controls-button-border-color: var(--border); }
+/* R4 root cause: the base rule `svg { max-width: 100% }` capped React Flow's edge-layer <svg>, which sits
+   in a zero-size container, at 0 px, and a zero-width <svg> is never painted. Every relationship existed
+   in the DOM with valid geometry, yet no line was drawn at any zoom. React Flow sizes this layer itself. */
+.rs-graph .react-flow__edges svg { max-width: none; }
+/* R4: relationship lines keep their on-screen width at every zoom, so an overview never shrinks them below
+   a pixel; canvas controls are 40 px touch targets. */
+.rs-graph .react-flow__edge-path { vector-effect: non-scaling-stroke; }
+.rs-graph .react-flow__controls-button { width: 40px; height: 40px; }
 @media (prefers-reduced-motion: reduce) { .rs-gnode { transition: none; } }
 
 /* Links inside running text must not rely on color alone (WCAG 1.4.1). :where() keeps specificity at

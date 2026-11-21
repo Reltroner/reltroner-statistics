@@ -1,0 +1,51 @@
+---
+/**
+ * RS-NEWSLETTER-BRANDING-EXPORT-008 R1: the one shared newsletter opt-in. BaseLayout renders it once, above
+ * the footer, on every indexable page. Reltroner Studio owns the newsletter service and its subscriber
+ * list; this component only renders the form, and src/scripts/newsletter.ts sends one consented request to
+ * Studio from the live Statistics domain. It sits outside <main>, so page mirrors never include it.
+ */
+import { STUDIO_LINKS } from '../scripts/newsletter-client.ts';
+const external = { target: '_blank', rel: 'noopener noreferrer' };
+---
+<aside data-newsletter-placement data-newsletter-mode="static" aria-labelledby="rs-newsletter-heading" class="rs-container mt-16">
+  <div class="rs-card rs-card-pad grid gap-8 md:grid-cols-2">
+    <div class="min-w-0">
+      <p class="rs-eyebrow">Stay connected</p>
+      <h2 id="rs-newsletter-heading" class="rs-h2 mt-2">Keep a little curiosity in your inbox.</h2>
+      <p class="rs-soft mt-3 text-sm leading-6">
+        Occasional Reltroner Studio updates on creative practice, public knowledge and engineering. Subscriptions are held by Reltroner Studio, not by a separate Statistics list.
+      </p>
+      <p id="rs-newsletter-mode" class="rs-notice mt-4" data-tone="unavailable">
+        This form needs JavaScript and sends only from statistics.reltroner.com. You can always subscribe on Reltroner Studio.
+      </p>
+      <p class="mt-4 text-sm">
+        <a href={STUDIO_LINKS.unsubscribe} {...external}>Unsubscribe and preferences<span class="rs-sr"> (opens in a new tab)</span></a>
+        <span aria-hidden="true"> · </span>
+        <a href={STUDIO_LINKS.privacy} {...external}>Privacy<span class="rs-sr"> (opens in a new tab)</span></a>
+      </p>
+    </div>
+    <form data-newsletter-form novalidate class="grid min-w-0 content-start gap-4" aria-describedby="rs-newsletter-mode">
+      <div>
+        <label for="rs-newsletter-email" class="rs-label">Email address</label>
+        <input id="rs-newsletter-email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" required spellcheck="false"
+          class="rs-input w-full" aria-describedby="rs-newsletter-feedback" />
+      </div>
+      <label for="rs-newsletter-consent" class="flex items-start gap-3 text-sm leading-6 text-ink-2">
+        <input id="rs-newsletter-consent" name="consent" type="checkbox" class="mt-1 h-5 w-5 shrink-0" aria-describedby="rs-newsletter-feedback" />
+        <span>I choose to receive Studio updates about creative practice, public knowledge, and engineering. Contact inquiries do not subscribe me.</span>
+      </label>
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+        {/* May wrap: with enlarged text and wide fonts the label is wider than a two-column cell. */}
+        <button type="submit" data-newsletter-submit class="rs-button rs-button-primary max-w-full whitespace-normal text-center" disabled>Subscribe to Studio updates</button>
+        <a href={STUDIO_LINKS.signup} {...external} class="text-sm">Subscribe on Reltroner Studio<span class="rs-sr"> (opens in a new tab)</span></a>
+      </div>
+      {/* A polite live region without role="status": pages keep their own single status region. */}
+      <p id="rs-newsletter-feedback" aria-live="polite" aria-atomic="true" class="min-h-6 text-sm leading-6 text-ink-2"></p>
+    </form>
+  </div>
+</aside>
+
+<script>
+  import '../scripts/newsletter.ts';
+</script>
