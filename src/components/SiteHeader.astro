@@ -6,12 +6,7 @@ const active = sectionFor(pathname);
 <header data-site-header class="sticky top-0 z-40 border-b border-line backdrop-blur-xl" style="background: color-mix(in srgb, var(--bg) 82%, transparent);">
   <div class="rs-container rs-header-shell flex min-h-16 items-center gap-2 py-1 xl:gap-4">
     <a href="/" aria-label="Reltroner Statistics home" class="flex shrink-0 items-center gap-2.5 text-ink no-underline xl:gap-3">
-      <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true">
-        <circle cx="16" cy="16" r="12.5" fill="none" stroke="var(--accent)" stroke-width="1.6" opacity="0.9" />
-        <ellipse cx="16" cy="16" rx="12.5" ry="5" fill="none" stroke="var(--cyan)" stroke-width="1.2" opacity="0.75" transform="rotate(-24 16 16)" />
-        <circle cx="16" cy="16" r="3.2" fill="var(--accent)" />
-        <circle cx="26.2" cy="11.4" r="1.9" fill="var(--cyan)" />
-      </svg>
+      <img src="/statistics-brandmark.webp" alt="" aria-hidden="true" width="30" height="30" decoding="async" class="rs-brandmark" />
       <span data-header-brand-label class="leading-none">
         <span class="block text-[0.82rem] font-extrabold tracking-[0.16em]">RELTRONER</span>{" "}
         <span class="block text-[0.66rem] font-semibold tracking-[0.26em] text-cyan">STATISTICS</span>
@@ -136,6 +131,7 @@ const active = sectionFor(pathname);
      thresholds follow the header font size, so enlarged text keeps navigation accessible
      through the compact menu instead of forcing desktop links outside the viewport. */
   .rs-header-shell { container-type: inline-size; }
+  .rs-brandmark { display: block; width: 30px; height: 30px; flex-shrink: 0; border-radius: 7px; object-fit: cover; box-shadow: 0 0 0 1px color-mix(in srgb, var(--line) 80%, transparent); }
   .rs-header-primary, .rs-header-search-full, .rs-header-ecosystem { display: none; }
   .rs-header-search-compact, .rs-header-menu-toggle { display: inline-flex; }
   @container (min-width: 77em) {
