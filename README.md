@@ -2,6 +2,12 @@
 
 **Civilizational Data & Creative Systems Intelligence Observatory** for the Asthortera universe: production-canon statistics, read-only cross-repository drift forensics, an evidence-backed knowledge & narrative systems graph, creative consistency auditing, story refactoring & canon remodeling labs, and eight-format reporting. Every value carries its source repository, commit, file and field.
 
+## 🌐 Live Deployment
+
+[https://statistics.reltroner.com/](https://statistics.reltroner.com/)
+
+The deployed build identity can be checked at [`/build-info.json`](https://statistics.reltroner.com/build-info.json); a repository commit is not automatically proof of which build is live.
+
 ## Source authority
 
 | Source | Role | Access |
