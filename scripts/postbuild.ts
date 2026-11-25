@@ -32,7 +32,7 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' ${[...hashes].sort().join(' ')}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https://cdn.jsdelivr.net",
   "font-src 'self'",
   // RS-NEWSLETTER-BRANDING-EXPORT-008 R1: the shared newsletter form posts to Reltroner Studio's canonical API only.
   "connect-src 'self' https://www.reltroner.com",

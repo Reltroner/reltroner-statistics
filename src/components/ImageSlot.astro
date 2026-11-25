@@ -13,7 +13,17 @@ const ring = (cx: number, cy: number, r: number, n: number, phase = 0) =>
 <figure class:list={['m-0', className]}>
   {slot.approved && slot.src ? (
     <div class="rs-slot" data-image-slot={slot.id} style={`aspect-ratio: ${slot.aspect}`}>
-      <img src={slot.src} alt={slot.alt} loading={priority ? 'eager' : 'lazy'} decoding="async" class="absolute inset-0 h-full w-full object-cover" />
+      <img
+        src={slot.src}
+        alt={slot.alt}
+        width={slot.width}
+        height={slot.height}
+        loading={priority ? 'eager' : 'lazy'}
+        fetchpriority={priority ? 'high' : undefined}
+        decoding="async"
+        referrerpolicy="no-referrer"
+        class="absolute inset-0 h-full w-full object-cover"
+      />
     </div>
   ) : (
     <div class="rs-slot" data-image-slot={slot.id} data-placeholder="true" aria-hidden="true" style={`aspect-ratio: ${slot.aspect}`}>

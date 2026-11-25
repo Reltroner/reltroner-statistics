@@ -201,7 +201,7 @@ test('CSP: connect-src adds exactly the Studio origin and every other directive 
   expect(directives['object-src']).toBe("'none'");
   expect(directives['default-src']).toBe("'self'");
   expect(directives['worker-src']).toBe("'self' blob:");
-  expect(directives['img-src']).toBe("'self' data: blob:");
+  expect(directives['img-src']).toBe("'self' data: blob: https://cdn.jsdelivr.net");
   expect(directives['script-src']).toMatch(/^'self'( 'sha256-[A-Za-z0-9+/=]+')+$/);
   expect(directives['script-src']).not.toMatch(/unsafe/);
   expect(Object.keys(directives).sort()).toEqual(['base-uri', 'connect-src', 'default-src', 'font-src', 'form-action', 'frame-ancestors', 'img-src', 'object-src', 'script-src', 'style-src', 'upgrade-insecure-requests', 'worker-src']);
