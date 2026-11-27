@@ -67,3 +67,87 @@ export function esc(text: unknown): string {
 
 /** Marker shapes give a secondary channel beyond hue (CVD, print). */
 export const SYMBOLS = ['circle', 'rect', 'triangle', 'diamond'] as const;
+
+export type RgbTuple = readonly [number, number, number];
+
+/** Parses #rgb, #rrggbb, or rgb()/rgba() strings into 0–255 sRGB channels. */
+export function parseCssRgb(color: string): RgbTuple {
+  const s = color.trim();
+  if (s.startsWith('#')) {
+    const h = s.slice(1);
+    const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h.slice(0, 6);
+    if (full.length === 6) {
+      return [
+        parseInt(full.slice(0, 2), 16),
+        parseInt(full.slice(2, 4), 16),
+        parseInt(full.slice(4, 6), 16),
+      ];
+    }
+  }
+  const m = s.match(/^rgba?\(\s*(\d+(?:\.\d+)?)\s*[,\s]\s*(\d+(?:\.\d+)?)\s*[,\s]\s*(\d+(?:\.\d+)?)/i);
+  if (m) return [Math.round(Number(m[1])), Math.round(Number(m[2])), Math.round(Number(m[3]))];
+  throw new Error(`Unsupported CSS color for luminance calculation: ${color}`);
+}
+
+export function rgbToHex([r, g, b]: RgbTuple): string {
+  const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
+  return `#${clamp(r)}${clamp(g)}${clamp(b)}`;
+}
+
+export function mixHex(a: string, b: string, weightA: number): string {
+  const ca = parseCssRgb(a);
+  const cb = parseCssRgb(b);
+  const t = Math.max(0, Math.min(1, weightA));
+  return rgbToHex([
+    ca[0] * t + cb[0] * (1 - t),
+    ca[1] * t + cb[1] * (1 - t),
+    ca[2] * t + cb[2] * (1 - t),
+  ]);
+}
+
+/** WCAG 2.1 relative luminance in [0, 1]. */
+export function relativeLuminance(color: string): number {
+  const [r, g, b] = parseCssRgb(color).map((channel) => {
+    const s = channel / 255;
+    return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+}
+
+/** WCAG 2.1 contrast ratio between two opaque colors in [1, 21]. */
+export function contrastRatio(fg: string, bg: string): number {
+  const l1 = relativeLuminance(fg);
+  const l2 = relativeLuminance(bg);
+  const hi = Math.max(l1, l2);
+  const lo = Math.min(l1, l2);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/**
+ * Deterministic highest-contrast ink (#000000 or #ffffff) against any opaque sRGB fill.
+ * Because CR(#fff, bg) * CR(#000, bg) = 21, max(CR) >= sqrt(21) ≈ 4.58:1 for every sRGB color.
+ */
+export function pickTextColor(bg: string): '#000000' | '#ffffff' {
+  const l = relativeLuminance(bg);
+  const crWhite = 1.05 / (l + 0.05);
+  const crBlack = (l + 0.05) / 0.05;
+  return crWhite >= crBlack ? '#ffffff' : '#000000';
+}
+
+/** Piecewise-linear sRGB interpolation along evenly spaced color stops for value in [min, max]. */
+export function interpolateRampHex(stops: readonly string[], value: number, min = -1, max = 1): string {
+  if (stops.length === 0) return '#888888';
+  if (stops.length === 1 || max === min) return rgbToHex(parseCssRgb(stops[0]!));
+  const clamped = Math.max(min, Math.min(max, value));
+  const scaled = ((clamped - min) / (max - min)) * (stops.length - 1);
+  const lo = Math.min(stops.length - 2, Math.max(0, Math.floor(scaled)));
+  const frac = scaled - lo;
+  return mixHex(stops[lo + 1]!, stops[lo]!, frac);
+}
+
+/** Formats a correlation coefficient to two decimals, preserving minus signs and avoiding "-0.00". */
+export function formatCorrelationCell(v: number | null): string {
+  if (v == null || !Number.isFinite(v)) return '—';
+  const fixed = v.toFixed(2);
+  return fixed === '-0.00' ? '0.00' : fixed;
+}

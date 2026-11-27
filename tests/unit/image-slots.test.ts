@@ -84,8 +84,8 @@ test('all 18 registered slots resolve cleanly, keep 1:1 unique paths, exact rati
       assert.equal(slot.sha256, null);
     }
   }
-  assert.equal(approvedCount, 9);
-  assert.equal(pendingCount, 9);
+  assert.equal(approvedCount, 18);
+  assert.equal(pendingCount, 0);
 
   // Reconcile against actual <ImageSlot slotId="..." /> invocations in src/pages/**/*.astro.
   const referenced = new Set<string>();

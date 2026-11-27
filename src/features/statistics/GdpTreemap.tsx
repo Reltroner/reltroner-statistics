@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { readTheme, type ChartTheme } from '../charts/theme.ts';
+import { mixHex, pickTextColor, readTheme, type ChartTheme } from '../charts/theme.ts';
 import { formatValue } from '../../lib/format.ts';
 
 interface Item { id: string; name: string; share: number; cohort: 'PROFILED_14' | 'DEVELOPMENT_5' | 'RESIDUAL' }
@@ -46,20 +46,6 @@ export function squarify(values: number[], box: Box): Box[] {
   return out;
 }
 
-const rgb = (hex: string): [number, number, number] => {
-  const h = hex.replace('#', '');
-  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h.slice(0, 6);
-  return [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16)) as [number, number, number];
-};
-const hex = (c: number[]) => `#${c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
-const mix = (a: string, b: string, t: number) => hex(rgb(a).map((v, i) => v * t + rgb(b)[i]! * (1 - t)));
-const lum = (c: string) => {
-  const [r, g, b] = rgb(c).map((v) => { const s = v / 255; return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; });
-  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
-};
-/** Black or white label, whichever contrasts more with the fill (WCAG relative luminance). */
-const inkOn = (fill: string) => ((lum(fill) + 0.05) / 0.05 > 1.05 / (lum(fill) + 0.05) ? '#0b0b0b' : '#ffffff');
-
 /**
  * Part-to-whole of planetary GDP. Tile area is exactly the source share. Every entry is named with
  * its share: inside its tile when the text fits, otherwise in the label rail below the chart, which
@@ -102,7 +88,7 @@ export default function GdpTreemap({ items }: Props) {
     let marker = 0;
     return sorted.map((item, i) => {
       const box = boxes[i]!;
-      const fill = item.cohort === 'RESIDUAL' ? theme.fold : item.cohort === 'DEVELOPMENT_5' ? mix(theme.series[0], theme.surface, 0.68) : theme.series[0];
+      const fill = item.cohort === 'RESIDUAL' ? theme.fold : item.cohort === 'DEVELOPMENT_5' ? mixHex(theme.series[0], theme.surface, 0.68) : theme.series[0];
       const label = formatValue(item.share, 'ratio_pct');
       const nameW = measure(item.name, NAME_PX, 600);
       const shareW = measure(label, SHARE_PX, 500);
@@ -111,7 +97,7 @@ export default function GdpTreemap({ items }: Props) {
       if (room.w >= Math.max(nameW, shareW) && room.h >= NAME_PX + SHARE_PX + 8) mode = 'inside-two';
       else if (room.w >= nameW + shareW + 8 && room.h >= NAME_PX + 4) mode = 'inside-one';
       const holdsMarker = mode === 'rail' && box.w >= measure(String(marker + 1), MARKER_PX, 700) + 6 && box.h >= MARKER_PX + 6;
-      return { ...item, box, fill, ink: inkOn(fill), mode, marker: mode === 'rail' && holdsMarker ? ++marker : null, label };
+      return { ...item, box, fill, ink: pickTextColor(fill), mode, marker: mode === 'rail' && holdsMarker ? ++marker : null, label };
     });
   }, [sorted, width, height, theme]);
   const rail = tiles.filter((t) => t.mode === 'rail');

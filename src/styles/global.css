@@ -24,6 +24,7 @@
   --text: #eef5ff;
   --text-2: #c2d2ea;
   --text-3: #93a9c9;
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2.5 4.25 6 7.75 9.5 4.25' stroke='%23c2d2ea' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --accent: #6aaeff;
   --accent-strong: #1a62e6;
   --accent-contrast: #ffffff;
@@ -94,6 +95,7 @@
   --text: #0e1a30;
   --text-2: #3b4b66;
   --text-3: #56677f;
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2.5 4.25 6 7.75 9.5 4.25' stroke='%233b4b66' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --accent: #1559e0;
   --accent-strong: #1559e0;
   --accent-contrast: #ffffff;
@@ -288,9 +290,17 @@
 
   .rs-input, .rs-select {
     min-height: 2.6rem; padding: 0.5rem 0.75rem; border-radius: 0.65rem; border: 1px solid var(--border-strong);
-    background: var(--surface-inset); color: var(--text); font: inherit; font-size: 0.9rem; max-width: 100%;
+    background-color: var(--surface-inset); color: var(--text); font: inherit; font-size: 0.9rem; max-width: 100%;
   }
-  .rs-select { padding-right: 2rem; }
+  .rs-select, select.rs-input {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 2.5rem;
+    background-image: var(--select-chevron);
+    background-repeat: no-repeat;
+    background-position: right 0.875rem center;
+    background-size: 0.75rem 0.75rem;
+  }
   .rs-label { display: block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); margin-bottom: 0.35rem; }
 
   .rs-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-1); }
@@ -358,6 +368,7 @@
 
 @media (forced-colors: active) {
   .rs-badge, .rs-chip, .rs-card, .rs-controls, .rs-panel { border: 1px solid CanvasText; }
+  .rs-select, select.rs-input { appearance: auto; -webkit-appearance: auto; background-image: none; padding-right: 0.75rem; }
 }
 
 @media print {
