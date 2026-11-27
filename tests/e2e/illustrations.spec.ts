@@ -10,12 +10,21 @@ import { expectNoHorizontalOverflow, setTheme, watchConsole } from './helpers.ts
 const APPROVED_ROUTES: ReadonlyArray<{ route: string; slots: ReadonlyArray<keyof typeof IMAGE_SLOTS> }> = [
   { route: '/', slots: ['STATS_HOME_HERO', 'STATS_DEPENDENCY_GRAPH', 'STATS_CLUSTERING_LAB', 'STATS_REPORT_CENTER'] },
   { route: '/statistics/', slots: ['STATS_WORLD_OVERVIEW'] },
+  { route: '/statistics/decision-trees/', slots: ['STATISTICAL_DECISION_TREE'] },
   { route: '/countries/', slots: ['STATS_COUNTRY_COMPARISON'] },
   { route: '/history/', slots: ['STATS_HISTORICAL_DYNAMICS'] },
   { route: '/clustering/', slots: ['STATS_CLUSTERING_LAB'] },
   { route: '/drift/', slots: ['STATS_SOURCE_DRIFT'] },
   { route: '/reports/', slots: ['STATS_REPORT_CENTER'] },
   { route: '/creative/', slots: ['CREATIVE_HOME_HERO'] },
+  { route: '/creative/explore/', slots: ['CREATIVE_NARRATIVE_GRAPH'] },
+  { route: '/creative/ideas/', slots: ['CREATIVE_IDEATION_WORKSPACE'] },
+  { route: '/creative/audit/', slots: ['CREATIVE_CONSISTENCY_AUDIT'] },
+  { route: '/creative/refactor/', slots: ['CREATIVE_STORY_REFACTOR'] },
+  { route: '/creative/remodel/', slots: ['CREATIVE_CANON_REMODEL'] },
+  { route: '/creative/impact/', slots: ['CREATIVE_IMPACT_EXPLORER'] },
+  { route: '/creative/roadmap/', slots: ['CREATIVE_DEVELOPMENT_ROADMAP'] },
+  { route: '/creative/decisions/', slots: ['CREATIVE_DECISION_TREE'] },
 ];
 
 test('CSP allows only the exact jsDelivr origin on img-src without wildcards or relaxing script-src/connect-src', async ({ request }) => {
@@ -34,12 +43,14 @@ test('CSP allows only the exact jsDelivr origin on img-src without wildcards or 
   expect(directives['script-src']).not.toContain('cdn.jsdelivr.net');
 });
 
-test('approved editorial slots render pinned 40-char CDN WebP assets across all 8 routes without CSP/console errors', async ({ page }) => {
-  test.setTimeout(90_000);
+test('approved editorial slots render pinned 40-char CDN WebP assets across all 17 routes without CSP/console errors', async ({ page }) => {
+  test.setTimeout(150_000);
   const watch = watchConsole(page);
   for (const { route, slots } of APPROVED_ROUTES) {
     const res = await page.goto(route);
     expect(res?.status(), route).toBe(200);
+    await expect(page.locator('[data-placeholder="true"]'), `${route} has zero pending placeholders`).toHaveCount(0);
+    await expect(page.locator('.rs-slot-tag'), `${route} has zero ILLUSTRATION PENDING tags`).toHaveCount(0);
     for (const id of slots) {
       const expected = IMAGE_SLOTS[id];
       const box = page.locator(`[data-image-slot="${id}"]`);
@@ -103,16 +114,23 @@ test('image failure on CDN does not break page content, heading visibility, or s
   expect(pageErrors).toEqual([]);
 });
 
-test('quota-pending slots remain honest placeholders without dummy images', async ({ page }) => {
+test('zero ILLUSTRATION PENDING placeholders remain on any previously quota-pending route', async ({ page }) => {
   for (const [route, id] of [
+    ['/creative/explore/', 'CREATIVE_NARRATIVE_GRAPH'],
+    ['/creative/ideas/', 'CREATIVE_IDEATION_WORKSPACE'],
     ['/creative/audit/', 'CREATIVE_CONSISTENCY_AUDIT'],
+    ['/creative/refactor/', 'CREATIVE_STORY_REFACTOR'],
+    ['/creative/remodel/', 'CREATIVE_CANON_REMODEL'],
+    ['/creative/impact/', 'CREATIVE_IMPACT_EXPLORER'],
+    ['/creative/roadmap/', 'CREATIVE_DEVELOPMENT_ROADMAP'],
     ['/creative/decisions/', 'CREATIVE_DECISION_TREE'],
     ['/statistics/decision-trees/', 'STATISTICAL_DECISION_TREE'],
   ] as const) {
     await page.goto(route);
     const slot = page.locator(`[data-image-slot="${id}"]`);
     await expect(slot).toBeVisible();
-    await expect(slot).toHaveAttribute('data-placeholder', 'true');
-    await expect(slot.locator('img')).toHaveCount(0);
+    await expect(slot).not.toHaveAttribute('data-placeholder', 'true');
+    await expect(slot.locator('img')).toHaveCount(1);
+    await expect(page.getByText(/illustration pending/i)).toHaveCount(0);
   }
 });

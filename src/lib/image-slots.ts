@@ -22,7 +22,7 @@ export type SlotMotif =
 
 export const ILLUSTRATION_CDN_ORIGIN = 'https://cdn.jsdelivr.net' as const;
 export const ILLUSTRATION_RESOURCE_REPO = 'Reltroner/reltroner-statistics-resource' as const;
-export const ILLUSTRATION_RESOURCE_COMMIT = 'd9fff7d30ca9d977328d1120c3b638c48046ff9c' as const;
+export const ILLUSTRATION_RESOURCE_COMMIT = 'b0af79b50adde0d8641edb994a5523e4a86ebf62' as const;
 
 const FULL_COMMIT_SHA_RE = /^[0-9a-f]{40}$/;
 const RESOURCE_IMAGE_PATH_RE = /^images\/[a-z0-9]+(?:-[a-z0-9]+)*\.webp$/;
@@ -78,24 +78,6 @@ function approvedSlot(input: {
     alt: input.alt,
     resourcePath: input.resourcePath,
     sha256: input.sha256,
-  };
-}
-
-function pendingSlot(input: {
-  id: string;
-  aspect: '16 / 9' | '3 / 2' | '4 / 3';
-  width: number;
-  height: number;
-  motif: SlotMotif;
-  purpose: string;
-}): ImageSlot {
-  return {
-    ...input,
-    approved: false,
-    src: null,
-    alt: '',
-    resourcePath: null,
-    sha256: null,
   };
 }
 
@@ -199,15 +181,105 @@ export const IMAGE_SLOTS = Object.freeze({
     sha256: 'da0e78d607cdacf65c0a310b5d11af211e79b85b4cf418e8695eb9a4b4b1345b',
     alt: 'Editorial illustration of two translucent luminous fields joined by a geometric polyline of crystalline nodes meeting at a warm ember junction above an archive plane',
   }),
-  CREATIVE_NARRATIVE_GRAPH: pendingSlot({ id: 'CREATIVE_NARRATIVE_GRAPH', aspect: '3 / 2', width: 1200, height: 800, motif: 'network', purpose: 'Narrative relationship graph' }),
-  CREATIVE_IDEATION_WORKSPACE: pendingSlot({ id: 'CREATIVE_IDEATION_WORKSPACE', aspect: '3 / 2', width: 1200, height: 800, motif: 'prism', purpose: 'Story brainstorming and ideation' }),
-  CREATIVE_CONSISTENCY_AUDIT: pendingSlot({ id: 'CREATIVE_CONSISTENCY_AUDIT', aspect: '3 / 2', width: 1200, height: 800, motif: 'scales', purpose: 'Narrative consistency findings' }),
-  CREATIVE_STORY_REFACTOR: pendingSlot({ id: 'CREATIVE_STORY_REFACTOR', aspect: '3 / 2', width: 1200, height: 800, motif: 'blueprint', purpose: 'Story restructuring and refactoring' }),
-  CREATIVE_CANON_REMODEL: pendingSlot({ id: 'CREATIVE_CANON_REMODEL', aspect: '3 / 2', width: 1200, height: 800, motif: 'twin-orbits', purpose: 'Canon remodeling and scenarios' }),
-  CREATIVE_IMPACT_EXPLORER: pendingSlot({ id: 'CREATIVE_IMPACT_EXPLORER', aspect: '3 / 2', width: 1200, height: 800, motif: 'ripples', purpose: 'Consequence and impact explorer' }),
-  CREATIVE_DEVELOPMENT_ROADMAP: pendingSlot({ id: 'CREATIVE_DEVELOPMENT_ROADMAP', aspect: '16 / 9', width: 1280, height: 720, motif: 'chronology', purpose: 'Creative roadmap and opportunities' }),
-  CREATIVE_DECISION_TREE: pendingSlot({ id: 'CREATIVE_DECISION_TREE', aspect: '3 / 2', width: 1200, height: 800, motif: 'branching', purpose: 'Interactive creative and editorial decision trees' }),
-  STATISTICAL_DECISION_TREE: pendingSlot({ id: 'STATISTICAL_DECISION_TREE', aspect: '3 / 2', width: 1200, height: 800, motif: 'branching', purpose: 'Guarded supervised decision trees' }),
+  CREATIVE_NARRATIVE_GRAPH: approvedSlot({
+    id: 'CREATIVE_NARRATIVE_GRAPH',
+    aspect: '3 / 2',
+    width: 1200,
+    height: 800,
+    motif: 'network',
+    purpose: 'Narrative relationship graph',
+    resourcePath: 'images/creative-narrative-graph.webp',
+    sha256: '13969ec87d478ca38a41ce734594f21229df6d83fe827e24e707a155481c193c',
+    alt: 'Editorial illustration of an isometric ring of cobalt, cyan, and ice-white narrative nodes connected by crisp perimeter edges around a central warm-ember node with subtler cross-links',
+  }),
+  CREATIVE_IDEATION_WORKSPACE: approvedSlot({
+    id: 'CREATIVE_IDEATION_WORKSPACE',
+    aspect: '3 / 2',
+    width: 1200,
+    height: 800,
+    motif: 'prism',
+    purpose: 'Story brainstorming and ideation',
+    resourcePath: 'images/creative-ideation-workspace.webp',
+    sha256: 'efad23baf37283efc97e9e02577fc5579ea270a0f95c31d453dfa92c22c0b8b4',
+    alt: 'Editorial illustration of a single ice-white beam entering a triangular optical prism framed by fine calibration rings and emerging as three distinct cobalt, cyan, and warm-ember beams',
+  }),
+  CREATIVE_CONSISTENCY_AUDIT: approvedSlot({
+    id: 'CREATIVE_CONSISTENCY_AUDIT',
+    aspect: '3 / 2',
+    width: 1200,
+    height: 800,
+    motif: 'scales',
+    purpose: 'Narrative consistency findings',
+    resourcePath: 'images/creative-consistency-audit.webp',
+    sha256: '19375aa32eacb07cc4b28267396a3a7b8380dc44beca5e510d1e4f35a980fb8f',
+    alt: 'Editorial illustration of a level neutral balance with a thin vertical axis, warm-ember fulcrum, and two equal isometric pans each holding an identical cobalt-and-cyan polyhedron',
+  }),
+  CREATIVE_STORY_REFACTOR: approvedSlot({
+    id: 'CREATIVE_STORY_REFACTOR',
+    aspect: '3 / 2',
+    width: 1200,
+    height: 800,
+    motif: 'blueprint',
+    purpose: 'Story restructuring and refactoring',
+    resourcePath: 'images/creative-story-refactor.webp',
+    sha256: 'ba398d94796d0a7e933eaeb4ff832685d8b1037e92331446b8497ede06fd45f3',
+    alt: 'Editorial isometric blueprint illustration showing one tall vertical module on the left routed through cyan and warm-ember paths into two smaller stacked modules on the right',
+  }),
+  CREATIVE_CANON_REMODEL: approvedSlot({
+    id: 'CREATIVE_CANON_REMODEL',
+    aspect: '3 / 2',
+    width: 1200,
+    height: 800,
+    motif: 'twin-orbits',
+    purpose: 'Canon remodeling and scenarios',
+    resourcePath: 'images/creative-canon-remodel.webp',
+    sha256: '2943f16de4138e8da6f8960483764b06c7c7a79c527a968918b9143a8bc47539',
+    alt: 'Editorial illustration of two equal-weight overlapping orbital rings, one cool cobalt and one warm ember, linked across their shared intersection by neutral ice-white comparison rungs',
+  }),
+  CREATIVE_IMPACT_EXPLORER: approvedSlot({
+    id: 'CREATIVE_IMPACT_EXPLORER',
+    aspect: '3 / 2',
+    width: 1200,
+    height: 800,
+    motif: 'ripples',
+    purpose: 'Consequence and impact explorer',
+    resourcePath: 'images/creative-impact-explorer.webp',
+    sha256: '4e7f53fe2a4876582b88df9848d93a2931f22273c80b58da8b62691ce767b235',
+    alt: 'Editorial illustration of concentric isometric ripples radiating from a small warm-ember core, transitioning from solid cyan inner rings to finely dashed outer uncertainty rings',
+  }),
+  CREATIVE_DEVELOPMENT_ROADMAP: approvedSlot({
+    id: 'CREATIVE_DEVELOPMENT_ROADMAP',
+    aspect: '16 / 9',
+    width: 1280,
+    height: 720,
+    motif: 'chronology',
+    purpose: 'Creative roadmap and opportunities',
+    resourcePath: 'images/creative-development-roadmap.webp',
+    sha256: '0b27aaefb3d3575c8de949c6cb19ec4c7232138e1372bee67516db33880a54c5',
+    alt: 'Editorial wide illustration of a gently sweeping primary arc lined with evenly spaced circular markers and short parallel cyan and warm-ember arcs representing alternative tracks',
+  }),
+  CREATIVE_DECISION_TREE: approvedSlot({
+    id: 'CREATIVE_DECISION_TREE',
+    aspect: '3 / 2',
+    width: 1200,
+    height: 800,
+    motif: 'branching',
+    purpose: 'Interactive creative and editorial decision trees',
+    resourcePath: 'images/creative-decision-tree.webp',
+    sha256: '4c340b90b6104261f0a4fb79f80331b6b7e0b2107f5f0028706a7928e117c6e6',
+    alt: 'Editorial illustration of a neutral branching decision tree moving from one root circle through a split node and three cyan diamond decision gates to four equal-sized terminal nodes',
+  }),
+  STATISTICAL_DECISION_TREE: approvedSlot({
+    id: 'STATISTICAL_DECISION_TREE',
+    aspect: '3 / 2',
+    width: 1200,
+    height: 800,
+    motif: 'branching',
+    purpose: 'Guarded supervised decision trees',
+    resourcePath: 'images/statistical-decision-tree.webp',
+    sha256: '45b3a84cb402cc27664638fa1fddfa89e703cea8c0abd5bde9d05c1872e97c15',
+    alt: 'Editorial isometric illustration of a guarded branching decision structure where one root node splits through three wireframe shield constraints and three diamond gates into four equal terminal nodes',
+  }),
 } satisfies Record<string, ImageSlot>);
 
 export type ImageSlotId = keyof typeof IMAGE_SLOTS;
